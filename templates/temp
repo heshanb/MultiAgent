@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiAgent 智能助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+            padding: 0 10px;
+        }
+
+        .message.user .message-time {
+            text-align: right;
+        }
+
+        .thinking-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .thinking-icon {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #667eea;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .skill-panel {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .skill-panel.active {
+            display: block;
+        }
+
+        .skill-panel h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .skill-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .skill-item {
+            padding: 8px 15px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .skill-item:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .skill-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #f8f9fa;
+            border-radius: 25px;
+            padding: 8px 15px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        #messageInput {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .send-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .toolbar-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: flex-start;
+        }
+
+        .toolbar-btn {
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #666;
+            transition: all 0.2s;
+        }
+
+        .toolbar-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .file-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .file-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 6px;
+            height: 6px;
+            background: white;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .example-questions {
+            padding: 10px 20px;
+            background: #fafafa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .example-questions h4 {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+
+        .example-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .example-item {
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-item:hover {
+            background: #667eea;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MultiAgent 智能助手</h1>
+            <p>基于 LangGraph 的多智能体协作系统</p>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <!-- 消息会动态添加到这里 -->
+        </div>
+
+        <div class="example-questions">
+            <h4>💡 示例问题（点击即可发送）：</h4>
+            <div class="example-list">
+                <div class="example-item" onclick="setExample('北京三日游')">北京三日游</div>
+                <div class="example-item" onclick="setExample('讲个程序员笑话')">😂 程序员笑话</div>
+                <div class="example-item" onclick="setExample('对联：春回大地')">📝 对联：春回大地</div>
+                <div class="example-item" onclick="setExample('文档修改')"> 文档修改</div>
+                <div class="example-item" onclick="setExample('什么是人工智能？')">❓ 知识问答</div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="skill-panel" id="skillPanel">
+                <h3>选择技能：</h3>
+                <div class="skill-list">
+                    <div class="skill-item" onclick="selectSkill('travel')">🗺️ 旅行规划</div>
+                    <div class="skill-item" onclick="selectSkill('joke')">😄 讲笑话</div>
+                    <div class="skill-item" onclick="selectSkill('couplet')">📝 对联生成</div>
+                    <div class="skill-item" onclick="selectSkill('document')">📄 文档修改</div>
+                </div>
+            </div>
+
+            <div id="fileTagInline" style="display: none; margin-bottom: 10px;">
+                <span class="file-tag">
+                    📎 <span id="fileName"></span>
+                    <span class="remove" onclick="removeFileTag()">×</span>
+                </span>
+            </div>
+
+            <div class="input-wrapper">
+                <input type="text" id="messageInput" placeholder="输入问题或任务，/ 选择技能" onkeypress="handleKeyPress(event)">
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="发送"></button>
+            </div>
+            <div class="toolbar-row">
+                <button class="toolbar-btn" onclick="document.getElementById('fileInput').click()">➕ 上传文件</button>
+                <button class="toolbar-btn" onclick="toggleSkillPanel()">🛠️ 技能</button>
+            </div>
+        </div>
+        <input type="file" id="fileInput" style="display:none;" accept=".docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls" onchange="handleFileSelect(event)">
+    </div>
+
+    <script>
+        let threadId = Math.floor(Math.random() * 100000);
+        let uploadedFiles = [];
+        let currentSkill = null;
+        let uploadedFilePath = null;
+
+        function getTime() {
+            return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function addMessage(content, type, isThinking = false) {
+            const chatArea = document.getElementById('chatArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            let displayContent = content ? content.replace(/\n/g, '<br>') : '暂无响应';
+            displayContent = displayContent.replace(/$$([^$$]+)\]$([^)]+)$/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline; cursor: pointer;">$1</a>');
+            if (isThinking) {
+                msgDiv.innerHTML = `<div class="thinking-indicator"><span class="thinking-icon"></span><span>${displayContent}</span></div><div class="message-time">${getTime()}</div>`;
+            } else {
+                msgDiv.innerHTML = `<div>${displayContent}</div><div class="message-time">${getTime()}</div>`;
+            }
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return msgDiv;
+        }
+
+        function setLoading(loading) {
+            document.getElementById('sendBtn').disabled = loading;
+            if (loading) {
+                document.getElementById('sendBtn').innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+            } else {
+                document.getElementById('sendBtn').innerHTML = '➤';
+            }
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '上传失败');
+                }
+
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('文件上传失败:', error);
+                throw error;
+            }
+        }
+
+        async function readTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message && uploadedFiles.length === 0) return;
+
+            addMessage(message, 'user');
+            input.value = '';
+            setLoading(true);
+
+            const thinkingMsg = addMessage('正在分析您的问题...', 'assistant', true);
+
+            try {
+                let fileContent = null;
+                let fileName = null;
+
+                if (uploadedFiles.length > 0) {
+                    const file = uploadedFiles[0];
+                    fileName = file.name;
+
+                    // 所有文件都调用 /upload 接口上传到服务器
+                    const uploadResult = await uploadFile(file);
+                    uploadedFilePath = uploadResult.file_path;
+                    fileName = uploadResult.filename;
+
+                    // 对于 txt 文件，也读取内容以便预览
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (ext === 'txt') {
+                        fileContent = await readTextFile(file);
+                    }
+                }
+
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        thread_id: threadId,
+                        file_content: fileContent,
+                        file_name: fileName
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('请求失败');
+                }
+
+                thinkingMsg.remove();
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let assistantMsg = addMessage('', 'assistant');
+                let fullResponse = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            const data = line.slice(6);
+                            if (data && data !== '[DONE]') {
+                                try {
+                                    const parsed = JSON.parse(data);
+                                    fullResponse = parsed;
+                                    assistantMsg.querySelector('div').innerHTML = fullResponse.replace(/\n/g, '<br>').replace(/$$([^$$]+)\]$([^)]+)$/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline; cursor: pointer;">$1</a>');
+                                    document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+                                } catch (e) {
+                                    // 忽略解析错误
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 清除已上传的文件
+                uploadedFiles = [];
+                uploadedFilePath = null;
+                document.getElementById('fileTagInline').style.display = 'none';
+
+            } catch (error) {
+                thinkingMsg.remove();
+                addMessage('抱歉，发生了错误：' + error.message, 'assistant');
+                console.error('Error:', error);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function toggleSkillPanel() {
+            const panel = document.getElementById('skillPanel');
+            panel.classList.toggle('active');
+        }
+
+        function selectSkill(skill) {
+            currentSkill = skill;
+            const items = document.querySelectorAll('.skill-item');
+            items.forEach(item => item.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const skillNames = {
+                'travel': '旅行规划',
+                'joke': '讲笑话',
+                'couplet': '对联生成',
+                'document': '文档修改'
+            };
+
+            document.getElementById('messageInput').placeholder = `请输入${skillNames[skill]}相关的问题...`;
+            toggleSkillPanel();
+        }
+
+        function setExample(text) {
+            document.getElementById('messageInput').value = text;
+            sendMessage();
+        }
+
+        function showFileTag(file) {
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileTagInline').style.display = 'block';
+            document.getElementById('fileTagInline').classList.add('show');
+        }
+
+        function removeFileTag() {
+            document.getElementById('fileTagInline').classList.remove('show');
+            uploadedFiles = [];
+            uploadedFilePath = null;
+            setTimeout(() => {
+                document.getElementById('fileTagInline').style.display = 'none';
+            }, 300);
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            if (files.length > 0) {
+                const file = files[0];
+                const ext = file.name.split('.').pop().toLowerCase();
+                const allowedExts = ['docx', 'doc', 'txt', 'ppt', 'pptx', 'xlsx', 'xls'];
+
+                if (!allowedExts.includes(ext)) {
+                    alert(`不支持的文件格式，支持的格式: ${allowedExts.join(', ')}`);
+                    return;
+                }
+
+                showFileTag(file);
+                uploadedFiles = [file];
+            }
+            event.target.value = '';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiAgent 智能助手</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 900px; background: white; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { font-size: 1.8rem; margin-bottom: 8px; }
+        .header p { font-size: 1rem; opacity: 0.9; }
+        .chat-area { padding: 20px; height: 450px; overflow-y: auto; border-bottom: 1px solid #eee; background: #fafafa; }
+        .message { margin-bottom: 16px; padding: 14px 18px; border-radius: 12px; max-width: 85%; line-height: 1.6; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .user { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; margin-left: auto; border-bottom-right-radius: 4px; }
+        .assistant { background: #ffffff; color: #333; border: 1px solid #e0e0e0; border-bottom-left-radius: 4px; }
+        .message-time { font-size: 0.75rem; color: #999; margin-top: 6px; }
+        .examples { padding: 0 20px 15px; background: #fafafa; }
+        .examples h3 { font-size: 0.85rem; color: #666; margin-bottom: 12px; }
+        .example-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag { padding: 8px 16px; background: #f0f0f0; border-radius: 20px; font-size: 0.85rem; cursor: pointer; transition: all 0.2s; }
+        .tag:hover { background: #667eea; color: white; transform: translateY(-2px); }
+        .loading-dots { display: flex; gap: 4px; }
+        .loading-dots span { width: 8px; height: 8px; background: white; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        .thinking-indicator { display: flex; align-items: center; gap: 8px; color: #667eea; }
+        .thinking-icon { width: 20px; height: 20px; border: 2px solid #667eea; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .typing-cursor::after { content: '|'; animation: blink 1s step-end infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .input-wrapper { padding: 15px 20px 20px; background: white; border-top: 1px solid #eee; }
+        .input-box { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 10px; border: 2px solid #e0e0e0; border-radius: 24px; transition: all 0.3s; background: #fafafa; position: relative; }
+        .input-box:focus-within { border-color: #667eea; background: white; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .input-row { display: flex; align-items: center; gap: 10px; }
+        .skill-tag { display: none; align-items: center; gap: 4px; padding: 4px 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 12px; font-size: 0.85rem; white-space: nowrap; }
+        .skill-tag.show { display: flex; }
+        .skill-tag .remove { cursor: pointer; margin-left: 4px; opacity: 0.8; }
+        .skill-tag .remove:hover { opacity: 1; }
+        .file-tag-inline { display: none; align-items: center; gap: 6px; padding: 6px 10px; background: #f0f0f0; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; max-width: 150px; }
+        .file-tag-inline.show { display: flex; }
+        .file-tag-inline .file-icon { font-size: 1rem; }
+        .file-tag-inline .file-info { display: flex; flex-direction: column; overflow: hidden; }
+        .file-tag-inline .file-name { font-size: 0.8rem; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-tag-inline .file-size { font-size: 0.7rem; color: #999; }
+        .file-tag-inline .remove { cursor: pointer; color: #999; margin-left: 4px; }
+        .file-tag-inline .remove:hover { color: #f44336; }
+        .input-row input { flex: 1; border: none; background: transparent; font-size: 1rem; outline: none; padding: 4px 0; }
+        .input-row input::placeholder { color: #999; }
+        .send-btn { width: 40px; height: 40px; border: none; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: white; flex-shrink: 0; }
+        .send-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .toolbar-row { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid #eee; }
+        .toolbar-btn { padding: 4px 10px; border: none; border-radius: 12px; background: transparent; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; transition: all 0.2s; color: #666; }
+        .toolbar-btn:hover { background: #f0f0f0; color: #667eea; }
+        .popup-panel { display: none; position: absolute; bottom: 100%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); padding: 8px; z-index: 100; margin-bottom: 8px; }
+        .popup-panel.show { display: block; animation: slideUp 0.2s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .skill-item { padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+        .skill-item:hover { background: #f0f0f0; }
+        .skill-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; }
+        .skill-info h4 { font-size: 0.9rem; color: #333; margin-bottom: 2px; }
+        .skill-info p { font-size: 0.8rem; color: #666; }
+        .message-actions { display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
+        .action-btn { width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: #999; font-size: 0.95rem; }
+        .action-btn:hover { background: #f0f0f0; color: #667eea; }
+        .action-btn.active { color: #667eea; background: #eef0ff; }
+        .action-btn svg { width: 16px; height: 16px; fill: currentColor; }
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 24px; border-radius: 8px; font-size: 0.9rem; z-index: 9999; animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards; }
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes toastOut { from { opacity: 1; } to { opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1> MultiAgent 智能助手</h1>
+            <p>基于 LangGraph 的多智能体协作系统</p>
+        </div>
+        <div class="chat-area" id="chatArea"></div>
+        <div class="examples">
+            <h3>💡 示例问题（点击即可发送）：</h3>
+            <div class="example-tags">
+                <span class="tag" onclick="sendExample('帮我规划一个北京三日游的路线')"> 北京三日游</span>
+                <span class="tag" onclick="sendExample('给我讲一个程序员笑话')">😂 程序员笑话</span>
+                <span class="tag" onclick="sendExample('帮我对个对联，上联：春回大地')">📝 对联：春回大地</span>
+            </div>
+        </div>
+        <div class="input-wrapper">
+            <div class="input-box">
+                <div class="popup-panel" id="skillPanel">
+                    <div class="skill-item" onclick="selectSkill('document')">
+                        <div class="skill-icon">📄</div>
+                        <div class="skill-info">
+                            <h4>文档修改</h4>
+                            <p>帮你修改、编辑、排版和优化文档</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="file-tag-inline" id="fileTagInline">
+                        <span class="file-icon" id="fileTagIcon"></span>
+                        <div class="file-info">
+                            <span class="file-name" id="fileTagName"></span>
+                            <span class="file-size" id="fileTagSize"></span>
+                        </div>
+                        <span class="remove" onclick="removeFileTag()">✕</span>
+                    </div>
+                    <div class="skill-tag" id="skillTag">
+                        <span id="skillTagIcon"></span>
+                        <span id="skillTagName"></span>
+                        <span class="remove" onclick="removeSkill()">✕</span>
+                    </div>
+                    <input type="text" id="messageInput" placeholder="输入问题或任务，/ 选择技能" onkeypress="handleKeyPress(event)">
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="发送">➤</button>
+                </div>
+                <div class="toolbar-row">
+                    <button class="toolbar-btn" onclick="document.getElementById('fileInput').click()">➕ 上传文件</button>
+                    <button class="toolbar-btn" onclick="toggleSkillPanel()">🛠️ 技能</button>
+                </div>
+            </div>
+        </div>
+        <input type="file" id="fileInput" style="display:none;" accept=".docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls" onchange="handleFileSelect(event)">
+    </div>
+
+    <script>
+        let threadId = Math.floor(Math.random() * 100000);
+        let uploadedFiles = [];
+        let currentSkill = null;
+        let uploadedFilePath = null;
+
+        function getTime() {
+            return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function addMessage(content, type, isThinking = false) {
+            const chatArea = document.getElementById('chatArea');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${type}`;
+            let displayContent = content ? content.replace(/\n/g, '<br>') : '暂无响应';
+            displayContent = displayContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline; cursor: pointer;">$1</a>');
+            if (isThinking) {
+                msgDiv.innerHTML = `<div class="thinking-indicator"><span class="thinking-icon"></span><span>${displayContent}</span></div><div class="message-time">${getTime()}</div>`;
+            } else {
+                let actionsHTML = '';
+                if (type === 'assistant') {
+                    actionsHTML = `
+                        <div class="message-actions">
+                            <button class="action-btn" title="赞" onclick="handleLike(this)">
+                                <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+                            </button>
+                            <button class="action-btn" title="踩" onclick="handleDislike(this)">
+                                <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>
+                            </button>
+                            <button class="action-btn" title="复制" onclick="handleCopy(this)">
+                                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                            </button>
+                            <button class="action-btn" title="重试" onclick="handleRetry(this)">
+                                <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                            </button>
+                        </div>`;
+                }
+                msgDiv.innerHTML = `<div class="message-content">${displayContent}</div><div class="message-time">${getTime()}</div>${actionsHTML}`;
+            }
+            chatArea.appendChild(msgDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return msgDiv;
+        }
+
+        function setLoading(loading) {
+            document.getElementById('sendBtn').disabled = loading;
+            if (loading) {
+                document.getElementById('sendBtn').innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
+            } else {
+                document.getElementById('sendBtn').innerHTML = '➤';
+            }
+        }
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '上传失败');
+                }
+
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('文件上传失败:', error);
+                throw error;
+            }
+        }
+
+        async function readTextFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file);
+            });
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (!message && uploadedFiles.length === 0) return;
+
+            addMessage(message, 'user');
+            input.value = '';
+            setLoading(true);
+
+            const thinkingMsg = addMessage('正在分析您的问题...', 'assistant', true);
+
+            try {
+                let fileContent = null;
+                let fileName = null;
+
+                if (uploadedFiles.length > 0) {
+                    const file = uploadedFiles[0];
+                    fileName = file.name;
+
+                    // 所有文件都调用 /upload 接口上传到服务器
+                    const uploadResult = await uploadFile(file);
+                    uploadedFilePath = uploadResult.file_path;
+                    fileName = uploadResult.filename;
+
+                    // 对于 txt 文件，也读取内容以便后端处理
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    if (ext === 'txt') {
+                        fileContent = await readTextFile(file);
+                    }
+                }
+
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        thread_id: threadId,
+                        file_content: fileContent,
+                        file_name: fileName
+                    })
+                });
+
+                if (!response.ok) throw new Error('网络请求失败');
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let latestResponse = '';
+                let state = 'thinking';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const text = JSON.parse(line.substring(6));
+                            latestResponse = text;
+                            const renderedResponse = latestResponse.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline; cursor: pointer;">$1</a>');
+                            if (state === 'thinking') {
+                                thinkingMsg.innerHTML = `<div class="message-content">${renderedResponse}<span class="typing-cursor"></span></div><div class="message-time">${getTime()}</div>`;
+                                state = 'responding';
+                            } else {
+                                const contentDiv = thinkingMsg.querySelector('.message-content');
+                                contentDiv.innerHTML = renderedResponse + '<span class="typing-cursor"></span>';
+                            }
+                        } catch (e) {}
+                    }
+                    document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+                }
+
+                if (state !== 'thinking') {
+                    const contentDiv = thinkingMsg.querySelector('.message-content');
+                    const renderedResponse = latestResponse.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline; cursor: pointer;">$1</a>');
+                    contentDiv.innerHTML = renderedResponse || '暂无响应';
+
+                    // 添加操作按钮
+                    const actionsHTML = `
+                        <div class="message-actions">
+                            <button class="action-btn" title="赞" onclick="handleLike(this)">
+                                <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+                            </button>
+                            <button class="action-btn" title="踩" onclick="handleDislike(this)">
+                                <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/></svg>
+                            </button>
+                            <button class="action-btn" title="复制" onclick="handleCopy(this)">
+                                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                            </button>
+                            <button class="action-btn" title="重试" onclick="handleRetry(this)">
+                                <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                            </button>
+                        </div>`;
+                    thinkingMsg.insertAdjacentHTML('beforeend', actionsHTML);
+                } else {
+                    thinkingMsg.innerHTML = `<div class="message-content">⚠️ 抱歉，服务响应超时</div><div class="message-time">${getTime()}</div>`;
+                }
+            } catch (error) {
+                thinkingMsg.innerHTML = `<div class="message-content">⚠️ 抱歉，服务出现错误: ${error.message}</div><div class="message-time">${getTime()}</div>`;
+            } finally {
+                setLoading(false);
+                removeFileTag();
+            }
+        }
+
+        function sendExample(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function toggleSkillPanel() {
+            const panel = document.getElementById('skillPanel');
+            panel.classList.toggle('show');
+        }
+
+        function closeAllPanels() {
+            document.getElementById('skillPanel').classList.remove('show');
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.toolbar-btn') && !e.target.closest('.popup-panel')) {
+                closeAllPanels();
+            }
+        });
+
+        function selectSkill(skillType) {
+            currentSkill = skillType;
+            closeAllPanels();
+            const skillTag = document.getElementById('skillTag');
+            const skillTagIcon = document.getElementById('skillTagIcon');
+            const skillTagName = document.getElementById('skillTagName');
+            const input = document.getElementById('messageInput');
+
+            if (skillType === 'document') {
+                skillTagIcon.textContent = '📄';
+                skillTagName.textContent = '文档';
+                skillTag.classList.add('show');
+                input.placeholder = '请描述您想如何修改文档...';
+                input.focus();
+            }
+        }
+
+        function removeSkill() {
+            currentSkill = null;
+            document.getElementById('skillTag').classList.remove('show');
+            document.getElementById('messageInput').placeholder = '输入问题或任务，/ 选择技能';
+        }
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const icons = { docx: '📝', doc: '📝', txt: '📄', ppt: '📊', pptx: '📊', xlsx: '📈', xls: '📈' };
+            return icons[ext] || '📎';
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function showFileTag(file) {
+            const fileTag = document.getElementById('fileTagInline');
+            document.getElementById('fileTagIcon').textContent = getFileIcon(file.name);
+            document.getElementById('fileTagName').textContent = file.name;
+            document.getElementById('fileTagSize').textContent = formatFileSize(file.size);
+            fileTag.classList.add('show');
+        }
+
+        function removeFileTag() {
+            document.getElementById('fileTagInline').classList.remove('show');
+            uploadedFiles = [];
+            uploadedFilePath = null;
+        }
+
+        function handleFileSelect(event) {
+            const files = Array.from(event.target.files);
+            if (files.length > 0) {
+                const file = files[0];
+                const ext = file.name.split('.').pop().toLowerCase();
+                const allowedExts = ['docx', 'doc', 'txt', 'ppt', 'pptx', 'xlsx', 'xls'];
+
+                if (!allowedExts.includes(ext)) {
+                    alert(`不支持的文件格式，支持的格式: ${allowedExts.join(', ')}`);
+                    return;
+                }
+
+                showFileTag(file);
+                uploadedFiles = [file];
+            }
+            event.target.value = '';
+        }
+
+        function showToast(message) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        function handleLike(btn) {
+            const actions = btn.closest('.message-actions');
+            actions.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            showToast('👍 感谢您的反馈！');
+        }
+
+        function handleDislike(btn) {
+            const actions = btn.closest('.message-actions');
+            actions.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            showToast('👎 收到您的反馈，我们会改进！');
+        }
+
+        function handleCopy(btn) {
+            const msgDiv = btn.closest('.message');
+            const contentDiv = msgDiv.querySelector('.message-content');
+            const text = contentDiv.innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                btn.classList.add('active');
+                showToast('✅ 已复制到剪贴板');
+                setTimeout(() => btn.classList.remove('active'), 1500);
+            }).catch(() => {
+                showToast('❌ 复制失败，请手动复制');
+            });
+        }
+
+        function handleRetry(btn) {
+            const msgDiv = btn.closest('.message');
+            const prevMsg = msgDiv.previousElementSibling;
+            if (prevMsg && prevMsg.classList.contains('user')) {
+                const userText = prevMsg.querySelector('.message-content') ? prevMsg.querySelector('.message-content').innerText : prevMsg.innerText;
+                document.getElementById('messageInput').value = userText;
+                msgDiv.remove();
+                prevMsg.remove();
+                sendMessage();
+            } else {
+                showToast('⚠️ 找不到对应的用户消息');
+            }
+        }
+    </script>
+</body>
+</html>
