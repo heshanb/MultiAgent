@@ -157,6 +157,9 @@
         .input-row { display: flex; align-items: center; gap: 10px; }
         .skill-tag { display: none; align-items: center; gap: 4px; padding: 4px 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 12px; font-size: 0.85rem; white-space: nowrap; }
         .skill-tag.show { display: flex; }
+        .skill-tag.skill-document { background: linear-gradient(135deg, #4facfe, #005bea); }
+        .skill-tag.skill-code { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .skill-tag.skill-drawing { background: linear-gradient(135deg, #f5af19, #f12711); }
         .skill-tag .remove { cursor: pointer; margin-left: 4px; opacity: 0.8; }
         .skill-tag .remove:hover { opacity: 1; }
         .file-tag-inline { display: none; align-items: center; gap: 6px; padding: 6px 10px; background: #f0f0f0; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; max-width: 150px; }
@@ -182,7 +185,10 @@
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .skill-item { padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
         .skill-item:hover { background: #f0f0f0; }
-        .skill-icon { width: 32px; height: 32px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; }
+        .skill-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; flex-shrink: 0; }
+        .skill-icon[data-skill="document"] { background: linear-gradient(135deg, #4facfe, #005bea); }
+        .skill-icon[data-skill="code"] { background: linear-gradient(135deg, #11998e, #38ef7d); }
+        .skill-icon[data-skill="drawing"] { background: linear-gradient(135deg, #f5af19, #f12711); }
         .skill-info h4 { font-size: 0.9rem; color: #333; margin-bottom: 2px; }
         .skill-info p { font-size: 0.8rem; color: #666; }
 
@@ -266,17 +272,24 @@
             <div class="input-box">
                 <div class="popup-panel" id="skillPanel">
                     <div class="skill-item" onclick="selectSkill('document')">
-                        <div class="skill-icon"></div>
+                        <div class="skill-icon" data-skill="document">📄</div>
                         <div class="skill-info">
                             <h4>文档处理</h4>
                             <p>帮你创建、修改、排版和优化文档</p>
                         </div>
                     </div>
                     <div class="skill-item" onclick="selectSkill('code')">
-                        <div class="skill-icon"></div>
+                        <div class="skill-icon" data-skill="code">💻</div>
                         <div class="skill-info">
                             <h4>编程</h4>
                             <p>帮你编写代码，修改上传的代码文件</p>
+                        </div>
+                    </div>
+                    <div class="skill-item" onclick="selectSkill('drawing')">
+                        <div class="skill-icon" data-skill="drawing">📐</div>
+                        <div class="skill-info">
+                            <h4>图纸识别</h4>
+                            <p>识别工程图纸，提取尺寸、公差、国标校核</p>
                         </div>
                     </div>
                 </div>
@@ -671,6 +684,7 @@
                         thread_id: conv.threadId,
                         file_content: fileContent,
                         file_name: fileName,
+                        skill: currentSkill,
                         history: conv.messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }))
                     })
                 });
@@ -785,26 +799,40 @@
                 skillTagName.textContent = '文档';
                 messageInput.placeholder = '请描述您想如何新建或修改文档...';
             } else if (skillType === 'code') {
-                skillTagIcon.textContent = '';
+                skillTagIcon.textContent = '💻';
                 skillTagName.textContent = '编程';
                 messageInput.placeholder = '请描述您想编写或修改的代码...';
+            } else if (skillType === 'drawing') {
+                skillTagIcon.textContent = '📐';
+                skillTagName.textContent = '图纸识别';
+                messageInput.placeholder = '请描述图纸分析需求，如：提取尺寸、校核公差...';
             }
 
-            skillTag.classList.add('show');
+            skillTag.className = 'skill-tag show skill-' + skillType;
             messageInput.focus();
             document.getElementById('uploadFileBtn').disabled = false;
+
+            // 根据技能类型动态设置文件上传格式
+            const fileInput = document.getElementById('fileInput');
+            if (skillType === 'drawing') {
+                fileInput.setAttribute('accept', '.png,.jpg,.jpeg,.bmp,.tiff,.tif,.pdf,.dxf');
+            } else {
+                fileInput.setAttribute('accept', '.docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls');
+            }
         }
 
         function removeSkill() {
             currentSkill = null;
-            document.getElementById('skillTag').classList.remove('show');
+            const skillTag = document.getElementById('skillTag');
+            skillTag.className = 'skill-tag';
             document.getElementById('messageInput').placeholder = '输入问题或任务，/ 选择技能';
             document.getElementById('uploadFileBtn').disabled = true;
         }
 
         function getFileIcon(filename) {
             const ext = filename.split('.').pop().toLowerCase();
-            const icons = { docx: '📝', doc: '📝', txt: '📄', ppt: '', pptx: '📊', xlsx: '📈', xls: '📈' };
+            const icons = { docx: '📝', doc: '📝', txt: '📄', ppt: '', pptx: '📊', xlsx: '📈', xls: '📈',
+                            png: '', jpg: '', jpeg: '', bmp: '', tiff: '', tif: '', pdf: '📕', dxf: '📐' };
             return icons[ext] || '';
         }
 

@@ -5,17 +5,16 @@ os.environ.setdefault("DASHSCOPE_API_KEY", "")
 import asyncio
 from typing import Annotated, TypedDict
 from operator import add
-from langgraph.config import get_stream_writer
+from pathlib import Path
 from langchain_classic.agents import create_react_agent
 from langchain_community.chat_models import ChatTongyi
 from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_core.messages import AnyMessage, HumanMessage
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_chroma import Chroma
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph
 from langgraph.constants import END, START
-from core.DocumentProcess import doc_processor
+from core.DocProcess.document_process import doc_processor
+from core.DrawingRecoAssistant.drawing_assistant import get_drawing_assistant
 from settings.Define import Params, PathConfig
 from settings.logger_manager import get_logger
 
@@ -28,6 +27,7 @@ logger = get_logger(__name__)
 
 llm = ChatTongyi(
     model=Params.DEFAULT_CHAT_MODEL,
+    api_key=os.getenv("DASHSCOPE_API_KEY"),
     api_base=Params.API_BASE
 )
 
@@ -38,6 +38,7 @@ class State(TypedDict):
     type: str
     file_path: str  # 添加文件路径字段
     previous_node: str  # 记录上一个执行的节点类型，用于反思后路由
+    skill: str  # 前端选择的技能类型：travel/joke/couplet/document/code/drawing/other
 
 
 def create_agent_graph():
@@ -58,7 +59,8 @@ def create_agent_graph():
 3. 如果用户的问题是和对联相关的，那就返回couplet。
 4. 如果用户的问题是和文档相关的（包含修改已有文档、新建文档并写入内容、排版、修正格式、修改对齐方式，查看文档中的错别字等等），那就返回document。
 5. 如果用户的问题是和编程相关的，那就返回code。
-6. 如果是其它问题，那就返回other。
+6. 如果用户的问题是和工程图纸识别、尺寸提取、公差校核、DXF解析、国标查询、单位换算等相关的，那就返回drawing。
+7. 如果是其它问题，那就返回other。
 
 重要：如果用户的问题是追问、确认、或者对之前回答的反馈（例如"确认下是否写得对？"、"再优化一下"、"不对，应该是..."），请根据对话历史判断之前讨论的主题，并返回对应的分类。
 除了这几个选项外，不要返回任何其它的内容。
@@ -94,6 +96,10 @@ def create_agent_graph():
         if "type" in state:
             logger.info("已有类型，返回 END")
             return {"type": END}
+        elif state.get("skill", "").strip() in nodes:
+            skill_type = state["skill"].strip()
+            logger.info(f"前端指定技能: {skill_type}，直接路由")
+            return {"type": skill_type}
         else:
             try:
                 response = llm.invoke(prompt_list)
@@ -337,10 +343,13 @@ def create_agent_graph():
 
     def couplet_node(state: State):
         logger.info("couplet_node 开始处理")
-        prompt_template = ChatPromptTemplate.from_messages([
-            ("system","你是一个专业的对联大师，你的任务是根据用户给出的上联，设计一个下联。回答时，可以参考下面的参考对联。参考对联：{samples}请用中文回答问题，注意事项：直接给出下联是什么就行，不需要做过多的解释"),
-            ("user", "{text}")
-        ])
+
+        from core.Couplet.couplet import Couplet
+
+        couplet = Couplet()
+        if not couplet.load_vector():
+            return {"messages": [HumanMessage(content="抱歉，向量数据库加载失败。")], "type": "couplet"}
+
 
         query = state["messages"][-1]
         if hasattr(query, 'content'):
@@ -349,39 +358,8 @@ def create_agent_graph():
             query_text = str(query)
         logger.info(f"查询文本: {query_text}")
 
-        try:
-            vector_store = Chroma(collection_name="couplet", embedding_function=embedding_model,
-                                  persist_directory=PathConfig.DB_DIR)
-            logger.info("向量数据库连接成功")
-        except Exception as e:
-            logger.error(f"向量数据库连接失败: {str(e)}")
-            return {"messages": [HumanMessage(content="抱歉，向量数据库连接失败。")], "type": "couplet"}
-
-        samples = []
-        try:
-
-            lines = []
-            with open(PathConfig.COUPLET_FILE, "r", encoding="utf-8") as file:
-                for line in file:
-                    lines.append(line)
-            vector_store.add_texts(lines)
-
-            # RAG检索
-            scored_results = vector_store.similarity_search_with_score(query_text, k=4)
-            logger.info(f"检索到 {len(scored_results)} 条结果")
-            for doc, score in scored_results:
-                samples.append(doc.page_content)
-        except Exception as e:
-            logger.error(f"向量检索失败: {str(e)}")
-
-        logger.info(f"参考样本数量: {len(samples)}")
-
-        try:
-            # RAG增强
-            prompt = prompt_template.invoke({"samples": samples, "text": query_text})
-            logger.info("Prompt 构建成功")
-        except Exception as e:
-            logger.error(f"Prompt 构建失败: {str(e)}")
+        prompt = couplet.similarity_search(query_text)
+        if not prompt:
             return {"messages": [HumanMessage(content="抱歉，Prompt 构建失败。")], "type": "couplet"}
 
         try:
@@ -917,11 +895,30 @@ def create_agent_graph():
             'ppt': '.pptx', 'pptx': '.pptx', '幻灯片': '.pptx', '演示': '.pptx', 'powerpoint': '.pptx'
         }
 
-        output_ext = '.docx'  # 默认格式
+        # 首先从当前请求中检测文件类型
+        output_ext = None
         for keyword, ext in format_keywords.items():
             if keyword in creation_request.lower():
                 output_ext = ext
                 break
+        
+        # 如果当前请求中没有指定文件类型，从上下文历史中推断
+        if output_ext is None:
+            # 检查最近的对话历史，查找文件类型关键词
+            for msg in reversed(conversation_history):
+                msg_content = msg.get('content', '') if isinstance(msg, dict) else str(msg)
+                for keyword, ext in format_keywords.items():
+                    if keyword in msg_content.lower():
+                        output_ext = ext
+                        logger.info(f'从上下文历史中推断文件类型: {ext} (关键词: {keyword})')
+                        break
+                if output_ext:
+                    break
+        
+        # 如果仍然没有检测到，使用默认格式
+        if output_ext is None:
+            output_ext = '.docx'
+            logger.info('未检测到文件类型，使用默认格式: .docx')
 
         system_prompt = f"""你是一个专业的文档创作助手。你的任务是根据用户的要求创建一份完整的文档。
 
@@ -1125,16 +1122,82 @@ def create_agent_graph():
 
                 elif output_ext in ['.xlsx', '.xls']:
                     import openpyxl
+                    from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+
                     wb = openpyxl.Workbook()
                     ws = wb.active
                     ws.title = "Sheet1"
 
                     lines = final_content.split('\n')
-                    for row_idx, line in enumerate(lines, 1):
-                        if line.strip():
-                            cells = line.split('\t') if '\t' in line else [line]
-                            for col_idx, cell_value in enumerate(cells, 1):
-                                ws.cell(row=row_idx, column=col_idx, value=cell_value.strip())
+
+                    # 智能解析表格数据
+                    parsed_rows = []
+                    for line in lines:
+                        line = line.strip()
+                        if not line:
+                            continue
+
+                        # 跳过Markdown表格分隔符行（如 |---|---|）
+                        if all(c in '-|: ' for c in line):
+                            continue
+
+                        # 解析不同格式的分隔符
+                        cells = []
+                        if '|' in line:
+                            # Markdown表格格式：| 列1 | 列2 | 列3 |
+                            cells = [cell.strip() for cell in line.split('|') if cell.strip()]
+                        elif '\t' in line:
+                            # 制表符分隔
+                            cells = [cell.strip() for cell in line.split('\t') if cell.strip()]
+                        elif ',' in line and line.count(',') > 1:
+                            # 逗号分隔（CSV格式）
+                            cells = [cell.strip() for cell in line.split(',')]
+                        else:
+                            # 默认整行作为一列
+                            cells = [line]
+
+                        if cells:
+                            parsed_rows.append(cells)
+
+                    # 写入Excel
+                    for row_idx, row_data in enumerate(parsed_rows, 1):
+                        for col_idx, cell_value in enumerate(row_data, 1):
+                            cell = ws.cell(row=row_idx, column=col_idx, value=cell_value)
+
+                            # 第一行设置为标题行（加粗、居中、蓝色背景）
+                            if row_idx == 1:
+                                cell.font = Font(bold=True, color="FFFFFF")
+                                cell.alignment = Alignment(horizontal="center", vertical="center")
+                                cell.fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
+                            else:
+                                cell.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+
+                    # 自动调整列宽
+                    for column in ws.columns:
+                        max_length = 0
+                        column_letter = column[0].column_letter
+                        for cell in column:
+                            try:
+                                if cell.value:
+                                    cell_length = len(str(cell.value))
+                                    if cell_length > max_length:
+                                        max_length = cell_length
+                            except:
+                                pass
+                        adjusted_width = min(max_length + 2, 50)  # 最大宽度50
+                        ws.column_dimensions[column_letter].width = adjusted_width
+
+                    # 添加边框
+                    thin_border = Border(
+                        left=Side(style='thin'),
+                        right=Side(style='thin'),
+                        top=Side(style='thin'),
+                        bottom=Side(style='thin')
+                    )
+
+                    for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+                        for cell in row:
+                            cell.border = thin_border
 
                     wb.save(str(output_path))
 
@@ -1276,6 +1339,47 @@ def create_agent_graph():
 
         return {"messages": [HumanMessage(content=content)], "type": "document", "previous_node": "document_node"}
 
+    def drawing_node(state: State):
+        """图纸识别节点：委托 DrawingAssistant 处理工程图纸相关任务"""
+        logger.info("drawing_node 开始处理")
+
+        message = state["messages"][-1]
+        if hasattr(message, 'content'):
+            user_query = message.content
+        else:
+            user_query = str(message)
+
+        file_path = state.get("file_path", "")
+        assistant = get_drawing_assistant()
+
+        # 根据文件扩展名判断图纸类型
+        img_path = None
+        pdf_path = None
+        dxf_path = None
+
+        if file_path:
+            ext = Path(file_path).suffix.lower()
+            if ext in (".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".tif"):
+                img_path = file_path
+            elif ext == ".pdf":
+                pdf_path = file_path
+            elif ext == ".dxf":
+                dxf_path = file_path
+
+        try:
+            result = assistant.invoke(
+                user_query=user_query,
+                img_path=img_path,
+                pdf_path=pdf_path,
+                dxf_path=dxf_path,
+                thread_id="agent_draw_session",
+            )
+        except Exception as e:
+            logger.error(f"drawing_node 处理失败: {str(e)}")
+            result = f"图纸识别处理失败：{str(e)}"
+
+        return {"messages": [HumanMessage(content=result)], "type": "drawing", "previous_node": "drawing_node"}
+
     def reflection_node(state: State):
         """反思节点：评估各任务节点的输出质量，决定是否需要重新生成"""
         logger.info("reflection_node 开始反思")
@@ -1382,7 +1486,23 @@ AI回答：{ai_response}
 
 请给出评估结果，只能返回以下两种之一：
 - "PASS"：质量合格，无需修改
-- "FAIL: {具体问题描述和改进建议}"：质量不合格，需要重新生成"""
+- "FAIL: {具体问题描述和改进建议}"：质量不合格，需要重新生成""",
+
+            "drawing_node": """你是一个专业的工程图纸分析质量评估专家。请评估以下图纸分析回答的质量：
+
+评估标准：
+1. 是否准确提取了图纸中的尺寸、标注、图层等信息
+2. 尺寸分析是否合理、尺寸链是否闭合
+3. 国标引用是否准确
+4. 加工建议是否专业、实用
+5. 回答结构是否清晰（图纸信息、尺寸分析、国标依据、加工建议）
+
+用户问题：{user_query}
+AI回答：{ai_response}
+
+请给出评估结果，只能返回以下两种之一：
+- "PASS"：质量合格，无需修改
+- "FAIL: {具体问题描述和改进建议}"：质量不合格，需要重新生成""",
         }
 
         reflection_prompt = reflection_prompts.get(previous_node, reflection_prompts["other_node"])
@@ -1425,6 +1545,9 @@ AI回答：{ai_response}
         elif current_type == Params.MAPPING_NODE.get(Params.CODE_NODE):
             logger.info(f"路由到 {Params.CODE_NODE}")
             return Params.CODE_NODE
+        elif current_type == Params.MAPPING_NODE.get(Params.DRAWING_NODE):
+            logger.info(f"路由到 {Params.DRAWING_NODE}")
+            return Params.DRAWING_NODE
         elif current_type == END:
             logger.info("路由到 END")
             return END
@@ -1450,17 +1573,19 @@ AI回答：{ai_response}
     builder.add_node(Params.COUPLET_NODE, couplet_node)
     builder.add_node(Params.CODE_NODE, code_node)
     builder.add_node(Params.DOCUMENT_NODE, document_node)
+    builder.add_node(Params.DRAWING_NODE, drawing_node)
     builder.add_node(Params.OTHER_NODE, other_node)
     builder.add_node(Params.REFLECTION_NODE, reflection_node)
     builder.add_edge(START, Params.SUPERVISOR_NODE)
     builder.add_conditional_edges(Params.SUPERVISOR_NODE, routing_func,
-                                  [Params.TRAVEL_NODE, Params.JOKE_NODE, Params.COUPLET_NODE, Params.DOCUMENT_NODE, Params.CODE_NODE, Params.OTHER_NODE, END])
+                                  [Params.TRAVEL_NODE, Params.JOKE_NODE, Params.COUPLET_NODE, Params.DOCUMENT_NODE, Params.CODE_NODE, Params.DRAWING_NODE, Params.OTHER_NODE, END])
     builder.add_edge(Params.TRAVEL_NODE, Params.REFLECTION_NODE)
     builder.add_edge(Params.JOKE_NODE, Params.REFLECTION_NODE)
     builder.add_edge(Params.COUPLET_NODE, Params.REFLECTION_NODE)
     builder.add_edge(Params.DOCUMENT_NODE, Params.REFLECTION_NODE)
     builder.add_edge(Params.CODE_NODE, Params.REFLECTION_NODE)
+    builder.add_edge(Params.DRAWING_NODE, Params.REFLECTION_NODE)
     builder.add_edge(Params.OTHER_NODE, Params.REFLECTION_NODE)
     builder.add_conditional_edges(Params.REFLECTION_NODE, reflection_routing_func,
-                                  [Params.TRAVEL_NODE, Params.JOKE_NODE, Params.COUPLET_NODE, Params.DOCUMENT_NODE, Params.CODE_NODE, Params.OTHER_NODE, END])
+                                  [Params.TRAVEL_NODE, Params.JOKE_NODE, Params.COUPLET_NODE, Params.DOCUMENT_NODE, Params.CODE_NODE, Params.DRAWING_NODE, Params.OTHER_NODE, END])
     return builder.compile(checkpointer=InMemorySaver())

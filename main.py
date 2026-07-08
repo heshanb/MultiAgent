@@ -11,8 +11,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
-from core.DocumentProcess import doc_processor
-from settings.Define import PathConfig, Params
+from core.DocProcess.document_process import doc_processor
+from settings.Define import PathConfig
 from core.agent import create_agent_graph
 from settings.logger_manager import get_logger
 
@@ -26,6 +26,7 @@ class ChatRequest(BaseModel):
     file_name: str | None = None
     original_file_ext: str | None = None
     history: list | None = None
+    skill: str | None = None
 
 
 graph_cache = {}
@@ -55,11 +56,6 @@ async def upload_file(file: UploadFile = File(...)):
     """处理文件上传，使用 doc_processor 保存文件"""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
-
-    # ext = Path(file.filename).suffix.lower()
-    # allowed_exts = Params.DOC_SUPPORTED_FORMATS   #{'.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt'}
-    # if ext not in allowed_exts:
-    #     raise HTTPException(status_code=400, detail=f"不支持的文件格式，支持的格式: {', '.join(allowed_exts)}")
 
     content = await file.read()
     file_path, saved_filename = doc_processor.save_uploaded_file(content, file.filename)
@@ -100,6 +96,10 @@ async def chat(request: ChatRequest):
             if request.file_name:
                 logger.info(f"检测到文件: {request.file_name}，正在读取内容...")
                 file_path = doc_processor.UPLOAD_DIR / request.file_name
+                file_ext = Path(request.file_name).suffix.lower()
+                # 图纸类文件：图片、DXF、PDF，不读取文本内容，只传路径
+                DRAWING_EXTS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif', '.pdf', '.dxf'}
+                is_drawing_file = file_ext in DRAWING_EXTS or request.skill == 'drawing'
 
                 if not file_path.exists() and request.file_content:
                     logger.info(f"文件不存在，但检测到 file_content，正在保存文件...")
@@ -112,7 +112,11 @@ async def chat(request: ChatRequest):
 
                 if file_path.exists():
                     file_path_for_state = str(file_path)
-                    if not request.file_content:
+                    if is_drawing_file:
+                        # 图纸文件：不读取文本内容，由 drawing_node 直接处理
+                        message_content = request.message
+                        logger.info(f"图纸文件上传，跳过文本读取: {file_path}")
+                    elif not request.file_content:
                         try:
                             file_content = doc_processor.read_document(str(file_path))
                             original_ext = Path(request.file_name).suffix.lower()
@@ -146,6 +150,8 @@ async def chat(request: ChatRequest):
             state_input = {"messages": messages_list}
             if file_path_for_state:
                 state_input["file_path"] = file_path_for_state
+            if request.skill:
+                state_input["skill"] = request.skill
 
             result = g.invoke(state_input, config)
             messages = result.get("messages", [])
