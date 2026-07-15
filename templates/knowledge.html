@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>知识库文档管理</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" type="image/svg+xml">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .header .actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background-color: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #5a6fd6;
+        }
+
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+
+        .btn-danger {
+            background-color: #ff4757;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #e8384a;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .upload-area {
+            border: 2px dashed #d0d0d0;
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            margin-bottom: 24px;
+        }
+
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #667eea;
+            background-color: #f8f9ff;
+        }
+
+        .upload-area .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #999;
+        }
+
+        .upload-area .text {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .upload-area .hint {
+            font-size: 14px;
+            color: #999;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .document-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .list-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .list-header .title-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .list-header .title {
+            font-weight: 600;
+            color: #333;
+            font-size: 15px;
+        }
+
+        .list-header .directory-path {
+            font-size: 15px;
+            font-weight: 500;
+            color: #667eea;
+            font-family: 'Consolas', 'Monaco', monospace;
+            max-width: 500px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .list-header .upload-btn {
+            flex-shrink: 0;
+            padding: 6px 16px;
+            font-size: 13px;
+        }
+
+        .document-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f5f5f5;
+            transition: background-color 0.1s ease;
+        }
+
+        .document-item:hover {
+            background-color: #fafafa;
+        }
+
+        .document-item:last-child {
+            border-bottom: none;
+        }
+
+        .document-item .icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .document-item .info {
+            flex: 1;
+        }
+
+        .document-item .info .name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .document-item .info .meta {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .document-item .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .document-item .actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state .text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .empty-state .hint {
+            font-size: 14px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 14px 20px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success {
+            background-color: #28a745;
+        }
+
+        .toast.error {
+            background-color: #dc3545;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        .modal p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .modal .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 知识库文档管理</h1>
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="goBack()">
+                    ← 返回对话
+                </button>
+            </div>
+        </div>
+
+        <input type="file" id="fileInput" accept=".docx,.doc,.txt,.xlsx,.xls,.pptx,.ppt,.md,.pdf,.html,.htm" multiple>
+
+        <div class="document-list">
+            <div class="list-header">
+                <div class="title-section">
+                    <span class="title">我的文档</span>
+                    <span class="directory-path" id="directoryPath">resource/common_knowledge/</span>
+                </div>
+                <button class="btn btn-primary upload-btn" onclick="triggerFileInput()">
+                    + 上传文档
+                </button>
+            </div>
+            <div id="documentList">
+                <div class="empty-state">
+                    <div class="icon">📭</div>
+                    <div class="text">暂无文档</div>
+                    <div class="hint">上传文档到知识库，可用于智能问答</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal">
+            <h3>确认删除</h3>
+            <p>确定要删除文档 "<span id="deleteFileName"></span>" 吗？此操作无法撤销。</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-danger" onclick="confirmDelete()">删除</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        let authToken = localStorage.getItem('authToken');
+        let deletingFileName = null;
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        function triggerFileInput() {
+            document.getElementById('fileInput').click();
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function showModal() {
+            document.getElementById('confirmModal').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').classList.remove('show');
+            deletingFileName = null;
+        }
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_BASE}/api/knowledge/documents`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('获取文档列表失败');
+                }
+                
+                const data = await response.json();
+                renderDocumentList(data.documents);
+            } catch (error) {
+                console.error('加载文档失败:', error);
+                showToast('加载文档失败', 'error');
+            }
+        }
+
+        function renderDocumentList(documents) {
+            const listContainer = document.getElementById('documentList');
+            
+            if (!documents || documents.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <div class="text">暂无文档</div>
+                        <div class="hint">上传文档到知识库，可用于智能问答</div>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = documents.map(doc => `
+                <div class="document-item">
+                    <div class="icon">📄</div>
+                    <div class="info">
+                        <div class="name">${doc.filename}</div>
+                        <div class="meta">${formatFileSize(doc.size)} · ${formatTime(doc.modified_at)}</div>
+                    </div>
+                    <div class="actions">
+                        <button class="btn btn-secondary" onclick="updateDocument('${doc.filename}')">
+                            更新
+                        </button>
+                        <button class="btn btn-danger" onclick="prepareDelete('${doc.filename}')">
+                            删除
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleString('zh-CN');
+        }
+
+        document.getElementById('fileInput').addEventListener('change', async (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            for (const file of files) {
+                await uploadFile(file);
+            }
+            
+            e.target.value = '';
+        });
+
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/knowledge/upload`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '上传失败');
+                }
+
+                showToast(`文档 "${file.name}" 上传成功`);
+                loadDocuments();
+            } catch (error) {
+                console.error('上传失败:', error);
+                showToast(`上传失败: ${error.message}`, 'error');
+            }
+        }
+
+        function updateDocument(filename) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.docx,.doc,.txt,.xlsx,.xls,.pptx,.ppt,.md,.pdf,.html,.htm';
+            
+            input.onchange = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch(`${API_BASE}/api/knowledge/update/${filename}`, {
+                        method: 'PUT',
+                        headers: { 'Authorization': `Bearer ${authToken}` },
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(error.detail || '更新失败');
+                    }
+
+                    showToast(`文档 "${filename}" 更新成功`);
+                    loadDocuments();
+                } catch (error) {
+                    console.error('更新失败:', error);
+                    showToast(`更新失败: ${error.message}`, 'error');
+                }
+            };
+
+            input.click();
+        }
+
+        function prepareDelete(filename) {
+            deletingFileName = filename;
+            document.getElementById('deleteFileName').textContent = filename;
+            showModal();
+        }
+
+        async function confirmDelete() {
+            if (!deletingFileName) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/knowledge/delete/${deletingFileName}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '删除失败');
+                }
+
+                showToast(`文档 "${deletingFileName}" 删除成功`);
+                closeModal();
+                loadDocuments();
+            } catch (error) {
+                console.error('删除失败:', error);
+                showToast(`删除失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function getCurrentUser() {
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    return user.username;
+                }
+            } catch (error) {
+                console.error('获取用户信息失败:', error);
+            }
+            return null;
+        }
+
+        // 页面加载时检查登录状态并加载文档
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!authToken) {
+                alert('请先登录');
+                window.location.href = '/';
+                return;
+            }
+
+            // 获取当前用户并更新目录路径
+            const username = await getCurrentUser();
+            console.log('获取到的用户名:', username);
+            if (username) {
+                document.getElementById('directoryPath').textContent = `resource/common_knowledge/${username}`;
+            } else {
+                console.log('未能获取用户名');
+            }
+
+            loadDocuments();
+        });
+    </script>
+</body>
+</html>

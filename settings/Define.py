@@ -18,6 +18,8 @@ class PathConfig:
     DB_DIR = BASE_DIR / "chroma_db"
     KNOWLEDGE_DB_DIR = BASE_DIR / "drawing_knowledge_db"
     LOG_DIR = BASE_DIR / "logs"
+    # 知识库目录
+    COMMON_KNOWLEDGE_DIR = RESOURCE_DIR / "common_knowledge"
     # 初始化时自动创建目录（取消注释以启用）
     COUPLET_FILE = os.path.join(RESOURCE_DIR, "couplettest.csv")
     # 验证目录是否存在（可选）
@@ -30,7 +32,8 @@ class PathConfig:
             cls.OUTPUTS_DIR,
             cls.RESOURCE_DIR,
             cls.DB_DIR,
-            cls.LOG_DIR
+            cls.LOG_DIR,
+            cls.COMMON_KNOWLEDGE_DIR
         ]
         for dir_path in directories:
             if not dir_path.exists():
@@ -69,7 +72,7 @@ class Params:
         OTHER_NODE: "other"
     }
 
-    DOC_SUPPORTED_FORMATS = {'.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt'}
+    DOC_SUPPORTED_FORMATS = {'.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt', '.html', '.htm'}
 
     # ===================== 图纸助手节点名称 =====================
     RESET_DRAWING_NODE = "reset_drawing"

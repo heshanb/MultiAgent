@@ -3,32 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MultiAgent 智能助手</title>
+    <title>✨ 小智-AI智能助手</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" type="image/svg+xml">
     <script src="https://cdn.bootcdn.net/ajax/libs/marked/4.3.0/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
     <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/java.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/c.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/csharp.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/php.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/shell.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/xml.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/css.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/rust.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/swift.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/kotlin.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/ruby.min.js"></script>
-    <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/languages/plaintext.min.js"></script>
-    <style>
+
+<style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; overflow: hidden; }
 
@@ -47,9 +28,17 @@
         .search-box input:focus { border-color: #d0d0d0; background: #fff; }
         .search-box .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; display: flex; align-items: center; }
         .search-box .search-icon svg { width: 16px; height: 16px; fill: #bbb; }
-        .new-chat-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 11px 16px; border: 1px dashed #d9d9d9; border-radius: 12px; background: #fff; cursor: pointer; font-size: 0.9rem; color: #555; transition: all 0.2s; }
-        .new-chat-btn:hover { border-color: #667eea; color: #667eea; background: #f5f3ff; }
-        .new-chat-btn .btn-icon { font-size: 1.1rem; line-height: 1; font-weight: 300; }
+        .new-chat-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 12px 16px; border: none; border-radius: 10px; background: #ffffff; cursor: pointer; font-size: 0.9rem; color: #333; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 8px; }
+        .new-chat-btn:last-child { margin-bottom: 0; }
+        .new-chat-btn:hover { background: #f7f7f7; }
+        .new-chat-btn:active { background: #f0f0f0; transform: scale(0.99); }
+        .new-chat-btn .btn-content { display: flex; align-items: center; gap: 10px; }
+        .new-chat-btn .btn-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; }
+        .new-chat-btn .btn-icon svg { width: 18px; height: 18px; fill: #666; transition: fill 0.2s; }
+        .new-chat-btn:hover .btn-icon svg { fill: #667eea; }
+        .new-chat-btn .btn-text { font-weight: 500; }
+        .new-chat-btn .btn-shortcut { font-size: 0.75rem; color: #999; }
+        .new-chat-btn:hover .btn-shortcut { color: #667eea; }
 
         .history-section { flex: 1; overflow-y: auto; padding: 4px 8px; }
         .history-section::-webkit-scrollbar { width: 4px; }
@@ -150,6 +139,7 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .typing-cursor::after { content: '|'; animation: blink 1s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+        .loading-text { color: #999; font-style: italic; }
 
         .input-wrapper { padding: 15px 24px 20px; background: white; border-top: 1px solid #eee; }
         .input-box { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 10px; border: 2px solid #e0e0e0; border-radius: 24px; transition: all 0.3s; background: #fafafa; position: relative; }
@@ -197,6 +187,26 @@
         .action-btn:hover { background: #f0f0f0; color: #667eea; }
         .action-btn.active { color: #667eea; background: #eef0ff; }
         .action-btn svg { width: 16px; height: 16px; fill: currentColor; }
+        .sources-btn { background: #f0f5ff; color: #667eea; }
+        .sources-btn:hover { background: #e6edff; }
+
+        /* 引用来源弹窗样式 */
+        .sources-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .sources-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); width: 90%; max-width: 600px; max-height: 70vh; overflow: hidden; z-index: 1001; animation: modalIn 0.2s ease; }
+        @keyframes modalIn { from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+        .sources-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; }
+        .sources-modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 600; color: #333; }
+        .sources-modal-header .close-btn { width: 28px; height: 28px; border: none; border-radius: 50%; background: #f0f0f0; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #666; transition: all 0.2s; }
+        .sources-modal-header .close-btn:hover { background: #e0e0e0; color: #333; }
+        .sources-modal-body { padding: 16px 20px; overflow-y: auto; max-height: calc(70vh - 60px); }
+        .source-item { padding: 12px; border: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 12px; }
+        .source-item:last-child { margin-bottom: 0; }
+        .source-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .source-index { width: 24px; height: 24px; border-radius: 50%; background: #667eea; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 600; }
+        .source-name { font-weight: 500; color: #333; font-size: 0.95rem; }
+.source-link { color: #667eea; text-decoration: underline; cursor: pointer; transition: color 0.2s; }
+.source-link:hover { color: #5a6fd6; }
+        .source-content { font-size: 0.9rem; line-height: 1.6; color: #555; white-space: pre-wrap; word-break: break-word; }
 
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 24px; border-radius: 8px; font-size: 0.9rem; z-index: 9999; animation: toastIn 0.3s ease, toastOut 0.3s ease 1.7s forwards; }
         @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
@@ -206,6 +216,51 @@
         .empty-chat .empty-icon { font-size: 3rem; margin-bottom: 16px; }
         .empty-chat p { font-size: 0.95rem; }
 
+            /* 认证模态框样式 */
+        .auth-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .auth-modal.active { display: flex; }
+        .password-wrapper { position: relative; width: 100%; }
+        .password-wrapper input { width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; box-sizing: border-box; }
+        .password-wrapper input:focus { outline: none; border-color: #6366f1; }
+        .toggle-password { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; font-size: 18px; color: #999; padding: 6px; z-index: 5; }
+        .toggle-password:hover { color: #6366f1; }
+        .send-code-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #f0f0f0; color: #666; border: none; padding: 6px 14px; border-radius: 4px; font-size: 0.85rem; cursor: pointer; white-space: nowrap; z-index: 5; transition: all 0.2s; }
+        .send-code-btn:hover { background: #667eea; color: white; }
+        .send-code-btn:disabled { background: #e0e0e0; color: #999; cursor: not-allowed; }
+        .auth-container { background: white; border-radius: 12px; padding: 32px; width: 400px; max-width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.2); position: relative; }
+        .auth-header { text-align: center; margin-bottom: 24px; }
+        .auth-header h2 { margin: 0 0 8px; color: #333; }
+        .auth-header p { margin: 0; color: #666; font-size: 0.9rem; }
+        .auth-tabs { display: flex; margin-bottom: 24px; border-bottom: 2px solid #e8e8e8; }
+        .auth-tab { flex: 1; padding: 12px; text-align: center; cursor: pointer; border: none; background: none; font-size: 1rem; color: #666; transition: all 0.3s; }
+        .auth-tab.active { color: #667eea; border-bottom: 2px solid #667eea; margin-bottom: -2px; font-weight: 600; }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #333; font-size: 0.9rem; font-weight: 500; }
+        .form-group input { width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; box-sizing: border-box; }
+        .form-group input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.1); }
+        .auth-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: opacity 0.3s; margin-top: 8px; }
+        .auth-btn:hover { opacity: 0.9; }
+        .auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .auth-close { position: absolute; top: 16px; right: 16px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999; }
+        .auth-close:hover { color: #333; }
+        .password-strength { height: 4px; background: #e8e8e8; border-radius: 2px; margin-top: 8px; overflow: hidden; }
+        .password-strength-bar { height: 100%; width: 0; transition: all 0.3s; }
+        .password-strength-bar.weak { width: 33%; background: #f44336; }
+        .password-strength-bar.medium { width: 66%; background: #ff9800; }
+        .password-strength-bar.strong { width: 100%; background: #4caf50; }
+        .auth-error { color: #f44336; font-size: 0.85rem; margin-top: 8px; display: none; }
+        .auth-error.active { display: block; }
+        .sidebar-footer { cursor: pointer; position: relative; }
+        .sidebar-footer:hover { background: rgba(0,0,0,0.03); }
+        .user-dropdown { display: none; position: absolute; bottom: 100%; left: 0; right: 0; background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); margin-bottom: 8px; padding: 4px 0; z-index: 100; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; font-size: 0.9rem; color: #333; transition: background 0.15s; }
+        .user-dropdown-item:hover { background: #f5f5f5; }
+        .user-dropdown-item:first-child { border-radius: 8px 8px 0 0; }
+        .user-dropdown-item:last-child { border-radius: 0 0 8px 8px; }
+        .user-dropdown-icon { font-size: 1rem; width: 20px; text-align: center; }
     </style>
 </head>
 <body>
@@ -221,8 +276,36 @@
                 <input type="text" placeholder="搜索对话..." id="searchInput" oninput="filterHistory()">
             </div>
             <button class="new-chat-btn" onclick="createNewChat()">
-                <span class="btn-icon">✏️</span>
-                新建对话
+                <div class="btn-content">
+                    <span class="btn-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h6v6"/>
+                            <path d="M18 3l5 5"/>
+                            <path d="M21 18h-6v6"/>
+                            <path d="M18 21l-5-5"/>
+                            <path d="M3 21h6v-6"/>
+                            <path d="M6 21l-5-5"/>
+                            <path d="M3 15h6v-6"/>
+                            <path d="M6 15l-5-5"/>
+                        </svg>
+                    </span>
+                    <span class="btn-text">新建对话</span>
+                </div>
+                <span class="btn-shortcut">Ctrl+N</span>
+            </button>
+            <button class="new-chat-btn" id="knowledgeBtn" style="display: none;" onclick="goToKnowledge()">
+                <div class="btn-content">
+                    <span class="btn-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </span>
+                    <span class="btn-text">知识库管理</span>
+                </div>
             </button>
         </div>
 
@@ -230,9 +313,23 @@
             <div class="history-label">历史对话</div>
         </div>
 
-        <div class="sidebar-footer">
-            <div class="avatar">👤</div>
-            <span class="user-name">用户</span>
+        <div class="sidebar-footer" id="sidebarFooter" onclick="toggleUserMenu(event)">
+            <div class="avatar" id="userAvatar">👤</div>
+            <span class="user-name" id="userName">未登录</span>
+            <div class="user-dropdown" id="userDropdown">
+                <div class="user-dropdown-item" onclick="event.stopPropagation(); openSettings()">
+                    <span class="user-dropdown-icon">⚙</span>
+                    <span>设置</span>
+                </div>
+                <div class="user-dropdown-item" id="dropdownLoginItem" onclick="event.stopPropagation(); openAuthModal()">
+                    <span class="user-dropdown-icon">🔑</span>
+                    <span>登录</span>
+                </div>
+                <div class="user-dropdown-item" id="dropdownLogoutItem" onclick="event.stopPropagation(); handleLogout()" style="display:none">
+                    <span class="user-dropdown-icon">🚪</span>
+                    <span>退出登录</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -318,9 +415,9 @@
         </div>
         <input type="file" id="fileInput" style="display:none;" accept=".docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls" onchange="handleFileSelect(event)">
     </div>
-
     <script>
         let conversations = JSON.parse(localStorage.getItem('conversations') || '[]');
+        let authToken = localStorage.getItem('authToken');
         let currentConvId = null;
         let uploadedFiles = [];
         let currentSkill = null;
@@ -557,6 +654,15 @@
 
                 let actionsHTML = '';
                 if (msg.role === 'assistant') {
+                    // 构建来源按钮HTML
+                    let sourcesBtnHTML = '';
+                    if (msg.sources && msg.sources.length > 0) {
+                        sourcesBtnHTML = `
+                            <button class="action-btn sources-btn" title="查看引用来源" onclick="showSources(this)">
+                                <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+                            </button>`;
+                    }
+                    
                     actionsHTML = `
                         <div class="message-actions">
                             <button class="action-btn" title="赞" onclick="handleLike(this)">
@@ -571,10 +677,15 @@
                             <button class="action-btn" title="重试" onclick="handleRetry(this)">
                                 <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                             </button>
+                            ${sourcesBtnHTML}
                         </div>`;
                 }
 
                 msgDiv.innerHTML = `<div class="message-content">${displayContent}</div><div class="message-time">${msg.time || ''}</div>${actionsHTML}`;
+                // 保存sources数据到msgDiv，用于showSources函数
+                if (msg.sources) {
+                    msgDiv.sources = msg.sources;
+                }
                 chatArea.appendChild(msgDiv);
             });
 
@@ -593,10 +704,10 @@
             return conversations.find(c => c.id === currentConvId);
         }
 
-        function addMessageToConv(role, content, time) {
+        function addMessageToConv(role, content, time, sources) {
             const conv = getCurrentConv();
             if (!conv) return;
-            conv.messages.push({ role, content, time: time || getTime() });
+            conv.messages.push({ role, content, time: time || getTime(), sources: sources || [] });
 
             if (role === 'user' && conv.messages.filter(m => m.role === 'user').length === 1) {
                 conv.title = content.substring(0, 20) + (content.length > 20 ? '...' : '');
@@ -676,9 +787,14 @@
                     }
                 }
 
+                const headers = { 'Content-Type': 'application/json' };
+                if (authToken) {
+                    headers['Authorization'] = 'Bearer ' + authToken;
+                }
+                
                 const response = await fetch('/chat', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({
                         message,
                         thread_id: conv.threadId,
@@ -704,15 +820,23 @@
                     for (const line of lines) {
                         if (!line.startsWith('data: ')) continue;
                         try {
-                            const text = JSON.parse(line.substring(6));
+                            const data = JSON.parse(line.substring(6));
+                            // 支持两种格式：直接文本或对象
+                            const text = typeof data === 'string' ? data : (data.text || '');
                             latestResponse = text;
+                            // 保存来源信息
+                            if (data.sources) {
+                                thinkingMsg.sources = data.sources;
+                            }
                             const renderedResponse = latestResponse.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline; cursor: pointer;">$1</a>');
                             if (state === 'thinking') {
-                                thinkingMsg.innerHTML = `<div class="message-content">${renderedResponse}<span class="typing-cursor"></span></div><div class="message-time">${getTime()}</div>`;
+                                // 显示加载中提示（不显示光标）
+                                const displayText = text || '<span class="loading-text">正在思考...</span>';
+                                thinkingMsg.innerHTML = `<div class="message-content">${displayText}</div><div class="message-time">${getTime()}</div>`;
                                 state = 'responding';
                             } else {
                                 const contentDiv = thinkingMsg.querySelector('.message-content');
-                                contentDiv.innerHTML = renderedResponse + '<span class="typing-cursor"></span>';
+                                contentDiv.innerHTML = text;
                             }
                         } catch (e) {}
                     }
@@ -724,6 +848,15 @@
                     const renderedResponse = renderMarkdown(latestResponse);
                     contentDiv.innerHTML = renderedResponse || '暂无响应';
 
+                    // 构建来源按钮HTML
+                    let sourcesBtnHTML = '';
+                    if (thinkingMsg.sources && thinkingMsg.sources.length > 0) {
+                        sourcesBtnHTML = `
+                            <button class="action-btn sources-btn" title="查看引用来源" onclick="showSources(this)">
+                                <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+                            </button>`;
+                    }
+                    
                     const actionsHTML = `
                         <div class="message-actions">
                             <button class="action-btn" title="赞" onclick="handleLike(this)">
@@ -738,10 +871,11 @@
                             <button class="action-btn" title="重试" onclick="handleRetry(this)">
                                 <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                             </button>
+                            ${sourcesBtnHTML}
                         </div>`;
                     thinkingMsg.insertAdjacentHTML('beforeend', actionsHTML);
 
-                    addMessageToConv('assistant', latestResponse || '暂无响应');
+                    addMessageToConv('assistant', latestResponse || '暂无响应', getTime(), thinkingMsg.sources || []);
                 } else {
                     thinkingMsg.innerHTML = `<div class="message-content">⚠️ 抱歉，服务响应超时</div><div class="message-time">${getTime()}</div>`;
                 }
@@ -786,7 +920,14 @@
             }
         });
 
+        function openAuthModal() { document.getElementById('authModal').classList.add('active'); }
+
         function selectSkill(skillType) {
+            if (!currentUser)
+            {
+                openAuthModal();
+                return;
+            }
             currentSkill = skillType;
             closeAllPanels();
             const skillTag = document.getElementById('skillTag');
@@ -936,6 +1077,150 @@
             }
         }
 
+        function showSources(btn) {
+            const msgDiv = btn.closest('.message');
+            const sources = msgDiv.sources || msgDiv.parentNode.sources || [];
+            
+            if (!sources || sources.length === 0) {
+                showToast('暂无引用来源');
+                return;
+            }
+            
+            // 创建弹窗内容
+            let contentHTML = '<div class="sources-modal-overlay" onclick="closeSourcesModal()"></div>';
+            contentHTML += `
+                <div class="sources-modal">
+                    <div class="sources-modal-header">
+                        <h3>引用来源</h3>
+                        <button class="close-btn" onclick="closeSourcesModal()">&times;</button>
+                    </div>
+                    <div class="sources-modal-body">
+            `;
+            
+            sources.forEach((source, index) => {
+                const docName = source.source || source.document || '未知文档';
+                const chunkContent = source.content || source.page_content || '暂无内容';
+                const preview = chunkContent.length > 300 ? chunkContent.substring(0, 300) + '...' : chunkContent;
+                
+                // 检测是否为网页文件（.html、.htm 结尾或包含 http/https）
+                let docNameLink = docName;
+                if (docName.toLowerCase().endsWith('.html') || docName.toLowerCase().endsWith('.htm') || 
+                    docName.startsWith('http://') || docName.startsWith('https://')) {
+                    // 如果是网页链接，创建可点击的链接
+                    if (docName.startsWith('http://') || docName.startsWith('https://')) {
+                        // 外部链接，直接跳转
+                        docNameLink = `<a href="${docName}" target="_blank" class="source-link">${docName}</a>`;
+                    } else {
+                        // 本地HTML文件，点击后在弹窗中预览
+                        docNameLink = `<span class="source-link" onclick="previewHtmlFile('${encodeURIComponent(docName)}')" style="cursor: pointer;">${docName}</span>`;
+                    }
+                }
+                
+                contentHTML += `
+                    <div class="source-item">
+                        <div class="source-header">
+                            <span class="source-index">${index + 1}</span>
+                            <span class="source-name">${docNameLink}</span>
+                        </div>
+                        <div class="source-content">
+                            ${preview}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            contentHTML += `
+                    </div>
+                </div>
+            `;
+            
+            // 添加到页面
+            const modalContainer = document.createElement('div');
+            modalContainer.id = 'sourcesModal';
+            modalContainer.innerHTML = contentHTML;
+            document.body.appendChild(modalContainer);
+            
+            // 添加关闭事件
+            document.addEventListener('keydown', handleSourcesModalKeydown);
+        }
+
+        function closeSourcesModal() {
+            const modal = document.getElementById('sourcesModal');
+            if (modal) {
+                modal.remove();
+            }
+            document.removeEventListener('keydown', handleSourcesModalKeydown);
+        }
+
+        function handleSourcesModalKeydown(e) {
+            if (e.key === 'Escape') {
+                closeSourcesModal();
+            }
+        }
+
+        function previewHtmlFile(filename) {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                showToast('请先登录');
+                return;
+            }
+            
+            // 创建预览弹窗
+            let previewHTML = '<div class="sources-modal-overlay" onclick="closeHtmlPreview()"></div>';
+            previewHTML += `
+                <div class="sources-modal" style="width: 90%; max-width: 1200px; max-height: 80vh;">
+                    <div class="sources-modal-header">
+                        <h3>HTML文件预览</h3>
+                        <button class="close-btn" onclick="closeHtmlPreview()">&times;</button>
+                    </div>
+                    <div class="sources-modal-body" style="padding: 15px; overflow-y: auto; max-height: 600px;">
+                        <div id="htmlPreviewContent" style="white-space: pre-wrap;">加载中...</div>
+                    </div>
+                </div>
+            `;
+            
+            const previewDiv = document.createElement('div');
+            previewDiv.id = 'htmlPreviewModal';
+            previewDiv.innerHTML = previewHTML;
+            document.body.appendChild(previewDiv);
+            
+            // 使用fetch获取HTML内容
+            fetch(`/api/knowledge/files/${filename}?token=${encodeURIComponent(token)}`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'text/html'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('文件获取失败');
+                }
+                return response.text();
+            })
+            .then(htmlContent => {
+                const previewContent = document.getElementById('htmlPreviewContent');
+                if (previewContent) {
+                    // 创建一个新的容器来显示HTML
+                    const iframeDoc = document.createElement('div');
+                    iframeDoc.innerHTML = htmlContent;
+                    previewContent.replaceWith(iframeDoc);
+                }
+            })
+            .catch(error => {
+                const previewContent = document.getElementById('htmlPreviewContent');
+                if (previewContent) {
+                    previewContent.textContent = '无法加载文件: ' + error.message;
+                }
+            });
+        }
+
+        function closeHtmlPreview() {
+            const modal = document.getElementById('htmlPreviewModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('collapsed');
         }
@@ -947,6 +1232,319 @@
             switchConversation(conversations[0].id);
         }
         renderHistory();
+        
+        // 页面加载完成后检查认证状态
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthStatus();
+        });
+        
+            // ==================== 认证功能 ====================
+        let currentUser = null;
+        
+        async function checkAuthStatus() {
+            console.log('=== 检查认证状态 ===');
+            
+            // 重新从 localStorage 读取 token，确保获取最新值
+            const storedToken = localStorage.getItem('authToken');
+            console.log('localStorage 中的 authToken:', storedToken ? '存在 (' + storedToken.length + ' 字符)' : '不存在');
+            
+            if (storedToken) {
+                authToken = storedToken; // 更新全局变量
+            }
+            
+            console.log('当前 authToken:', authToken ? '存在 (' + authToken.length + ' 字符)' : '不存在');
+            
+            if (!authToken) { 
+                console.log('authToken 为空，显示未登录状态');
+                updateUIForGuest(); 
+                return; 
+            }
+            
+            try {
+                console.log('发起认证请求...');
+                const response = await fetch('/api/auth/me', { 
+                    headers: { 'Authorization': 'Bearer ' + authToken },
+                    credentials: 'same-origin'
+                });
+                console.log('认证响应状态:', response.status);
+                
+                if (response.ok) { 
+                    currentUser = await response.json(); 
+                    console.log('认证成功，用户:', currentUser.username);
+                    updateUIForLoggedIn(); 
+                } else { 
+                    const errorText = await response.text();
+                    console.warn('认证检查失败，状态:', response.status, '错误:', errorText);
+                    // 只有在明确的认证失败（401/403）时才切换到未登录状态
+                    if (response.status === 401 || response.status === 403) {
+                        // token 无效，清除并显示未登录
+                        localStorage.removeItem('authToken');
+                        authToken = null;
+                        updateUIForGuest(); 
+                    } else {
+                        // 其他错误（如服务器错误），保持已登录状态
+                        console.log('非认证错误，保持已登录状态');
+                        updateUIForLoggedIn();
+                    }
+                }
+            } catch (error) { 
+                console.error('检查登录状态失败:', error); 
+                // 网络错误不改变登录状态，保持之前的状态
+                console.log('网络错误，保持当前登录状态');
+                if (authToken) {
+                    updateUIForLoggedIn();
+                } else {
+                    updateUIForGuest();
+                }
+            }
+        }
+
+        function updateUIForLoggedIn() {
+            const footer = document.getElementById('sidebarFooter');
+            const avatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+            footer.classList.add('logged-in');
+            
+            // 如果有用户信息，显示用户名，否则显示默认值
+            if (currentUser && currentUser.username) {
+                avatar.textContent = currentUser.username.charAt(0).toUpperCase();
+                userName.textContent = currentUser.username;
+            } else {
+                // 没有用户信息时显示默认状态（token存在但用户信息未知）
+                avatar.textContent = '👤';
+                userName.textContent = '用户';
+            }
+            
+            document.getElementById('dropdownLoginItem').style.display = 'none';
+            document.getElementById('dropdownLogoutItem').style.display = 'flex';
+            document.getElementById('knowledgeBtn').style.display = 'flex';
+        }
+
+        function updateUIForGuest() {
+            const footer = document.getElementById('sidebarFooter');
+            const avatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
+            footer.classList.remove('logged-in');
+            avatar.textContent = '👤'; userName.textContent = '未登录';
+            document.getElementById('dropdownLoginItem').style.display = 'flex';
+            document.getElementById('dropdownLogoutItem').style.display = 'none';
+            document.getElementById('knowledgeBtn').style.display = 'none';
+        }
+
+        function goToKnowledge() {
+            window.location.href = '/knowledge';
+        }
+
+        
+        function closeAuthModal() { document.getElementById('authModal').classList.remove('active'); }
+
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            if (tab === 'login') { document.querySelectorAll('.auth-tab')[0].classList.add('active'); document.getElementById('loginForm').classList.add('active'); }
+            else if (tab === 'register') { document.querySelectorAll('.auth-tab')[1].classList.add('active'); document.getElementById('registerForm').classList.add('active'); }
+            else if (tab === 'reset') { document.querySelectorAll('.auth-tab')[2].classList.add('active'); document.getElementById('resetForm').classList.add('active'); }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError'); const btn = document.getElementById('loginBtn');
+            btn.disabled = true; btn.textContent = '登录中...'; errorDiv.classList.remove('active');
+            try {
+                const formData = new FormData(); formData.append('username', username); formData.append('password', password);
+                const response = await fetch('/api/auth/login', { method: 'POST', body: formData });
+                if (response.ok) {
+                    const data = await response.json(); authToken = data.access_token; currentUser = data.user;
+                    localStorage.setItem('authToken', authToken); closeAuthModal(); updateUIForLoggedIn(); showToast('✅ 登录成功！');
+                    document.getElementById('loginForm').reset();
+                } else { const error = await response.json(); errorDiv.textContent = error.detail || '登录失败'; errorDiv.classList.add('active'); }
+            } catch (error) { errorDiv.textContent = '网络错误，请稍后重试'; errorDiv.classList.add('active'); }
+            finally { btn.disabled = false; btn.textContent = '登录'; }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const username = document.getElementById('registerUsername').value;
+                        const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('registerConfirmPassword').value;
+            const errorDiv = document.getElementById('registerError'); const btn = document.getElementById('registerBtn');
+            if (password !== confirmPassword) { errorDiv.textContent = '两次输入的密码不一致'; errorDiv.classList.add('active'); return; }
+            if (password.length < 8) { errorDiv.textContent = '密码长度至少8位'; errorDiv.classList.add('active'); return; }
+            if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password) || !/[^a-zA-Z0-9]/.test(password)) { errorDiv.textContent = '密码必须包含字母+数字+特殊字符'; errorDiv.classList.add("active"); return; }
+            btn.disabled = true; btn.textContent = '注册中...'; errorDiv.classList.remove('active');
+            try {
+                const response = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+                if (response.ok) {
+                    const data = await response.json(); authToken = data.access_token; currentUser = data.user;
+                    localStorage.setItem('authToken', authToken); closeAuthModal(); updateUIForLoggedIn(); showToast('✅ 注册成功！');
+                    document.getElementById('registerForm').reset(); document.getElementById('passwordStrengthBar').className = 'password-strength-bar';
+                } else { const error = await response.json(); errorDiv.textContent = error.detail || '注册失败'; errorDiv.classList.add('active'); }
+            } catch (error) { errorDiv.textContent = '网络错误，请稍后重试'; errorDiv.classList.add('active'); }
+            finally { btn.disabled = false; btn.textContent = '注册'; }
+        }
+
+        async function handleSendCode(event) {
+            if (event) event.preventDefault();
+            const username = document.getElementById('resetUsername').value.trim();
+            const phone = document.getElementById('resetPhone').value.trim();
+            const errorEl = document.getElementById('resetError');
+            const btn = document.getElementById('sendCodeBtn');
+            if (!username || !phone) { errorEl.textContent = '请先填写用户名和手机号'; return; }
+            if (!/^1[3-9]\\d{9}$/.test(phone)) { errorEl.textContent = '手机号格式不正确'; return; }
+            try {
+                btn.disabled = true; errorEl.textContent = '';
+                let original = btn.textContent; btn.textContent = '发送中...';
+                const res = await fetch('/api/auth/send-reset-code', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: username, phone: phone }) });
+                const data = await res.json();
+                if (res.ok) {
+                    errorEl.textContent = data.message || '验证码已发送（演示环境请查看服务器控制台）';
+                    if (data.code) { errorEl.textContent = errorEl.textContent + ' 【测试验证码: ' + data.code + '】'; }
+                    let t = 60; const iv = setInterval(()=>{ btn.textContent = t+'秒后重发'; t--; if(t<0){ clearInterval(iv); btn.disabled=false; btn.textContent='获取验证码';} },1000);
+                } else { errorEl.textContent = data.detail || data.message || '发送失败'; btn.disabled = false; btn.textContent = '获取验证码'; }
+            } catch (e) { errorEl.textContent = '网络错误: ' + e; btn.disabled = false; btn.textContent = '获取验证码'; }
+        }
+
+        async function handleResetPassword(event) {
+            event.preventDefault();
+            const username = document.getElementById('resetUsername').value.trim();
+            const phone = document.getElementById('resetPhone').value.trim();
+            const code = document.getElementById('resetCode').value.trim();
+            const np = document.getElementById('resetNewPassword').value;
+            const cp = document.getElementById('resetConfirmPassword').value;
+            const errorEl = document.getElementById('resetError');
+            if (!username || !phone || !code || !np || !cp) { errorEl.textContent = '请填写完整信息'; return; }
+            if (np !== cp) { errorEl.textContent = '两次密码不一致'; return; }
+            if (np.length < 8) { errorEl.textContent = '密码长度至少8位'; return; }
+            if (!/[a-zA-Z]/.test(np) || !/\\d/.test(np) || !/[^a-zA-Z0-9]/.test(np)) { errorEl.textContent = '密码必须包含字母+数字+特殊字符'; return; }
+            try {
+                const btn = document.getElementById('resetBtn'); btn.disabled = true;
+                let ot = btn.textContent; btn.textContent = '提交中...';
+                const res = await fetch('/api/auth/reset-password', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username: username, phone: phone, code: code, new_password: np, confirm_password: cp }) });
+                const data = await res.json();
+                if (res.ok) {
+                    alert('密码重置成功！请使用新密码登录');
+                    switchAuthTab('login');
+                    document.getElementById('resetForm').reset();
+                    errorEl.textContent = '';
+                } else { errorEl.textContent = data.detail || data.message || '重置失败'; }
+                btn.disabled = false; btn.textContent = ot;
+            } catch (e) { errorEl.textContent = '网络错误: ' + e; }
+        }
+
+        function togglePassword(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === "password") { input.type = "text"; btn.textContent = '🙈'; }
+            else { input.type = "password"; btn.textContent = '👁'; }
+        }
+
+function checkPasswordStrength(password) {
+            const bar = document.getElementById('passwordStrengthBar'); bar.className = 'password-strength-bar';
+            if (password.length === 0) { bar.style.width = '0'; return; }
+            let strength = 0;
+            if (password.length >= 8) strength++;
+            if (/[a-zA-Z]/.test(password)) strength++;
+            if (/\d/.test(password)) strength++;
+            if (/[^a-zA-Z0-9]/.test(password)) strength++;
+            if (strength <= 1) bar.classList.add('weak'); else if (strength <= 2) bar.classList.add('medium'); else bar.classList.add('strong');
+        }
+
+        
+
+        
+
+        function toggleUserMenu(e) {
+            e.stopPropagation();
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function openSettings() {
+            document.getElementById('userDropdown').classList.remove('show');
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        document.addEventListener('click', function() {
+            document.getElementById('userDropdown').classList.remove('show');
+        });
+
+        function handleLogout() {
+            document.getElementById('userDropdown').classList.remove('show');
+            if (confirm('确定要退出登录吗？')) { authToken = null; currentUser = null; localStorage.removeItem('authToken'); updateUIForGuest(); showToast('已退出登录'); }
+        }
+
+        document.getElementById('authModal').addEventListener('click', function(e) { if (e.target === this) closeAuthModal(); });
+        checkAuthStatus();
     </script>
-</body>
+    <!-- 认证模态框 -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-container">
+            <button class="auth-close" onclick="closeAuthModal()">&times;</button>
+            <div class="auth-header">
+                <h2>🔐 欢迎使用小智</h2>
+                <p>登录以保存对话历史和个性化设置</p>
+            </div>
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchAuthTab('login')">登录</button>
+                <button class="auth-tab" onclick="switchAuthTab('register')">注册</button>
+                <button class="auth-tab" onclick="switchAuthTab('reset')">找回密码</button>
+            </div>
+            <form class="auth-form active" id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <div class="password-wrapper">
+                    <input type="password" id="loginPassword" placeholder="请输入密码" required autocomplete="current-password">
+                    <button type="button" class="toggle-password" onclick="togglePassword('loginPassword', this)">👁</button>
+                </div>
+                </div>
+                <div class="auth-error" id="loginError"></div>
+                <button type="submit" class="auth-btn" id="loginBtn">登录</button>
+                <div style="text-align:center;margin-top:12px"><a href="#" onclick="switchAuthTab('reset');return false" style="color:#667eea;font-size:0.85rem;text-decoration:none">忘记密码？</a></div>
+            </form>
+            <form class="auth-form" id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="registerUsername" placeholder="请输入用户名（3-20个字符）" required autocomplete="username">
+                </div>
+
+                
+                <div class="form-group">
+                    <label>手机号</label>
+                    <input type="tel" id="registerPhone" placeholder="请输入手机号，用于找回密码" autocomplete="tel">
+                </div>
+<div class="form-group">
+                    <label>密码</label>
+                    <div class="password-wrapper">
+                    <input type="password" id="registerPassword" placeholder="请输入密码（字母+数字+特殊字符，至少8位）" required autocomplete="new-password" oninput="checkPasswordStrength(this.value)">
+                    <button type="button" class="toggle-password" onclick="togglePassword('registerPassword', this)">👁</button>
+                </div>
+                    <div class="password-strength"><div class="password-strength-bar" id="passwordStrengthBar"></div></div>
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <div class="password-wrapper">
+                    <input type="password" id="registerConfirmPassword" placeholder="请再次输入密码" required autocomplete="new-password">
+                    <button type="button" class="toggle-password" onclick="togglePassword('registerConfirmPassword', this)">👁</button>
+                </div>
+                </div>
+                <div class="auth-error" id="registerError"></div>
+                <button type="submit" class="auth-btn" id="registerBtn">注册</button>
+            </form>
+            <form class="auth-form" id="resetForm" onsubmit="handleResetPassword(event)">
+                <div class="form-group"><label>用户名</label><input type="text" id="resetUsername" placeholder="请输入注册时的用户名" required></div>
+                <div class="form-group"><label>手机号</label><input type="tel" id="resetPhone" placeholder="请输入注册时的手机号" required></div>
+                <div class="form-group"><label>验证码</label><div class="password-wrapper"><input type="text" id="resetCode" placeholder="6位验证码" required><button type="button" class="send-code-btn" id="sendCodeBtn" onclick="handleSendCode(event)">获取验证码</button></div></div>
+                <div class="form-group"><label>新密码</label><div class="password-wrapper"><input type="password" id="resetNewPassword" placeholder="字母+数字+特殊字符，至少8位" required autocomplete="new-password"><button type="button" class="toggle-password" onclick="togglePassword('resetNewPassword', this)">👁</button></div></div>
+                <div class="form-group"><label>确认密码</label><div class="password-wrapper"><input type="password" id="resetConfirmPassword" placeholder="请再次输入新密码" required autocomplete="new-password"><button type="button" class="toggle-password" onclick="togglePassword('resetConfirmPassword', this)">👁</button></div></div>
+                <div class="auth-error" id="resetError"></div>
+                <button type="submit" class="auth-btn" id="resetBtn">重置密码</button>
+            </form>
+        </div>
+    </div>
+    </body>
 </html>

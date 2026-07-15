@@ -7,3 +7,9 @@ uploads/
 chroma_db/
 drawing_knowledge_db/
 .env
+test_*
+*.db
+users.db.bak
+test.py
+doc/*
+resource/common_knowledge/
