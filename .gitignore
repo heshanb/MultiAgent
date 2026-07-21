@@ -13,3 +13,7 @@ users.db.bak
 test.py
 doc/*
 resource/common_knowledge/
+fix_*
+*bak
+templates/untitled-1.html
+templates/bak.html

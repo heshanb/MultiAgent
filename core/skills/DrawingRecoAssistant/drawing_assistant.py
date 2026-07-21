@@ -29,7 +29,6 @@ from settings.logger_manager import get_logger
 
 logger = get_logger(__name__)
 
-
 class DrawingAssistant:
     """图纸识别助手：封装多模态识图、DXF 解析、尺寸校核、国标检索等能力"""
 
@@ -303,7 +302,20 @@ class DrawingAssistant:
         self.retriever = EnsembleRetriever(retrievers=retrievers, weights=weights)
 
     def _do_search_standard(self, query: str) -> str:
-        """检索知识库并记录来源"""
+        """检索知识库并记录来源（带三层缓存）"""
+        from core.cache.rag_cache import get_rag_cache
+        cache = get_rag_cache()
+
+        # 定义 embedding 函数（用于语义缓存）
+        def embed_func(text):
+            return self.embedding.embed_query(text)
+
+        # 1. 三层缓存查询
+        cached = cache.search(query, embed_func)
+        if cached:
+            return cached
+
+        # 2. 缓存未命中，执行正常检索
         docs = self.retriever.invoke(query)
         context_parts = []
         detailed_sources: list[dict] = []
@@ -321,7 +333,11 @@ class DrawingAssistant:
                 })
         self.last_sources = detailed_sources
         context = "\n==== 知识库条目 ====\n".join(context_parts)
-        return f"国标检索内容：\n{context}"
+        result = f"国标检索内容：\n{context}"
+
+        # 3. 保存缓存
+        cache.save(query, result, embed_func)
+        return result
 
     def _init_tools(self):
         _this = self

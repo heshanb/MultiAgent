@@ -28,6 +28,22 @@ try:
     import pytesseract
     from PIL import Image
     import pdf2image
+    
+    # 配置Tesseract路径（支持Windows）
+    import platform
+    if platform.system() == 'Windows':
+        # Windows系统常见的Tesseract路径
+        possible_tesseract_paths = [
+            r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+            r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+            r'C:\Tesseract-OCR\tesseract.exe',
+        ]
+        for path in possible_tesseract_paths:
+            if os.path.exists(path):
+                pytesseract.pytesseract.tesseract_cmd = path
+                print(f"设置 Tesseract 路径: {path}")
+                break
+    
     OCR_AVAILABLE = True
 except ImportError:
     OCR_AVAILABLE = False
@@ -628,8 +644,30 @@ class DocumentProcessor:
         if OCR_AVAILABLE:
             try:
                 print(f"尝试使用 OCR 解析扫描件 PDF: {file_path}")
+                
+                # 设置poppler路径（支持Windows和Linux）
+                import platform
+                poppler_path = None
+                if platform.system() == 'Windows':
+                    # Windows系统常见的poppler路径
+                    possible_paths = [
+                        r'C:\Program Files\poppler-24.08.0\Library\bin',
+                        r'C:\Program Files\poppler\bin',
+                        r'C:\poppler\Library\bin',
+                        r'C:\Program Files (x86)\poppler\bin',
+                    ]
+                    for path in possible_paths:
+                        if os.path.exists(path):
+                            poppler_path = path
+                            print(f"找到 poppler 路径: {poppler_path}")
+                            break
+                
                 # 将PDF转换为图像
-                images = pdf2image.convert_from_path(file_path)
+                if poppler_path:
+                    images = pdf2image.convert_from_path(file_path, poppler_path=poppler_path)
+                else:
+                    images = pdf2image.convert_from_path(file_path)
+                
                 print(f"PDF 转换为 {len(images)} 张图片")
                 
                 text = ""

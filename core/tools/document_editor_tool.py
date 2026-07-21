@@ -3,9 +3,8 @@
 提供文档创建、修改、格式化等操作的工具接口
 """
 
-from typing import Any, Dict, Optional, List, Union
-from pydantic import BaseModel, Field
-from core.DocProcess.cloud_document_editor import DocumentEditorFactory, CloudDocumentEditor
+from typing import Any, Dict, Optional
+from core.skills.DocProcess.cloud_document_editor import DocumentEditorFactory
 
 
 class DocumentEditorTool:

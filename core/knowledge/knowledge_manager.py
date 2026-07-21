@@ -1,8 +1,6 @@
 import os
-import json
 from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from core.auth.auth import get_current_user, security
@@ -16,7 +14,7 @@ except ImportError:
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from langchain_chroma import Chroma
     from langchain_community.embeddings import DashScopeEmbeddings
-from core.DocProcess.document_process import doc_processor
+from core.skills.DocProcess.document_process import doc_processor
 from settings.logger_manager import get_logger
 
 logger = get_logger(__name__)
@@ -254,10 +252,11 @@ async def upload_document(
         # 尝试触发RAG文档切块（失败不影响文件保存）
         try:
             chunk_and_store_document(str(file_path), current_user.username)
-            return {"message": "文档上传成功", "filename": file.filename}
+            return {"status": "success", "message": "文档上传成功", "filename": file.filename}
         except Exception as chunk_error:
             logger.warning(f"文档向量化失败，但文件已保存: {str(chunk_error)}")
             return {
+                "status": "warning",
                 "message": "文档上传成功，但无法提取文本内容（可能是扫描件或加密文件），该文档暂无法用于智能问答",
                 "filename": file.filename,
                 "warning": "无法提取文本内容，文档暂无法用于智能问答"

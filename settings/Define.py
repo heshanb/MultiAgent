@@ -42,7 +42,7 @@ class PathConfig:
                 
 
 class Params:
-    DEFAULT_CHAT_MODEL="qwen3.7-max"
+    DEFAULT_CHAT_MODEL="qwen3.7-plus"
     DEFAULT_EMBEDDING_MODEL="text-embedding-v4"
     # 多模态识图：Qwen - VL - Max
     DEFAULT_MULTIMODAL_MODEL="qwen-vl-max"
@@ -58,9 +58,10 @@ class Params:
     CODE_NODE = "code_node"
     OTHER_NODE = "other_node"
     DRAWING_NODE = "drawing_node"
+    PROBLEM_ANALYSIS_NODE = "problem_analysis_node"
     REFLECTION_NODE = "reflection_node"
 
-    NODE_LIST =  ["supervisor", "travel", "joke", "couplet", "document", "code", "drawing", "other"]
+    NODE_LIST =  ["supervisor", "travel", "joke", "couplet", "document", "code", "drawing", "problem_analysis", "other"]
     MAPPING_NODE = {
         SUPERVISOR_NODE: "supervisor",
         TRAVEL_NODE: "travel",
@@ -69,6 +70,7 @@ class Params:
         DOCUMENT_NODE: "document",
         CODE_NODE: "code",
         DRAWING_NODE: "drawing",
+        PROBLEM_ANALYSIS_NODE: "problem_analysis",
         OTHER_NODE: "other"
     }
 
@@ -91,5 +93,19 @@ class Params:
     CHUNK_SIZE = 800
     CHUNK_OVERLAP = 150
     SEPARATORS = ["\n\n", "\n", "。", "、", " "]
+
+
+    # ===================== 代码助手节点名称 =====================
+    MAPPING_MODEL = {
+        "Qwen3.7-Plus": "qwen3.7-plus",
+        "DeepSeek-V4-Pro": "deepseek-v4-pro",
+        "GLM-5.2-Fast-Preview": "glm-5.2-fast-preview",
+    }
+
+    # ===================== Redis 缓存配置 =====================
+    REDIS_HOST = "127.0.0.1"
+    REDIS_PORT = 6379
+    REDIS_DB = 0
+    REDIS_PASSWORD = ""
 
 PathConfig.ensure_directories()

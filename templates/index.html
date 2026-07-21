@@ -59,7 +59,7 @@
         .sidebar-footer .avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; }
         .sidebar-footer .user-name { font-size: 0.85rem; color: #333; }
 
-        .main-area { flex: 1; display: flex; flex-direction: column; height: 100vh; background: #fff; }
+        .main-area { flex: 1; display: flex; flex-direction: column; height: 100vh; background: #fff; overflow: hidden; }
         .chat-header { padding: 12px 24px; border-bottom: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; }
         .chat-header-left { display: flex; align-items: center; gap: 12px; }
         .sidebar-toggle-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: none; border-radius: 6px; background: transparent; cursor: pointer; color: #666; transition: all 0.2s; }
@@ -141,7 +141,7 @@
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
         .loading-text { color: #999; font-style: italic; }
 
-        .input-wrapper { padding: 15px 24px 20px; background: white; border-top: 1px solid #eee; }
+        .input-wrapper { padding: 15px 24px 20px; background: white; border-top: 1px solid #eee; position: relative; z-index: 10; flex-shrink: 0; }
         .input-box { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 10px; border: 2px solid #e0e0e0; border-radius: 24px; transition: all 0.3s; background: #fafafa; position: relative; }
         .input-box:focus-within { border-color: #667eea; background: white; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
         .input-row { display: flex; align-items: center; gap: 10px; }
@@ -170,15 +170,33 @@
         .toolbar-btn { padding: 4px 10px; border: none; border-radius: 12px; background: transparent; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; transition: all 0.2s; color: #666; }
         .toolbar-btn:hover { background: #f0f0f0; color: #667eea; }
         .toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
-        .popup-panel { display: none; position: absolute; bottom: 100%; left: 0; right: 0; background: white; border-radius: 12px; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); padding: 8px; z-index: 100; margin-bottom: 8px; }
+        .toolbar-btn.active { background: #3b82f6; color: white; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
+        .help-btn { background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
+        .help-btn:not(.active) { background: transparent; color: #666; box-shadow: none; }
+        .help-btn.active { background: #3b82f6; color: white; }
+        .help-icon { font-size: 0.9rem; margin-right: 4px; }
+        .help-text { font-size: 0.85rem; }
+        .help-close { margin-left: 6px; font-size: 1rem; opacity: 0.8; cursor: pointer; padding: 0 4px; }
+        .help-close:hover { opacity: 1; }
+        .popup-panel { display: none; position: absolute; bottom: calc(100% + 8px); left: 0; background: white; border-radius: 12px; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); padding: 8px; width: max-content; max-width: calc(100% - 20px); z-index: 100; }
         .popup-panel.show { display: block; animation: slideUp 0.2s ease; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .skill-item { padding: 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
         .skill-item:hover { background: #f0f0f0; }
+        .skill-with-submenu { position: relative; }
+        .skill-submenu { display: none; position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); background: white; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); padding: 6px; width: max-content; max-width: 280px; z-index: 101; border: 1px solid #e8e8e8; }
+        .skill-with-submenu:hover .skill-submenu { display: block; }
+        .skill-submenu::before { content: ''; position: absolute; right: 100%; top: 50%; transform: translateY(-50%); border: 6px solid transparent; border-right-color: white; }
+        .submenu-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .submenu-item:hover { background: #f5f5f5; }
+        .submenu-icon { font-size: 1.1rem; }
+        .submenu-info h5 { margin: 0 0 2px 0; font-size: 0.88rem; color: #333; font-weight: 500; }
+        .submenu-info p { margin: 0; font-size: 0.78rem; color: #888; line-height: 1.4; }
         .skill-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem; flex-shrink: 0; }
         .skill-icon[data-skill="document"] { background: linear-gradient(135deg, #4facfe, #005bea); }
         .skill-icon[data-skill="code"] { background: linear-gradient(135deg, #11998e, #38ef7d); }
         .skill-icon[data-skill="drawing"] { background: linear-gradient(135deg, #f5af19, #f12711); }
+        .skill-icon[data-skill="problem_analysis"] { background: linear-gradient(135deg, #667eea, #764ba2); }
         .skill-info h4 { font-size: 0.9rem; color: #333; margin-bottom: 2px; }
         .skill-info p { font-size: 0.8rem; color: #666; }
 
@@ -217,7 +235,7 @@
         .empty-chat p { font-size: 0.95rem; }
 
             /* 认证模态框样式 */
-        .auth-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .auth-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; animation: fadeIn 0.2s ease-out; }
         .auth-modal.active { display: flex; }
         .password-wrapper { position: relative; width: 100%; }
         .password-wrapper input { width: 100%; padding: 10px 40px 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 0.95rem; transition: border-color 0.3s; box-sizing: border-box; }
@@ -375,17 +393,33 @@
                             <p>帮你创建、修改、排版和优化文档</p>
                         </div>
                     </div>
-                    <div class="skill-item" onclick="selectSkill('code')">
+                    <div class="skill-item skill-with-submenu" id="codeSkillItem">
                         <div class="skill-icon" data-skill="code">💻</div>
                         <div class="skill-info">
-                            <h4>编程</h4>
+                            <h4>AI编程</h4>
                             <p>帮你编写代码，修改上传的代码文件</p>
+                        </div>
+                        <div class="skill-submenu" id="codeSubmenu">
+                            <div class="submenu-item" onclick="selectSkill('code')">
+                                <div class="submenu-icon">📝</div>
+                                <div class="submenu-info">
+                                    <h5>普通编程</h5>
+                                    <p>帮你编写代码，修改上传的代码文件</p>
+                                </div>
+                            </div>
+                            <div class="submenu-item" onclick="goToProjectCode()">
+                                <div class="submenu-icon">🏗️</div>
+                                <div class="submenu-info">
+                                    <h5>项目编程</h5>
+                                    <p>AI辅助项目开发新需求、代码优化和bug修改</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="skill-item" onclick="selectSkill('drawing')">
                         <div class="skill-icon" data-skill="drawing">📐</div>
                         <div class="skill-info">
-                            <h4>图纸识别</h4>
+                            <h4>工程图纸识别</h4>
                             <p>识别工程图纸，提取尺寸、公差、国标校核</p>
                         </div>
                     </div>
@@ -404,12 +438,16 @@
                         <span id="skillTagName"></span>
                         <span class="remove" onclick="removeSkill()">✕</span>
                     </div>
-                    <input type="text" id="messageInput" placeholder="输入问题或任务，/ 选择技能" onkeypress="handleKeyPress(event)">
+                    <input type="text" id="messageInput" placeholder="输入问题或任务，/ 选择技能" onkeypress="handleKeyPress(event)" onpaste="handlePaste(event)">
                     <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="发送"><svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg></button>
                 </div>
                 <div class="toolbar-row">
                     <button class="toolbar-btn" id="uploadFileBtn" disabled onclick="document.getElementById('fileInput').click()">➕ 上传文件</button>
                     <button class="toolbar-btn" onclick="toggleSkillPanel()">🛠️ 技能</button>
+                    <button class="toolbar-btn help-btn" id="helpBtn" onclick="toggleHelpSkill()">
+                        <span class="help-icon">💬</span>
+                        <span class="help-text">解题答疑</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -774,6 +812,7 @@
             try {
                 let fileContent = null;
                 let fileName = null;
+                let imagesData = [];
 
                 if (uploadedFiles.length > 0) {
                     const file = uploadedFiles[0];
@@ -784,6 +823,10 @@
                     const ext = file.name.split('.').pop().toLowerCase();
                     if (ext === 'txt') {
                         fileContent = await readTextFile(file);
+                    } else if (['png', 'jpg', 'jpeg', 'bmp', 'gif'].includes(ext)) {
+                        // 将图片转换为 base64
+                        const base64Data = await fileToBase64(file);
+                        imagesData = [{ data: base64Data, name: file.name, size: file.size }];
                     }
                 }
 
@@ -801,6 +844,7 @@
                         file_content: fileContent,
                         file_name: fileName,
                         skill: currentSkill,
+                        images: imagesData,
                         history: conv.messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }))
                     })
                 });
@@ -923,12 +967,17 @@
         function openAuthModal() { document.getElementById('authModal').classList.add('active'); }
 
         function selectSkill(skillType) {
+            const helpBtn = document.getElementById('helpBtn');
+            if (helpBtn.classList.contains('active')) {
+                return;
+            }
             if (!currentUser)
             {
                 openAuthModal();
                 return;
             }
             currentSkill = skillType;
+            helpBtn.disabled = true;
             closeAllPanels();
             const skillTag = document.getElementById('skillTag');
             const skillTagIcon = document.getElementById('skillTagIcon');
@@ -941,12 +990,16 @@
                 messageInput.placeholder = '请描述您想如何新建或修改文档...';
             } else if (skillType === 'code') {
                 skillTagIcon.textContent = '💻';
-                skillTagName.textContent = '编程';
+                skillTagName.textContent = 'AI编程';
                 messageInput.placeholder = '请描述您想编写或修改的代码...';
             } else if (skillType === 'drawing') {
                 skillTagIcon.textContent = '📐';
-                skillTagName.textContent = '图纸识别';
+                skillTagName.textContent = '工程图纸识别';
                 messageInput.placeholder = '请描述图纸分析需求，如：提取尺寸、校核公差...';
+            } else if (skillType === 'problem_analysis') {
+                skillTagIcon.textContent = '❓';
+                skillTagName.textContent = '解答疑惑';
+                messageInput.placeholder = '输入问题，或粘贴或上传问题图片';
             }
 
             skillTag.className = 'skill-tag show skill-' + skillType;
@@ -957,6 +1010,8 @@
             const fileInput = document.getElementById('fileInput');
             if (skillType === 'drawing') {
                 fileInput.setAttribute('accept', '.png,.jpg,.jpeg,.bmp,.tiff,.tif,.pdf,.dxf');
+            } else if (skillType === 'problem_analysis') {
+                fileInput.setAttribute('accept', '.png,.jpg,.jpeg,.bmp,.gif');
             } else {
                 fileInput.setAttribute('accept', '.docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls');
             }
@@ -968,6 +1023,41 @@
             skillTag.className = 'skill-tag';
             document.getElementById('messageInput').placeholder = '输入问题或任务，/ 选择技能';
             document.getElementById('uploadFileBtn').disabled = true;
+            document.getElementById('helpBtn').classList.remove('active');
+            document.getElementById('helpBtn').disabled = false;
+        }
+
+        function toggleHelpSkill() {
+            const helpBtn = document.getElementById('helpBtn');
+            const skillPanelBtn = document.querySelector('.toolbar-btn[onclick="toggleSkillPanel()"]');
+            const isActive = helpBtn.classList.contains('active');
+            
+            if (isActive) {
+                // 退出技能模式
+                helpBtn.classList.remove('active');
+                currentSkill = null;
+                const skillTag = document.getElementById('skillTag');
+                skillTag.className = 'skill-tag';
+                document.getElementById('messageInput').placeholder = '输入问题或任务，/ 选择技能';
+                document.getElementById('uploadFileBtn').disabled = true;
+                const fileInput = document.getElementById('fileInput');
+                fileInput.setAttribute('accept', '.docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls');
+                skillPanelBtn.disabled = false;
+            } else {
+                // 进入技能模式
+                helpBtn.classList.add('active');
+                currentSkill = 'problem_analysis';
+                const messageInput = document.getElementById('messageInput');
+                
+                messageInput.placeholder = '输入问题，或粘贴上传问题图片';
+                messageInput.focus();
+                document.getElementById('uploadFileBtn').disabled = false;
+                skillPanelBtn.disabled = true;
+                
+                // 设置文件上传格式为图片
+                const fileInput = document.getElementById('fileInput');
+                fileInput.setAttribute('accept', '.png,.jpg,.jpeg,.bmp,.gif');
+            }
         }
 
         function getFileIcon(filename) {
@@ -1010,6 +1100,34 @@
                 uploadedFiles = [file];
             }
             event.target.value = '';
+        }
+
+        function handlePaste(event) {
+            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    event.preventDefault();
+                    const file = item.getAsFile();
+                    if (file) {
+                        showFileTag(file);
+                        uploadedFiles = [file];
+                    }
+                    break;
+                }
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const result = e.target.result;
+                    const base64Data = result.split(',')[1];
+                    resolve(base64Data);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
         }
 
         function clearCurrentChat() {
@@ -1333,6 +1451,14 @@
 
         function goToKnowledge() {
             window.location.href = '/knowledge';
+        }
+
+        function goToProjectCode() {
+            if (!currentUser) {
+                openAuthModal();
+                return;
+            }
+            window.location.href = '/project-code';
         }
 
         

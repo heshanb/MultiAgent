@@ -1,6 +1,6 @@
 """诊断脚本：检查知识库检索质量"""
 import sys
-sys.path.insert(0, "D:/Python_project/MultiAgent")
+sys.path.insert(0, "/")
 
 from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_chroma import Chroma

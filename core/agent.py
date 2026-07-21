@@ -9,13 +9,14 @@ from operator import add
 from pathlib import Path
 from langchain_classic.agents import create_react_agent
 from langchain_community.chat_models import ChatTongyi
+from langchain_openai import ChatOpenAI
 from langchain_community.embeddings import DashScopeEmbeddings
-from langchain_core.messages import AnyMessage, HumanMessage
+from langchain_core.messages import AnyMessage, HumanMessage, AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph
 from langgraph.constants import END, START
-from core.DocProcess.document_process import doc_processor
-from core.DrawingRecoAssistant.drawing_assistant import get_drawing_assistant
+from core.skills.DocProcess.document_process import doc_processor
+from core.skills.DrawingRecoAssistant.drawing_assistant import get_drawing_assistant
 from settings.Define import Params, PathConfig
 from settings.logger_manager import get_logger
 
@@ -29,11 +30,59 @@ logger = get_logger(__name__)
 llm = ChatTongyi(
     model=Params.DEFAULT_CHAT_MODEL,
     api_key=os.getenv("DASHSCOPE_API_KEY"),
-    api_base=Params.API_BASE,
-    timeout=60  # 设置LLM调用超时时间为60秒
+    base_url=Params.API_BASE,
+    timeout=60,  # 设置LLM调用超时时间为60秒
+    streaming=True
 )
 
 embedding_model = DashScopeEmbeddings(model=Params.DEFAULT_EMBEDDING_MODEL)
+
+
+def get_llm_by_model(model_id: str):
+    """根据前端选择的模型ID创建对应的LLM实例"""
+    model_id = model_id.lower()
+    logger.info(f"根据模型ID创建LLM实例: {model_id}")
+    
+    if model_id == "qwen" or model_id == "qwen3.7-plus":
+        return ChatOpenAI(
+            model=Params.DEFAULT_CHAT_MODEL,
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            base_url=Params.API_BASE,
+            timeout=120,
+            streaming=True
+        )
+    elif model_id == "deepseek" or model_id == "deepseek-v4-pro":
+        return ChatOpenAI(
+            model="deepseek-v4-pro",
+            api_key=os.getenv("DEEPSEEK_API_KEY", ""),
+            base_url="https://api.deepseek.com/v1",
+            timeout=120,
+            streaming=True
+        )
+    elif model_id == "glm" or model_id == "glm-5.2-fast-preview":
+        return ChatOpenAI(
+            model="glm-5.2-fast-preview",
+            api_key=os.getenv("GLM_API_KEY", ""),
+            base_url="https://open.bigmodel.cn/api/paas/v4",
+            timeout=120,
+            streaming=True
+        )
+    elif model_id == "qwen_vl" or model_id == "qwen-vl-max":
+        return ChatOpenAI(
+            model="qwen-vl-max",
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            base_url=Params.API_BASE,
+            timeout=120
+        )
+    else:
+        logger.warning(f"未知模型ID: {model_id}，使用默认模型 qwen3.7-plus")
+        return ChatTongyi(
+            model=Params.DEFAULT_CHAT_MODEL,
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            api_base=Params.API_BASE,
+            timeout=120,
+            streaming=True
+        )
 
 class State(TypedDict):
     messages: Annotated[list[AnyMessage], add]
@@ -43,10 +92,46 @@ class State(TypedDict):
     skill: str  # 前端选择的技能类型：travel/joke/couplet/document/code/drawing/other
     sources: str  # 引用来源文件列表(JSON字符串)
     user: str  # 当前登录用户（用于知识库检索）
+    images: list  # 图片数据列表，用于问题分析
+    project_context: dict  # 项目上下文，包含项目名称和文件列表
 
 
 def create_agent_graph():
     nodes = Params.NODE_LIST
+
+    def problem_analysis_node(state: State):
+        """问题分析节点 - 处理各类问题解答，包括图片分析和错误排查"""
+        logger.info("problem_analysis_node 开始处理")
+        
+        message = state["messages"][-1]
+        if hasattr(message, 'content'):
+            user_query = message.content
+        else:
+            user_query = str(message)
+        
+        logger.info(f"用户问题: {user_query[:100]}")
+        
+        # 检查是否有图片数据
+        images_data = state.get("images")
+        has_images = images_data and len(images_data) > 0
+        image_count = len(images_data) if has_images else 0
+        logger.info(f"图片数量: {image_count}")
+        
+        # 使用 IssueAnalyze 类进行分析
+        from core.skills.ProblemAnalyze.issue_analyze import IssueAnalyze
+        
+        try:
+            analyzer = IssueAnalyze()
+            content = analyzer.analyze_issue(user_query, images_data)
+            logger.info(f"分析完成，结果长度: {len(content)}")
+        except Exception as e:
+            logger.error(f"IssueAnalyze 调用失败: {str(e)}")
+            content = f"分析失败：{str(e)}"
+        
+        from langchain_core.messages import HumanMessage
+        return {"messages": [HumanMessage(content=content)],
+                "type": "problem_analysis", "previous_node": "problem_analysis_node",
+                "sources": []}
 
     def other_node(state: State):
         logger.info("other_node 开始处理")
@@ -196,13 +281,23 @@ def create_agent_graph():
         ] + conversation_history + [
             {"role": "user", "content": message_content},
         ]
-        if "type" in state:
-            logger.info("已有类型，返回 END")
+        if state.get("type") == END:
+            # 只有当 type 已经是 END 时才返回 END
+            logger.info("已有类型 END，返回 END")
             return {"type": END}
-        elif state.get("skill", "").strip() in nodes:
+        elif state.get("skill", "").strip():
             skill_type = state["skill"].strip()
-            logger.info(f"前端指定技能: {skill_type}，直接路由")
-            return {"type": skill_type}
+            logger.info(f"前端指定技能: {skill_type}")
+            
+            # 将 project_code 和 general_code 映射到 code 节点
+            if skill_type in ['project_code', 'general_code']:
+                logger.info("路由到 code_node")
+                return {"type": "code"}
+            elif skill_type in nodes:
+                logger.info(f"直接路由到 {skill_type}")
+                return {"type": skill_type}
+            else:
+                logger.warning(f"未知技能类型: {skill_type}，尝试通过LLM分类")
         else:
             try:
                 response = llm.invoke(prompt_list)
@@ -312,150 +407,40 @@ def create_agent_graph():
     def code_node(state: State):
         logger.info("code_node")
 
-        # 获取文件名
-        file_path = state.get("file_path")
-        filename = "代码"
-        if file_path:
-            from pathlib import Path
-            filename = Path(file_path).name
+        skill_type = state.get("skill", "")
+        logger.info(f"编程技能类型: {skill_type}")
+        logger.info(f"项目上下文: {state.get('project_context')}")
 
-        system_prompt = f"""你是一个专业的代码编程专家，熟悉各种语言的编程，比如C、C++、HTML、Go、Java、PHP、Python等。
+        if skill_type == "project_code":
+            logger.info("正在创建 Project_Programming 实例")
+            from core.skills.AICode.project_programming import Project_Programming
+            project_programming = Project_Programming(state.get("file_path"), state["messages"], state.get("project_context"))
+            logger.info("Project_Programming 实例创建成功")
 
-请根据用户的具体需求进行回答：
-
-**场景A：用户要求生成新代码**
-- 使用 Markdown 格式，包括标题（# ## ###）、加粗（**文本**）、列表（- 或 1.）等
-- 代码块必须独占成段，使用三个反引号包裹
-- 代码要完整，包含必要的导入、函数定义、测试用例和运行示例
-- 代码要有注释，关键逻辑处添加简洁的中文注释
-- 分版本展示：如果适用，用二级标题（##）分隔不同版本，如"## 1. 基础版"和"## 2. 优化版"
-- 复杂度分析：在代码后用列表形式简要说明时间复杂度和空间复杂度
-- 运行示例：给出代码的运行输出示例
-
-回答结构示例（生成新代码）：
-## 标题
-
-简要说明文字。
-
-### 1. 基础版
-
-核心逻辑说明。
-
-```python
-# 完整代码
-```
-
-### 2. 优化版
-
-优化说明。
-
-```python
-# 完整代码
-```
-
-### 复杂度分析
-
-- **时间复杂度**：说明
-- **空间复杂度**：说明
-
-### 运行示例
-
-```
-输出结果
-```
-
-**场景B：用户要求审查/修改已有代码**
-- 仔细检查代码中的语法问题、逻辑问题、BUG问题等
-- 如果没有发现任何问题，必须回复："{filename}代码文件不需要修改，没有发现任何明显性错误"
-- 如果发现问题，必须按照以下格式回复：
-
-发现{{N}}处问题：
-第1处：{{问题描述}}
-第2处：{{问题描述}}
-...
-
-修改后的完整代码：
-```{{language}}
-{{修改后的完整代码}}
-```
-
-修改后的文件下载路径：http://127.0.0.1:5001/download/{{output_filename}}
-
-注意：代码块的语言标识必须正确（如 python、javascript、java、cpp 等），以便前端正确高亮显示。"""
-
-        message = state["messages"][-1]
-        if hasattr(message, 'content'):
-            message_content = message.content
+            message = state["messages"][-1]
+            # 使用流式响应
+            stream = project_programming.get_model_response_stream(message, llm)
+            content = ""
+            for chunk in stream:
+                content += chunk
+            
+            logger.info(f"流式响应完成，内容长度: {len(content)}")
         else:
-            message_content = str(message)
+            from core.skills.AICode.general_programming import General_Programming
+            general_programming = General_Programming(state.get("file_path"), state["messages"])
 
-        conversation_history = []
-        for msg in state["messages"][:-1]:
-            if hasattr(msg, 'content'):
-                content = msg.content
-            else:
-                content = str(msg)
+            message = state["messages"][-1]
+            response = general_programming.get_model_response(message, llm)
 
-            if isinstance(msg, dict) and msg.get("role") == "assistant":
-                conversation_history.append({"role": "assistant", "content": content})
-            elif "HumanMessage" in str(type(msg)) or (isinstance(msg, dict) and msg.get("role") == "user"):
-                conversation_history.append({"role": "user", "content": content})
+            # 检查是否需要保存修改后的代码文件
+            content = general_programming.check_save_code(response, state.get("file_path"))
 
-        prompt_list = [
-            {"role": "system", "content": system_prompt},
-        ] + conversation_history + [
-            {"role": "user", "content": message_content},
-        ]
-        try:
-            response = llm.invoke(prompt_list)
-            content = response.content if hasattr(response, 'content') else str(response)
-        except Exception as e:
-            logger.error(f"code_node LLM 调用失败: {str(e)[:50]}")
-            content = "抱歉，当前服务暂时不可用，请稍后重试。"
-
-        # 检查是否需要保存修改后的代码文件
-        if file_path and "修改后的完整代码" in content:
-            try:
-                from pathlib import Path
-                import uuid
-
-                # 提取代码块内容
-                import re
-                code_match = re.search(r'```(?:\w+)?\n([\s\S]*?)```', content)
-                if code_match:
-                    modified_code = code_match.group(1).strip()
-
-                    # 获取原始文件扩展名和文件名
-                    original_ext = Path(file_path).suffix
-                    original_name = Path(file_path).stem
-
-                    # 生成输出文件名
-                    output_filename = f"modified_{original_name}_{str(uuid.uuid4())[:8]}{original_ext}"
-                    output_path = PathConfig.OUTPUTS_DIR / output_filename
-
-                    # 保存修改后的代码
-                    with open(output_path, 'w', encoding='utf-8') as f:
-                        f.write(modified_code)
-
-                    # 生成下载链接
-                    download_url = f"http://127.0.0.1:5001/download/{output_filename}"
-
-                    # 替换内容中的下载路径（支持占位符或LLM生成的原始文件名链接）
-                    content = content.replace("http://127.0.0.1:5001/download/{output_filename}", download_url)
-                    # 也替换LLM可能生成的原始文件名链接
-                    original_download_pattern = rf"http://127\.0\.0\.1:5001/download/{re.escape(Path(file_path).name)}"
-                    content = re.sub(original_download_pattern, download_url, content)
-
-                    logger.info(f"代码文件保存成功: {output_path}")
-            except Exception as e:
-                logger.error(f"保存代码文件失败: {str(e)}")
-
-        return {"messages": [HumanMessage(content=content)], "type": "code", "previous_node": "code_node"}
+        return {"messages": [AIMessage(content=content)], "type": "code", "previous_node": "code_node"}
 
     def couplet_node(state: State):
         logger.info("couplet_node 开始处理")
 
-        from core.Couplet.couplet import Couplet
+        from core.skills.Couplet.couplet import Couplet
 
         couplet = Couplet()
         if not couplet.load_vector():
@@ -479,14 +464,14 @@ def create_agent_graph():
             logger.info("LLM 调用成功")
         except Exception as e:
             logger.error(f"LLM 调用失败: {str(e)}")
-            return {"messages": [HumanMessage(content="抱歉，LLM 调用失败。")], "type": "couplet"}
+            return {"messages": [AIMessage(content="抱歉，LLM 调用失败。")], "type": "couplet"}
 
         content = response.content if hasattr(response, 'content') else str(response)
         if not content or content.strip() == "":
             content = "抱歉，暂时无法生成对联。"
 
         logger.info(f"对联结果: {content[:30]}...")
-        return {"messages": [HumanMessage(content=content)], "type": "couplet", "previous_node": "couplet_node"}
+        return {"messages": [AIMessage(content=content)], "type": "couplet", "previous_node": "couplet_node"}
 
     def document_node(state: State):
         logger.info("document_node 开始处理")
@@ -557,8 +542,6 @@ def create_agent_graph():
         )
 
         return {"messages": [HumanMessage(content=result_content)], "type": "document", "previous_node": "document_node"}
-
-
 
     def drawing_node(state: State):
         """图纸识别节点：委托 DrawingAssistant 处理工程图纸相关任务"""
@@ -777,6 +760,9 @@ AI回答：{ai_response}
         elif current_type == Params.MAPPING_NODE.get(Params.DRAWING_NODE):
             logger.info(f"路由到 {Params.DRAWING_NODE}")
             return Params.DRAWING_NODE
+        elif current_type == Params.MAPPING_NODE.get(Params.PROBLEM_ANALYSIS_NODE):
+            logger.info(f"路由到 {Params.PROBLEM_ANALYSIS_NODE}")
+            return Params.PROBLEM_ANALYSIS_NODE
         elif current_type == END:
             logger.info("路由到 END")
             return END
@@ -803,16 +789,19 @@ AI回答：{ai_response}
     builder.add_node(Params.CODE_NODE, code_node)
     builder.add_node(Params.DOCUMENT_NODE, document_node)
     builder.add_node(Params.DRAWING_NODE, drawing_node)
+    builder.add_node(Params.PROBLEM_ANALYSIS_NODE, problem_analysis_node)
     builder.add_node(Params.OTHER_NODE, other_node)
     builder.add_node(Params.REFLECTION_NODE, reflection_node)
     builder.add_edge(START, Params.SUPERVISOR_NODE)
     builder.add_conditional_edges(Params.SUPERVISOR_NODE, routing_func,
-                                  [Params.TRAVEL_NODE, Params.JOKE_NODE, Params.COUPLET_NODE, Params.DOCUMENT_NODE, Params.CODE_NODE, Params.DRAWING_NODE, Params.OTHER_NODE, END])
+                                  [Params.TRAVEL_NODE, Params.JOKE_NODE, Params.COUPLET_NODE, Params.DOCUMENT_NODE, Params.CODE_NODE, Params.DRAWING_NODE, Params.PROBLEM_ANALYSIS_NODE, Params.OTHER_NODE, END])
+    # 各节点处理完后到 END，完成单次对话
     builder.add_edge(Params.TRAVEL_NODE, END)
     builder.add_edge(Params.JOKE_NODE, END)
     builder.add_edge(Params.COUPLET_NODE, END)
     builder.add_edge(Params.DOCUMENT_NODE, END)
     builder.add_edge(Params.CODE_NODE, END)
     builder.add_edge(Params.DRAWING_NODE, END)
+    builder.add_edge(Params.PROBLEM_ANALYSIS_NODE, END)
     builder.add_edge(Params.OTHER_NODE, END)
     return builder.compile(checkpointer=InMemorySaver())

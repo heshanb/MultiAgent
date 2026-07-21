@@ -261,6 +261,33 @@
             background-color: #dc3545;
         }
 
+        .toast.warning {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .toast.progress {
+            background-color: #007bff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         @keyframes slideIn {
             from {
                 transform: translateX(100%);
@@ -284,6 +311,12 @@
             justify-content: center;
             z-index: 1000;
             display: none;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .modal-overlay.show {
@@ -292,27 +325,123 @@
 
         .modal {
             background: white;
+            border-radius: 16px;
+            padding: 28px;
+            width: 92%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            animation: slideUp 0.25s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .modal-icon-wrapper {
+            width: 44px;
+            height: 44px;
             border-radius: 12px;
-            padding: 24px;
-            width: 90%;
-            max-width: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .modal-icon-wrapper.warning { background: #fff3cd; }
+        .modal-icon-wrapper.info { background: #e3f2fd; }
+        .modal-icon-wrapper.success { background: #d4edda; }
+        .modal-icon-wrapper.danger { background: #f8d7da; }
+
+        .modal-icon {
+            font-size: 1.6rem;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+
+        .modal-subtitle {
+            font-size: 0.88rem;
+            color: #666;
+            line-height: 1.5;
         }
 
         .modal h3 {
-            font-size: 18px;
-            margin-bottom: 16px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
         }
 
         .modal p {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 24px;
+            line-height: 1.6;
         }
 
         .modal .modal-actions {
             display: flex;
             justify-content: flex-end;
             gap: 12px;
+        }
+
+        .modal-btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 90px;
+            text-align: center;
+        }
+
+        .modal-btn.cancel {
+            background: #f5f5f5;
+            color: #555;
+            border: 1px solid #e0e0e0;
+        }
+
+        .modal-btn.cancel:hover {
+            background: #e8e8e8;
+            border-color: #d0d0d0;
+        }
+
+        .modal-btn.confirm {
+            background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+        }
+
+        .modal-btn.confirm:hover {
+            background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.45);
+            transform: translateY(-0.5px);
+        }
+
+        .modal-btn.danger {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(220, 38, 38, 0.35);
+        }
+
+        .modal-btn.danger:hover {
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.45);
+            transform: translateY(-0.5px);
         }
 
         .loading {
@@ -397,6 +526,17 @@
             setTimeout(() => {
                 toast.remove();
             }, 3000);
+        }
+
+        function showProgressToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast progress';
+            toast.innerHTML = `
+                <div class="loading-spinner"></div>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            return toast;
         }
 
         function showModal() {
@@ -485,6 +625,9 @@
             const formData = new FormData();
             formData.append('file', file);
 
+            // 显示上传进度提示
+            const progressToast = showProgressToast(`正在处理文档: ${file.name}`);
+
             try {
                 const response = await fetch(`${API_BASE}/api/knowledge/upload`, {
                     method: 'POST',
@@ -497,11 +640,25 @@
                     throw new Error(error.detail || '上传失败');
                 }
 
-                showToast(`文档 "${file.name}" 上传成功`);
+                const result = await response.json();
+                const status = result.status || 'success';
+                const message = result.message || `文档 "${file.name}" 上传成功`;
+                
+                if (status === 'success') {
+                    showToast(message);
+                } else {
+                    showToast(message, 'warning');
+                }
+                
                 loadDocuments();
             } catch (error) {
                 console.error('上传失败:', error);
                 showToast(`上传失败: ${error.message}`, 'error');
+            } finally {
+                // 关闭进度提示
+                if (progressToast) {
+                    progressToast.remove();
+                }
             }
         }
 

@@ -60,6 +60,17 @@ class Couplet:
             return False
 
     def similarity_search(self, query: str):
+        from core.cache.rag_cache import get_rag_cache
+        cache = get_rag_cache()
+
+        def embed_func(text):
+            return self.embedding_model.embed_query(text)
+
+        # 缓存查询
+        cached = cache.search(query, embed_func)
+        if cached:
+            return cached
+
         samples = []
 
         try:
@@ -79,6 +90,9 @@ class Couplet:
             # RAG增强
             prompt = prompt_template.invoke({"samples": samples, "text": query})
             logger.info(prompt)
+
+            # 保存缓存
+            cache.save(query, str(prompt), embed_func)
 
             return prompt
         except Exception as e:

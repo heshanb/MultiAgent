@@ -382,7 +382,7 @@ def invoke(
 ### 调用示例
 
 ```python
-from core.DrawingRecoAssistant.drawing_assistant import DrawingAssistant
+from core.skills.DrawingRecoAssistant.drawing_assistant import DrawingAssistant
 
 assistant = DrawingAssistant.get_instance()
 
