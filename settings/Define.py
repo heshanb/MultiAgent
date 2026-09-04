@@ -20,8 +20,6 @@ class PathConfig:
     LOG_DIR = BASE_DIR / "logs"
     # 知识库目录
     COMMON_KNOWLEDGE_DIR = RESOURCE_DIR / "common_knowledge"
-    # 初始化时自动创建目录（取消注释以启用）
-    COUPLET_FILE = os.path.join(RESOURCE_DIR, "couplettest.csv")
     # 验证目录是否存在（可选）
     @classmethod
     def ensure_directories(cls):
@@ -42,19 +40,17 @@ class PathConfig:
                 
 
 class Params:
-    DEFAULT_CHAT_MODEL="qwen3.7-plus"
+    DEFAULT_CHAT_MODEL="deepseek-v4-pro-0813"
     DEFAULT_EMBEDDING_MODEL="text-embedding-v4"
-    # 多模态识图：Qwen - VL - Max
     DEFAULT_MULTIMODAL_MODEL="qwen-vl-max"
-    # 文本工具模型：Qwen-Turbo
     DEFAULT_TEXT_TOOL_MODEL="qwen-turbo"
     API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
 
     SUPERVISOR_NODE = "supervisor_node"
     TRAVEL_NODE = "travel_node"
     JOKE_NODE = "joke_node"
-    DOCUMENT_NODE = "document_node"
     COUPLET_NODE = "couplet_node"
+    DOCUMENT_NODE = "document_node"
     CODE_NODE = "code_node"
     OTHER_NODE = "other_node"
     DRAWING_NODE = "drawing_node"
@@ -97,7 +93,7 @@ class Params:
 
     # ===================== 代码助手节点名称 =====================
     MAPPING_MODEL = {
-        "Qwen3.7-Plus": "qwen3.7-plus",
+        "Qwen-Plus": "qwen3.8-max",
         "DeepSeek-V4-Pro": "deepseek-v4-pro",
         "GLM-5.2-Fast-Preview": "glm-5.2-fast-preview",
     }

@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 from core.memory.memory_manager import MemoryManager
 from langchain_openai import ChatOpenAI
+from langchain_core.chat_history import InMemoryChatMessageHistory
+
 
 logger = getLogger(__name__)
 
@@ -18,6 +20,7 @@ class Project_Programming:
         self.state_list = state_list
         self.project_context = project_context
         self.images = images  # 存储图片数据
+        self.history = InMemoryChatMessageHistory()
         
         # 提取项目根路径
         self.project_root = ""
@@ -1124,16 +1127,17 @@ class Project_Programming:
                 vl_prompt_list = [
                     {"role": "user", "content": vl_user_content},
                 ]
-                response = llm.invoke(vl_prompt_list)
-                response_text = response.content if hasattr(response, 'content') else str(response)
-                self._update_memory_from_response(message_content, response_text)
-                # 分块输出，模拟流式效果
-                chunk_size = 80
-                for i in range(0, len(response_text), chunk_size):
-                    yield response_text[i:i + chunk_size]
-                    time.sleep(0.03)
-                return
 
+                total_text = ""
+                for chunk in llm.stream(vl_prompt_list):
+                    response_text = chunk.content if hasattr(chunk, 'content') else str(chunk)
+                    self._update_memory_from_response(message_content, response_text)
+                    total_text += response_text
+                    yield response_text
+                    time.sleep(0.03)
+
+                # 多模态路径完成，直接返回
+                return
             thinking_count = 0
             paragraph_count = 0
             in_code_block = False
@@ -1181,9 +1185,6 @@ class Project_Programming:
             # 思考阶段结束标记
             yield "\n\n---\n\n"
 
-            # 主 LLM 处理中提示
-            yield "<span class='typing-indicator'> 正在生成回复</span>\n\n"
-
             # === 正式回复阶段：用主 LLM 输出正式内容 ===
             for chunk in llm.stream(prompt_list):
                 if hasattr(chunk, 'content') and chunk.content:
@@ -1210,6 +1211,7 @@ class Project_Programming:
                     yield content
             
             # 流式响应完成后，更新长期记忆
+            self.history.add_ai_message(full_response)
             self._update_memory_from_response(message_content, full_response)
             
         except Exception as e:

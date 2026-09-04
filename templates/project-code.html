@@ -30,7 +30,7 @@
         .tree-item:hover { background: #e8e8e8; }
         .tree-item.active { background: #cce5ff; color: #004085; }
         .tree-item.folder { font-weight: 500; }
-        .tree-icon { font-size: 0.75rem; width: 16px; text-align: center; flex-shrink: 0; }
+        .tree-icon { font-size: 0.75rem; width: 18px; min-width: 18px; height: 18px; text-align: center; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
         .tree-expand { width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #666666; flex-shrink: 0; }
         .tree-expand:hover { color: #333333; }
         .tree-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -59,9 +59,27 @@
         .tabs-bar::-webkit-scrollbar { height: 4px; }
         .tabs-bar::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 2px; }
         .tabs-bar::-webkit-scrollbar-track { background: transparent; }
-        .tab { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-right: 1px solid #e8e8e8; cursor: pointer; font-size: 0.82rem; color: #666666; transition: all 0.2s; position: relative; flex-shrink: 0; min-width: 100px; max-width: 200px; }
+        .tab { display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-right: 1px solid #e8e8e8; cursor: pointer; font-size: 0.82rem; color: #666666; transition: all 0.2s; position: relative; flex-shrink: 0; min-width: 100px; max-width: 200px; }
         .tab:hover { background: #f5f5f5; }
-        .tab.active { background: #ffffff; color: #333333; border-top: 1px solid #007acc; }
+        .tab.active {
+            background: #e8f0fe;
+            color: #1a1a1a;
+            font-weight: 500;
+            box-shadow: 0 0 0 2px #1677ff inset, 0 0 0 1px #1677ff;
+            border-radius: 4px;
+            margin: 2px 2px 2px 2px;
+            border-right: none;
+        }
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 8px;
+            right: 8px;
+            height: 2px;
+            background: #1677ff;
+            border-radius: 1px;
+        }
         .tab-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .tab.modified .tab-name { font-weight: 600; }
         .tab-close { flex-shrink: 0; opacity: 0; transition: opacity 0.2s; padding: 2px; font-size: 0.75rem; }
@@ -327,6 +345,35 @@
         .terminal-output .error { color: #f48771; }
         .terminal-output .success { color: #89d185; }
         .terminal-output .info { color: #667eea; }
+        .terminal-output .user-input { color: #569cd6; font-style: italic; }
+
+        .terminal-input-row {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-top: 1px solid #333;
+            background: #1e1e1e;
+            gap: 8px;
+        }
+        .terminal-input-prompt {
+            color: #89d185;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .terminal-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #d4d4d4;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+        .terminal-input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
         .terminal-resizer {
             height: 4px;
@@ -429,6 +476,55 @@
             font-size: 0.85rem;
         }
         .settings-btn-save:hover { background: #005fa3; }
+        .settings-btn-install {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 4px;
+            background: #2e7d32;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        .settings-btn-install:hover:not(:disabled) { background: #1b5e20; }
+        .settings-btn-install:disabled { background: #a5a5a5; cursor: not-allowed; }
+        .install-output {
+            width: 100%;
+            height: 240px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border: 1px solid #d0d0d0;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            resize: none;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .install-output:disabled { opacity: 1; }
+        .install-hint {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 4px;
+            margin-bottom: 0;
+        }
+        .module-not-found-hint {
+            background: #fff8e1;
+            border-left: 3px solid #ff9800;
+            padding: 8px 12px;
+            margin-top: 4px;
+            font-size: 0.82rem;
+            color: #5d4037;
+            line-height: 1.6;
+        }
+        .module-not-found-hint strong { color: #d84315; font-weight: 600; }
+        .module-not-found-hint a {
+            color: #007acc;
+            text-decoration: underline;
+            cursor: pointer;
+            font-weight: 500;
+        }
 
         /* 右侧AI面板 */
         .ai-panel { width: 380px; min-width: 200px; background: #fafafa; border-left: 1px solid #d0d0d0; display: flex; flex-direction: column; }
@@ -535,6 +631,25 @@
             stroke-width: 2.5 !important;
             vertical-align: middle !important;
         }
+        .ai-message-footer .action-btn img {
+            width: 16px !important;
+            height: 16px !important;
+            vertical-align: middle !important;
+            display: inline-block !important;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .ai-message-footer .action-btn:hover img {
+            opacity: 1;
+        }
+        .ai-message-footer .action-btn.liked img {
+            opacity: 1;
+            filter: brightness(0) saturate(100%) invert(42%) sepia(93%) saturate(1352%) hue-rotate(184deg) brightness(97%) contrast(101%);
+        }
+        .ai-message-footer .action-btn.disliked img {
+            opacity: 1;
+            filter: brightness(0) saturate(100%) invert(24%) sepia(85%) saturate(6406%) hue-rotate(342deg) brightness(95%) contrast(96%);
+        }
 
         /* 任务耗时样式 */
         .ai-task-duration { font-size: 0.7rem; color: #999; }
@@ -554,6 +669,37 @@
             margin: 12px 0;
             border: none;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .ai-message-content pre .copy-code-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc;
+            padding: 4px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+        .ai-message-content pre .copy-code-btn:hover {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        .ai-message-content pre .copy-code-btn.copied {
+            background: rgba(76,175,80,0.3);
+            border-color: rgba(76,175,80,0.5);
+            color: #4CAF50;
+        }
+        .ai-message-content pre .copy-code-btn svg {
+            width: 14px;
+            height: 14px;
         }
         .ai-message-content code {
             font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
@@ -561,7 +707,7 @@
             line-height: 1.5;
         }
         .ai-message-content pre code {
-            color: #333;
+            color: #e0e0e0;
             background: transparent;
             padding: 0;
         }
@@ -950,15 +1096,12 @@
         .ai-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .ai-send-btn svg { width: 15px; height: 15px; fill: white; }
         .ai-send-btn.loading svg.send-icon { display: none; }
-        .ai-send-btn.loading .loading-spinner { display: block; }
-        .loading-spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .send-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); right: 0; padding: 4px 8px; background: #3c3c3c; color: #fff; font-size: 0.7rem; border-radius: 4px; white-space: nowrap; }
-        .send-tooltip::after { content: ''; position: absolute; top: 100%; right: 6px; border: 4px solid transparent; border-top-color: #3c3c3c; }
-        .ai-send-btn:hover:not(.loading) .send-tooltip { display: block; }
-        .stop-tooltip { display: none; position: absolute; bottom: calc(100% + 6px); right: 0; padding: 4px 8px; background: #3c3c3c; color: #fff; font-size: 0.7rem; border-radius: 4px; white-space: nowrap; }
-        .stop-tooltip::after { content: ''; position: absolute; top: 100%; right: 6px; border: 4px solid transparent; border-top-color: #3c3c3c; }
-        .ai-send-btn.loading:hover .stop-tooltip { display: block; }
+        .ai-send-btn.loading .stop-icon { display: block; }
+        .stop-icon { display: none; width: 10px; height: 10px; background: #000; border-radius: 1px; }
+        .send-tooltip { display: none; position: fixed; padding: 4px 10px; background: #333; color: #fff; font-size: 0.75rem; border-radius: 6px; white-space: nowrap; font-weight: 500; z-index: 9999; pointer-events: none; }
+        .send-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #333; }
+        .stop-tooltip { display: none; position: fixed; padding: 4px 10px; background: #333; color: #fff; font-size: 0.75rem; border-radius: 6px; white-space: nowrap; font-weight: 500; z-index: 9999; pointer-events: none; }
+        .stop-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #333; }
 
         /* 功能按钮区 */
         .function-buttons { padding: 12px; border-bottom: 1px solid #3c3c3c; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -1314,6 +1457,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M20.66 7A10 10 0 0 0 14 2v8.66l6.66-3.66z"/></svg>
                         <span>Python 解释器</span>
                     </div>
+                    <div class="settings-dropdown-item" onclick="openInstallLibrary(); closeSettingsMenu();">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        <span>安装Python库</span>
+                    </div>
                     <div class="settings-dropdown-separator"></div>
                     <div class="settings-dropdown-item" onclick="clearTerminal(); closeSettingsMenu();">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -1365,6 +1512,10 @@
                 </div>
             </div>
             <div class="terminal-output" id="terminalOutput"></div>
+            <div class="terminal-input-row" id="terminalInputRow" style="display: none;">
+                <span class="terminal-input-prompt">❯</span>
+                <input type="text" class="terminal-input" id="terminalInput" placeholder="在此输入（Enter 发送）" autocomplete="off" spellcheck="false">
+            </div>
         </div>
 
         <!-- 状态栏 -->
@@ -1461,9 +1612,11 @@
                 <!-- 下方工具栏 -->
                 <div class="ai-toolbar">
                     <button type="button" class="ai-mention-btn" title="Mention (#)" id="mentionBtn">
-                        <span style="font-size: 1.2rem; font-weight: 600;">#</span>
+                        <img src="/static/icons/input_%23.png" width="16" height="16" alt="#" />
                     </button>
-                    <button type="button" class="ai-upload-btn" title="Upload image" onclick="document.getElementById('imageInput').click()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></button>
+                    <button type="button" class="ai-upload-btn" title="Upload image" onclick="document.getElementById('imageInput').click()">
+                        <img src="/static/icons/input_uploadImage.png" width="16" height="16" alt="Upload" />
+                    </button>
                     <div style="flex: 1;"></div>
                     <!-- 模型选择下拉框 -->
                     <div class="model-dropdown" id="modelDropdown">
@@ -1502,7 +1655,7 @@
                     </div>
                     <button class="ai-send-btn" id="aiSendBtn" onclick="sendAiMessage()">
                         <svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-                        <div class="loading-spinner"></div>
+                        <div class="stop-icon"></div>
                         <span class="send-tooltip">Send</span>
                         <span class="stop-tooltip">Stop</span>
                     </button>
@@ -1702,22 +1855,52 @@
         };
 
         // 文件图标映射
-        const fileIcons = {
-            '.py': '🐍', '.js': '📦', '.ts': '📘', '.html': '🌐', '.css': '🎨',
-            '.json': '📋', '.md': '📝', '.txt': '📄', '.xml': '📑', '.csv': '📊',
-            '.json': '📋', '.yml': '📋', '.yaml': '📋', '.dockerfile': '🐳',
-            '.gitignore': '🔒', '.git': '📦', '.sql': '🗄️', '.sh': '💻',
-            '.bat': '💻', '.cmd': '💻', '.exe': '⚙️', '.dll': '⚙️',
-            '.jpg': '🖼️', '.png': '🖼️', '.gif': '🖼️', '.svg': '📐',
-            '.pdf': '📕', '.docx': '📘', '.doc': '📘', '.xlsx': '📈', '.xls': '📈',
-            '.pptx': '📊', '.ppt': '📊', '.zip': '📦', '.rar': '📦',
-            '.tar': '📦', '.gz': '📦'
+        const fileIconSvgs = {
+            '.py': `<img src="/static/icons/python_logo.png" width="16" height="16" style="vertical-align:middle" alt="Python" />`,
+            '.ipynb': `<img src="/static/icons/file_JupyterNoteBook.png" width="16" height="16" style="vertical-align:middle" alt="Jupyter" />`,
+            '.html': `<img src="/static/icons/file_html.png" width="16" height="16" style="vertical-align:middle" alt="HTML" />`,
+            '.htm': `<img src="/static/icons/file_html.png" width="16" height="16" style="vertical-align:middle" alt="HTML" />`,
+            '.json': `<img src="/static/icons/file_json.png" width="16" height="16" style="vertical-align:middle" alt="JSON" />`,
+            '.txt': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Text" />`,
+            '.md': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Markdown" />`,
+            '.log': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Log" />`,
+            '.csv': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="CSV" />`,
+            '.yml': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="YAML" />`,
+            '.yaml': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="YAML" />`,
+            '.xml': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="XML" />`,
+            '.css': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="CSS" />`,
+            '.js': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="JS" />`,
+            '.ts': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="TS" />`,
+            '.sql': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="SQL" />`,
+            '.sh': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Shell" />`,
+            '.bat': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Batch" />`,
+            '.cmd': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="CMD" />`,
+            '.jpg': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Image" />`,
+            '.jpeg': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Image" />`,
+            '.png': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Image" />`,
+            '.gif': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Image" />`,
+            '.svg': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Image" />`,
+            '.pdf': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="PDF" />`,
+            '.docx': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Word" />`,
+            '.doc': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Word" />`,
+            '.xlsx': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Excel" />`,
+            '.xls': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Excel" />`,
+            '.pptx': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="PPT" />`,
+            '.zip': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Archive" />`,
+            '.rar': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Archive" />`,
+            '.tar': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Archive" />`,
+            '.gz': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Archive" />`,
+            '.dockerfile': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Dockerfile" />`,
+            '.gitignore': `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="Gitignore" />`
         };
 
-        // 获取文件图标
+        // 默认文件图标
+        const defaultFileIconSvg = `<img src="/static/icons/file_text.png" width="16" height="16" style="vertical-align:middle" alt="File" />`;
+
+        // 获取文件图标（返回 SVG）
         function getFileIcon(filename) {
             const ext = filename.split('.').pop().toLowerCase();
-            return fileIcons['.' + ext] || '📄';
+            return fileIconSvgs['.' + ext] || defaultFileIconSvg;
         }
 
         // 渲染目录树
@@ -1765,7 +1948,7 @@
             } else {
                 const iconSpan = document.createElement('span');
                 iconSpan.className = 'tree-icon';
-                iconSpan.textContent = getFileIcon(item.name);
+                iconSpan.innerHTML = getFileIcon(item.name);
                 rowDiv.appendChild(iconSpan);
             }
 
@@ -2366,6 +2549,7 @@
 
             for (const { name, entry } of entries) {
                 if (name === 'node_modules' || name === '__pycache__') continue;
+                if (name.endsWith('.py.out') || name.endsWith('.py.err')) continue;
 
                 const relativePath = parentPath ? `${parentPath}/${name}` : name;
 
@@ -2436,8 +2620,10 @@
                         for (const file of files) {
                             const fileRelPath = file.webkitRelativePath;
                             const parts = fileRelPath.split('/');
+                            const fileName = parts[parts.length - 1];
+                            if (fileName.endsWith('.py.out') || fileName.endsWith('.py.err')) continue;
                             parts.shift();
-                            const fileName = parts.pop();
+                            parts.pop();
 
                             fileMap[fileRelPath] = file;
 
@@ -3605,6 +3791,49 @@
             modalBody.innerHTML = html;
         }
 
+        // 为所有代码块添加复制按钮
+        function addCopyButtonsToCodeBlocks() {
+            const codeBlocks = document.querySelectorAll('.ai-message-content pre');
+            codeBlocks.forEach(pre => {
+                // 如果已经有复制按钮，跳过
+                if (pre.querySelector('.copy-code-btn')) return;
+                
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-code-btn';
+                copyBtn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                    <span>复制</span>
+                `;
+                copyBtn.onclick = function() {
+                    const code = pre.querySelector('code');
+                    const text = code ? code.innerText : pre.innerText;
+                    navigator.clipboard.writeText(text).then(() => {
+                        copyBtn.classList.add('copied');
+                        copyBtn.innerHTML = `
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            <span>已复制</span>
+                        `;
+                        setTimeout(() => {
+                            copyBtn.classList.remove('copied');
+                            copyBtn.innerHTML = `
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                <span>复制</span>
+                            `;
+                        }, 2000);
+                    });
+                };
+                pre.appendChild(copyBtn);
+            });
+        }
+
         function formatDateGroup(date) {
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -3705,6 +3934,8 @@
                         </div>
                     </div>
                 `;
+                // 为代码块添加复制按钮
+                setTimeout(() => addCopyButtonsToCodeBlocks(), 0);
             }
         }
 
@@ -3769,6 +4000,12 @@
         }
 
         async function sendAiMessage() {
+            // 防止重复发送
+            if (isSendingMessage) {
+                console.log('正在发送消息，请稍候...');
+                return;
+            }
+
             // 检查是否已导入项目
             if (!projectTreeData || projectTreeData.length === 0) {
                 return;
@@ -3777,6 +4014,9 @@
             const input = document.getElementById('aiInput');
             const message = input.value.trim();
             if (!message && uploadedImages.length === 0) return;
+
+            // 设置发送状态
+            isSendingMessage = true;
 
             const chatArea = document.getElementById('aiChatArea');
             const sendBtn = document.getElementById('aiSendBtn');
@@ -3886,24 +4126,16 @@
                     </div>
                     <div class="ai-actions">
                         <button class="action-btn like" onclick="likeMessage(this)" title="赞">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>
-                            </svg>
+                            <img src="/static/icons/thumbs-up.png" alt="赞" width="14" height="14">
                         </button>
                         <button class="action-btn dislike" onclick="dislikeMessage(this)" title="踩">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2c0 1.1.9 2 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5c0-1.1-.9-2-2-2zm4 0v12h4V3h-4z"/>
-                            </svg>
+                            <img src="/static/icons/thumbs-down.png" alt="踩" width="14" height="14">
                         </button>
                         <button class="action-btn copy-all" onclick="copyAllMessage(this)" title="复制全部">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
-                            </svg>
+                            <img src="/static/icons/copy.png" alt="复制" width="14" height="14">
                         </button>
                         <button class="action-btn retry" onclick="retryMessage(this)" title="重试">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                            </svg>
+                            <img src="/static/icons/retry.png" alt="重试" width="14" height="14">
                         </button>
                     </div>
                 </div>
@@ -3946,6 +4178,28 @@
             }
 
             // 构建请求参数（不默认发送当前打开文件的内容，让用户明确选择）
+            // 构建对话历史（从当前会话的AI消息中提取）
+            const chatHistory = [];
+            const allMessages = chatArea.querySelectorAll('.ai-message');
+            allMessages.forEach(msg => {
+                const isUser = msg.classList.contains('user');
+                const isAssistant = msg.classList.contains('assistant');
+                const contentEl = msg.querySelector('.message-bubble') || msg.querySelector('.ai-streaming-content');
+                if (contentEl) {
+                    const content = contentEl.innerText.trim();
+                    if (content) {
+                        chatHistory.push({
+                            role: isUser ? 'user' : 'assistant',
+                            content: content
+                        });
+                    }
+                }
+            });
+            // 移除最后一条（当前用户消息，会单独发送）
+            if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user') {
+                chatHistory.pop();
+            }
+
             const requestData = {
                 message: message,
                 skill: 'project_code',
@@ -3954,7 +4208,8 @@
                 project_context: projectContext,
                 thread_id: Date.now(),
                 model: currentModel,
-                images: imagesToSend
+                images: imagesToSend,
+                history: chatHistory  // 添加对话历史
             };
 
             const streamingContent = aiMsg.querySelector('.ai-streaming-content');
@@ -4006,6 +4261,8 @@
                                             if (streamingContent) {
                                                 const parsedHtml = marked.parse(fullResponse);
                                                 streamingContent.innerHTML = wrapReactThinkingBlocks(parsedHtml);
+                                                // 为代码块添加复制按钮
+                                                setTimeout(() => addCopyButtonsToCodeBlocks(), 0);
                                                 // 重新绑定可折叠区域事件
                                                 setTimeout(bindCollapsibleEvents, 10);
                                             }
@@ -4097,6 +4354,12 @@
                                         if (footer) {
                                             footer.style.display = 'flex';
                                         }
+                                        
+                                        // AI回复完成，移除思考/分析/计划块
+                                        setTimeout(() => removeReactThinkingBlocks(aiMsg), 0);
+                                        
+                                        // 为代码块添加复制按钮
+                                        setTimeout(() => addCopyButtonsToCodeBlocks(), 0);
                                     }
                                 } catch (e) {
                                     // 忽略解析错误
@@ -4136,10 +4399,18 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                 saveToHistory(message, fullResponse);
             }
 
+            // AI回复完成，移除思考/分析/计划块（确保即使没有收到done状态也会移除）
+            setTimeout(() => {
+                const aiMsgs = document.querySelectorAll('.ai-message');
+                aiMsgs.forEach(aiMsg => removeReactThinkingBlocks(aiMsg));
+            }, 100);
+
             // 移除加载状态
             sendBtn.classList.remove('loading');
             sendBtn.disabled = false;
             sendBtn.onclick = sendAiMessage;
+            // 重置发送状态
+            isSendingMessage = false;
             // 只有当用户已经在底部附近时才自动滚动
             const isNearBottom = chatArea.scrollHeight - chatArea.scrollTop - chatArea.clientHeight < 100;
             if (isNearBottom) {
@@ -4604,6 +4875,7 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
         let currentFileChanges = [];
         let currentAiMsg = null;
         let aiResponseCompleted = false; // AI回复是否完成的标志
+        let isSendingMessage = false; // 防止重复发送消息的标志
 
         // 从流式文本中实时检测代码块
         function detectCodeBlocksInText(text, currentFileName, currentCode) {
@@ -5329,32 +5601,46 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             return 'unknown';
         }
 
+        // 新建菜单专用的小尺寸图标
+        const newMenuIconSvgs = {
+            py: `<img src="/static/icons/python_logo.png" width="18" height="18" style="vertical-align:middle" alt="Python" />`,
+            ipynb: `<img src="/static/icons/file_JupyterNoteBook.png" width="18" height="18" style="vertical-align:middle" alt="Jupyter" />`,
+            html: `<img src="/static/icons/file_html.png" width="18" height="18" style="vertical-align:middle" alt="HTML" />`,
+            json: `<img src="/static/icons/file_json.png" width="18" height="18" style="vertical-align:middle" alt="JSON" />`,
+            txt: `<img src="/static/icons/file_text.png" width="18" height="18" style="vertical-align:middle" alt="Text" />`,
+            dir: `<svg viewBox="0 0 32 32" width="18" height="18" style="vertical-align:middle"><path d="M3 9C3 7.9 3.9 7 5 7H13L15 9H27C28.1 9 29 9.9 29 11V24C29 25.1 28.1 26 27 26H5C3.9 26 3 25.1 3 24V9Z" fill="#FFC107" stroke="#E0A800" stroke-width="1"/></svg>`,
+            c: `<svg viewBox="0 0 32 32" width="18" height="18" style="vertical-align:middle"><rect width="32" height="32" rx="3" fill="#00599C"/><text x="16" y="23" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="16" font-weight="bold" fill="white">C</text></svg>`,
+            h: `<svg viewBox="0 0 32 32" width="18" height="18" style="vertical-align:middle"><rect width="32" height="32" rx="3" fill="#A8B9CC"/><text x="16" y="23" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="16" font-weight="bold" fill="#003A70">H</text></svg>`,
+            cpp: `<svg viewBox="0 0 32 32" width="18" height="18" style="vertical-align:middle"><rect width="32" height="32" rx="3" fill="#00599C"/><text x="13" y="23" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="16" font-weight="bold" fill="white">C</text><text x="20.5" y="22" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="10" font-weight="bold" fill="white">++</text></svg>`,
+            hpp: `<svg viewBox="0 0 32 32" width="18" height="18" style="vertical-align:middle"><rect width="32" height="32" rx="3" fill="#A8B9CC"/><text x="13" y="23" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="14" font-weight="bold" fill="#003A70">H</text><text x="20.5" y="22" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="9" font-weight="bold" fill="#003A70">++</text></svg>`
+        };
+
         // 根据项目语言获取可新建的文件类型
         function getNewFileOptions() {
             const lang = detectProjectLanguage();
 
             if (lang === 'python') {
                 return [
-                    { type: 'file', icon: '🐍', label: 'Python 文件', ext: '.py' },
-                    { type: 'file', icon: '📔', label: 'Jupyter Notebook', ext: '.ipynb' },
-                    { type: 'file', icon: '<>', label: 'HTML 文件', ext: '.html' },
-                    { type: 'file', icon: 'json', label: 'JSON 文件', ext: '.json' },
-                    { type: 'file', icon: '📄', label: '普通文本文件', ext: '.txt' },
-                    { type: 'dir', icon: '📁', label: '目录', ext: '' }
+                    { type: 'file', icon: newMenuIconSvgs.py, label: 'Python 文件', ext: '.py' },
+                    { type: 'file', icon: newMenuIconSvgs.ipynb, label: 'Jupyter Notebook', ext: '.ipynb' },
+                    { type: 'file', icon: newMenuIconSvgs.html, label: 'HTML 文件', ext: '.html' },
+                    { type: 'file', icon: newMenuIconSvgs.json, label: 'JSON 文件', ext: '.json' },
+                    { type: 'file', icon: newMenuIconSvgs.txt, label: '普通文本文件', ext: '.txt' },
+                    { type: 'dir', icon: newMenuIconSvgs.dir, label: '目录', ext: '' }
                 ];
             } else if (lang === 'c') {
                 return [
-                    { type: 'file', icon: 'C', label: 'C源文件', ext: '.c' },
-                    { type: 'file', icon: 'H', label: 'C头文件', ext: '.h' },
-                    { type: 'file', icon: '📄', label: '普通文本文件', ext: '.txt' },
-                    { type: 'dir', icon: '📁', label: '目录', ext: '' }
+                    { type: 'file', icon: newMenuIconSvgs.c, label: 'C源文件', ext: '.c' },
+                    { type: 'file', icon: newMenuIconSvgs.h, label: 'C头文件', ext: '.h' },
+                    { type: 'file', icon: newMenuIconSvgs.txt, label: '普通文本文件', ext: '.txt' },
+                    { type: 'dir', icon: newMenuIconSvgs.dir, label: '目录', ext: '' }
                 ];
             } else if (lang === 'cpp') {
                 return [
-                    { type: 'file', icon: 'C+', label: 'C++源文件', ext: '.cpp' },
-                    { type: 'file', icon: 'H+', label: 'C++头文件', ext: '.hpp' },
-                    { type: 'file', icon: '📄', label: '普通文本文件', ext: '.txt' },
-                    { type: 'dir', icon: '📁', label: '目录', ext: '' }
+                    { type: 'file', icon: newMenuIconSvgs.cpp, label: 'C++源文件', ext: '.cpp' },
+                    { type: 'file', icon: newMenuIconSvgs.hpp, label: 'C++头文件', ext: '.hpp' },
+                    { type: 'file', icon: newMenuIconSvgs.txt, label: '普通文本文件', ext: '.txt' },
+                    { type: 'dir', icon: newMenuIconSvgs.dir, label: '目录', ext: '' }
                 ];
             } else {
                 return []; // 其它语言暂不支持
@@ -5753,46 +6039,87 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                 // 将 ReAct 思考过程转换为可折叠组件
         function wrapReactThinkingBlocks(html) {
             const patterns = [
-                { keyword: '**思考：**', icon: '', title: '思考过程' },
-                { keyword: '**分析：**', icon: '🔍', title: '分析过程' },
-                { keyword: '**计划：**', icon: '📋', title: '执行计划' },
+                { keyword: '思考：', icon: '', title: '思考' },
+                { keyword: '分析：', icon: '', title: '分析' },
+                { keyword: '计划：', icon: '', title: '计划' },
             ];
 
-            let result = html;
+            // 使用临时 DOM 元素来解析 HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
 
-            for (const pattern of patterns) {
-                const escapedKeyword = pattern.keyword.replace(/\*/g, '\\*');
-                const regex = new RegExp(
-                    `<p>\\s*<strong>${escapedKeyword}</strong>\\s*</p>\\s*<p>([\\s\\S]*?)(?=<p>\\s*<strong>\\*\\*|$)`,
-                    'g'
-                );
-
-                result = result.replace(regex, (match, content) => {
-                    const cleanContent = content.trim();
-                    if (!cleanContent) return match;
-
-                    return `
-                        <div class="react-thinking-block">
-                            <div class="react-thinking-header" onclick="toggleReactThinking(this)">
-                                <div class="react-thinking-title">
-                                    <span>${pattern.icon}</span>
-                                    <span>${pattern.title}</span>
+            // 查找所有包含思考关键词的 <p> 标签
+            const paragraphs = tempDiv.querySelectorAll('p');
+            paragraphs.forEach(p => {
+                const text = p.innerHTML;
+                
+                // 检查是否包含任何思考关键词
+                const hasThinking = patterns.some(pattern => text.includes(`<strong>${pattern.keyword}</strong>`));
+                
+                if (hasThinking) {
+                    // 创建新的容器来替换这个 <p>
+                    const container = document.createElement('div');
+                    
+                    // 找到所有关键词的位置
+                    const positions = [];
+                    for (const pattern of patterns) {
+                        const keywordHtml = `<strong>${pattern.keyword}</strong>`;
+                        const idx = text.indexOf(keywordHtml);
+                        if (idx !== -1) {
+                            positions.push({ pattern, idx, keywordHtml });
+                        }
+                    }
+                    
+                    // 按位置排序
+                    positions.sort((a, b) => a.idx - b.idx);
+                    
+                    // 按顺序提取每个关键词的内容
+                    for (let i = 0; i < positions.length; i++) {
+                        const current = positions[i];
+                        const next = positions[i + 1];
+                        
+                        // 提取当前关键词后面的内容
+                        const startIdx = current.idx + current.keywordHtml.length;
+                        const endIdx = next ? next.idx : text.length;
+                        const content = text.substring(startIdx, endIdx).trim();
+                        
+                        if (content) {
+                            const block = document.createElement('div');
+                            block.className = 'react-thinking-block';
+                            block.innerHTML = `
+                                <div class="react-thinking-header" onclick="toggleReactThinking(this)">
+                                    <div class="react-thinking-title">
+                                        <span>${current.pattern.icon}</span>
+                                        <span>${current.pattern.title}</span>
+                                    </div>
+                                    <div class="react-thinking-toggle">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="9 18 15 12 9 6"></polyline>
+                                        </svg>
+                                    </div>
                                 </div>
-                                <div class="react-thinking-toggle">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="9 18 15 12 9 6"></polyline>
-                                    </svg>
+                                <div class="react-thinking-content">
+                                    <p>${content}</p>
                                 </div>
-                            </div>
-                            <div class="react-thinking-content">
-                                <p>${cleanContent}</p>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
+                            `;
+                            container.appendChild(block);
+                        }
+                    }
+                    
+                    // 替换原来的 <p> 标签
+                    if (container.children.length > 0) {
+                        p.parentNode.replaceChild(container, p);
+                    }
+                }
+            });
 
-            return result;
+            return tempDiv.innerHTML;
+        }
+
+        // 移除 ReAct 思考块（AI回复完成后调用）
+        function removeReactThinkingBlocks(container) {
+            const blocks = container.querySelectorAll('.react-thinking-block');
+            blocks.forEach(block => block.remove());
         }
 
         // 切换 ReAct 思考块展开/收起
@@ -5818,6 +6145,9 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             // 绑定可折叠区域事件
             bindCollapsibleEvents();
 
+            // 为代码块添加复制按钮
+            addCopyButtonsToCodeBlocks();
+
             // 初始化AI面板状态
             updateAiPanelState();
 
@@ -5826,6 +6156,38 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             const mentionBtn = document.getElementById('mentionBtn');
             const menu = document.getElementById('mentionMenu');
             const list = document.getElementById('mentionList');
+            const sendBtn = document.getElementById('aiSendBtn');
+            const sendTooltip = sendBtn.querySelector('.send-tooltip');
+            const stopTooltip = sendBtn.querySelector('.stop-tooltip');
+
+            // 提示框定位
+            function positionTooltip(tooltip, btn) {
+                const rect = btn.getBoundingClientRect();
+                const tooltipRect = tooltip.getBoundingClientRect();
+                const gap = 4;
+                const top = rect.top - tooltipRect.height - gap;
+                const left = rect.left + (rect.width - tooltipRect.width) / 2;
+                tooltip.style.top = top + 'px';
+                tooltip.style.left = left + 'px';
+            }
+
+            sendBtn.addEventListener('mouseenter', () => {
+                const tooltip = sendBtn.classList.contains('loading') ? stopTooltip : sendTooltip;
+                tooltip.style.display = 'block';
+                // 强制重排后定位
+                void tooltip.offsetWidth;
+                positionTooltip(tooltip, sendBtn);
+            });
+            sendBtn.addEventListener('mouseleave', () => {
+                sendTooltip.style.display = 'none';
+                stopTooltip.style.display = 'none';
+            });
+            sendBtn.addEventListener('mousemove', () => {
+                const tooltip = sendBtn.classList.contains('loading') ? stopTooltip : sendTooltip;
+                if (tooltip.style.display === 'block') {
+                    positionTooltip(tooltip, sendBtn);
+                }
+            });
 
             // 页面加载时输入框自动聚焦，光标在最前面
             window.addEventListener('load', () => {
@@ -6078,12 +6440,21 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
 
         // 重试消息（AI重新分析用户需求）
         async function retryMessage(btn) {
+            // 防止重复发送
+            if (isSendingMessage) {
+                console.log('正在发送消息，请稍候...');
+                return;
+            }
+
             const aiMsg = btn.closest('.ai-message');
             const userMsg = aiMsg.previousElementSibling;
 
             if (userMsg && userMsg.classList.contains('user')) {
                 const userInput = userMsg.querySelector('.message-bubble').textContent;
                 if (!userInput) return;
+
+                // 设置发送状态
+                isSendingMessage = true;
 
                 const sendBtn = document.getElementById('aiSendBtn');
                 const chatArea = document.getElementById('aiChatArea');
@@ -6133,6 +6504,28 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                 }
 
                 // 构建请求参数（不默认发送当前打开文件的内容，让用户明确选择）
+                // 构建对话历史（从当前会话的AI消息中提取）
+                const chatHistory = [];
+                const allMessages = chatArea.querySelectorAll('.ai-message');
+                allMessages.forEach(msg => {
+                    const isUser = msg.classList.contains('user');
+                    const isAssistant = msg.classList.contains('assistant');
+                    const contentEl = msg.querySelector('.message-bubble') || msg.querySelector('.ai-streaming-content');
+                    if (contentEl) {
+                        const content = contentEl.innerText.trim();
+                        if (content) {
+                            chatHistory.push({
+                                role: isUser ? 'user' : 'assistant',
+                                content: content
+                            });
+                        }
+                    }
+                });
+                // 移除最后一条（当前用户消息，会单独发送）
+                if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user') {
+                    chatHistory.pop();
+                }
+
                 const requestData = {
                     message: userInput,
                     skill: 'project_code',
@@ -6140,7 +6533,8 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                     file_content: '',
                     project_context: projectContext,
                     thread_id: Date.now(),
-                    model: currentModel
+                    model: currentModel,
+                    history: chatHistory  // 添加对话历史
                 };
 
                 let fullResponse = '';
@@ -6182,6 +6576,8 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                                                 if (streamingContent) {
                                                     const parsedHtml = marked.parse(fullResponse);
                                                     streamingContent.innerHTML = wrapReactThinkingBlocks(parsedHtml);
+                                                    // 为代码块添加复制按钮
+                                                    setTimeout(() => addCopyButtonsToCodeBlocks(), 0);
                                                     setTimeout(bindCollapsibleEvents, 10);
                                                 }
                                                 // 只有当用户已经在底部附近时才自动滚动
@@ -6196,6 +6592,12 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                                             clearInterval(durationTimer);
                                             if (thinkingEl) thinkingEl.style.display = 'none';
                                             if (footer) footer.style.display = 'flex';
+                                            
+                                            // AI回复完成，移除思考/分析/计划块
+                                            setTimeout(() => removeReactThinkingBlocks(aiMsg), 0);
+                                            
+                                            // 为代码块添加复制按钮
+                                            setTimeout(() => addCopyButtonsToCodeBlocks(), 0);
                                         }
                                     } catch (e) {
                                         // 忽略解析错误
@@ -6212,10 +6614,18 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                     }
                 }
 
+                // AI回复完成，移除思考/分析/计划块（确保即使没有收到done状态也会移除）
+                setTimeout(() => {
+                    const aiMsgs = document.querySelectorAll('.ai-message');
+                    aiMsgs.forEach(aiMsg => removeReactThinkingBlocks(aiMsg));
+                }, 100);
+
                 // 恢复按钮状态
                 sendBtn.classList.remove('loading');
                 sendBtn.disabled = false;
                 sendBtn.onclick = sendAiMessage;
+                // 重置发送状态
+                isSendingMessage = false;
             }
         }
 
@@ -6369,6 +6779,96 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             pythonSettings.interpreter = 'custom';
         }
 
+        // ========== 安装 Python 库 ==========
+        function openInstallLibrary(prefillPackage) {
+            loadPythonSettings();
+            document.getElementById('installLibraryModal').classList.add('visible');
+            if (prefillPackage) {
+                document.getElementById('installLibraryInput').value = prefillPackage;
+            }
+            document.getElementById('installLibraryOutput').value = '';
+            document.getElementById('installLibraryBtn').disabled = false;
+            document.getElementById('installLibraryBtn').textContent = '安装';
+        }
+
+        function closeInstallLibrary() {
+            document.getElementById('installLibraryModal').classList.remove('visible');
+        }
+
+        async function installLibrary() {
+            const packageInput = document.getElementById('installLibraryInput');
+            const outputEl = document.getElementById('installLibraryOutput');
+            const btn = document.getElementById('installLibraryBtn');
+            const packageName = packageInput.value.trim();
+
+            if (!packageName) {
+                outputEl.value = '错误: 请输入要安装的库名称';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '安装中...';
+            outputEl.value = `▶ 正在安装: ${packageName}\n` + '─'.repeat(40) + '\n';
+
+            try {
+                const response = await fetch('/install-package', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        package: packageName,
+                        pythonCommand: getPythonCommand(),
+                        venvPath: pythonSettings.venvPath,
+                        projectRoot: window._projectFullPath || projectRoot
+                    }),
+                    signal: (function() {
+                        const ac = new AbortController();
+                        setTimeout(() => ac.abort(), 305000);
+                        return ac.signal;
+                    })()
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.stdout) outputEl.value += result.stdout;
+                    if (result.stderr) outputEl.value += result.stderr;
+                    outputEl.value += '\n' + '─'.repeat(40) + '\n';
+                    if (result.returncode === 0) {
+                        outputEl.value += `✓ 安装成功 (${packageName})`;
+                    } else {
+                        outputEl.value += `✗ 安装完成但返回非零退出码: ${result.returncode}`;
+                    }
+                } else {
+                    outputEl.value += `✗ 安装失败: ${result.error}`;
+                }
+            } catch (error) {
+                outputEl.value += `\n✗ 请求失败: ${error.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '安装';
+                outputEl.scrollTop = outputEl.scrollHeight;
+            }
+        }
+
+        // 检测并输出 ModuleNotFoundError 提示
+        function checkAndShowModuleNotFoundHint(text) {
+            if (!text) return null;
+            const match = text.match(/ModuleNotFoundError:\s*No\s+module\s+named\s+['"]([^'"]+)['"]/i);
+            if (match) {
+                return match[1].replace(/['"\s]/g, '');
+            }
+            return null;
+        }
+
+        function appendModuleNotFoundHint(moduleName) {
+            const output = document.getElementById('terminalOutput');
+            const hintDiv = document.createElement('div');
+            hintDiv.className = 'module-not-found-hint';
+            hintDiv.innerHTML = `💡 <strong>提示:</strong> 缺少模块 <strong>${moduleName}</strong>。请点击顶部齿轮图标 → <a onclick="openInstallLibrary('${moduleName}')">安装Python库</a>，然后输入 <strong>${moduleName}</strong> 并点击安装按钮，安装成功后重新运行代码。`;
+            output.appendChild(hintDiv);
+            output.scrollTop = output.scrollHeight;
+        }
+
         // 保存 Python 设置
         function savePythonSettings() {
             const selectedItem = document.querySelector('.interpreter-item.selected');
@@ -6484,13 +6984,91 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             document.getElementById('terminalOutput').innerHTML = '';
         }
 
+        // 清理 ANSI 转义序列（颜色代码等）
+        function stripAnsiCodes(text) {
+            if (!text) return '';
+            // 匹配 ANSI 转义序列：ESC [ ... m
+            return text.replace(/\x1b\[[0-9;]*m/g, '')
+                       .replace(/\x1b\[\??[0-9]+[hl]/g, '')
+                       .replace(/\x1b\[[0-9]+[JK]/g, '')
+                       .replace(/\x1b\[H/g, '')
+                       .replace(/\x1b\[2J/g, '');
+        }
+
         // 追加到终端
+        let lastOutputEndedWithNewline = true;
+
         function appendToTerminal(type, text) {
             const output = document.getElementById('terminalOutput');
-            const span = document.createElement('span');
-            span.className = type;
-            span.textContent = text + '\n';
-            output.appendChild(span);
+            // 清理 ANSI 转义序列
+            text = stripAnsiCodes(text);
+            if (!text) return;
+            
+            // 如果上一次输出没有以换行结尾，先补一个换行
+            if (!lastOutputEndedWithNewline && text && !text.startsWith('\n')) {
+                const br = document.createElement('span');
+                br.textContent = '\n';
+                output.appendChild(br);
+            }
+            
+            // 分离 input() 提示符和输出内容
+            // Python 的 input() 不会在提示符后加换行，导致多个输出连在一起
+            // 例如："请输入一组整数请输入目标值：3从列表中找到下标索引2"
+            // 需要分离为：提示词1、提示词2、输出结果
+            const segments = [];
+            let remaining = text;
+            
+            // 按常见中文提示词分割
+            const promptPatterns = [
+                /([^]*?)(请输入[^：]*：?)/g,
+                /([^]*?)(Enter[^:]*:?)/gi
+            ];
+            
+            // 简单方法：在"请"字前插入换行（如果前面没有换行）
+            const formatted = remaining.replace(/([^\n])(请)/g, '$1\n$2');
+            const lines = formatted.split('\n');
+            
+            for (const line of lines) {
+                if (line.trim() === '') continue;
+                
+                // 检测 input() 提示符+用户输入的模式
+                // 例如："请输入目标值：3" -> 分离为 "请输入目标值：" 和 " 3"
+                const inputMatch = line.match(/^(.*?[：:]\s*)(.+)$/);
+                if (inputMatch && line.includes('请')) {
+                    const prompt = inputMatch[1].trim();
+                    const userInput = inputMatch[2].trim();
+                    if (prompt && userInput) {
+                        // 显示提示词
+                        const promptSpan = document.createElement('span');
+                        promptSpan.className = type;
+                        promptSpan.textContent = prompt + '\n';
+                        output.appendChild(promptSpan);
+                        // 显示用户输入（带  前缀）
+                        const inputSpan = document.createElement('span');
+                        inputSpan.className = 'user-input';
+                        inputSpan.textContent = '❯ ' + userInput + '\n';
+                        output.appendChild(inputSpan);
+                        continue;
+                    }
+                }
+                
+                // 检测是否是纯输出行（不包含"请"等提示词）
+                if (!line.includes('请') && !line.includes('Enter')) {
+                    // 这是 print() 的输出
+                    const span = document.createElement('span');
+                    span.className = type;
+                    span.textContent = line + '\n';
+                    output.appendChild(span);
+                } else {
+                    // 这是 input() 的提示符（没有用户输入的情况）
+                    const span = document.createElement('span');
+                    span.className = type;
+                    span.textContent = line + '\n';
+                    output.appendChild(span);
+                }
+            }
+            
+            lastOutputEndedWithNewline = text.endsWith('\n') || text.endsWith('\r');
             output.scrollTop = output.scrollHeight;
         }
 
@@ -6504,15 +7082,14 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                 return;
             }
 
+            isRunning = true;
+            setRunButtonState(true);
             showTerminal();
             clearTerminal();
             appendToTerminal('info', `▶ 正在运行 ${fileName}...`);
             appendToTerminal('info', `─`.repeat(50));
 
             try {
-                const abortController = new AbortController();
-                const timeoutId = setTimeout(() => abortController.abort(), 15000);
-
                 const response = await fetch('/run-python', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -6523,41 +7100,56 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                         venvPath: pythonSettings.venvPath,
                         projectRoot: window._projectFullPath || dirHandle?.fullPath || dirHandle?.path || projectRoot,
                         requirementsPath: (window._projectFullPath || dirHandle?.fullPath || dirHandle?.path || projectRoot) + '/requirements.txt'
-                    }),
-                    signal: abortController.signal
+                    })
                 });
-
-                clearTimeout(timeoutId);
 
                 const result = await response.json();
 
                 if (result.success) {
-                    if (result.stdout) {
-                        appendToTerminal('success', result.stdout);
-                    }
-                    if (result.stderr) {
-                        appendToTerminal('info', result.stderr);
-                    }
-                    appendToTerminal('info', `─`.repeat(50));
-                    appendToTerminal('info', `✓ 进程已结束，退出代码为 ${result.exitCode}`);
-                } else {
-                    // 优先显示 stderr（很多程序启动日志在 stderr）
-                    if (result.stderr && result.stderr.trim()) {
-                        appendToTerminal('success', result.stderr);
-                    }
-                    if (result.stdout && result.stdout.trim()) {
-                        appendToTerminal('success', result.stdout);
-                    }
-                    if (result.error) {
-                        appendToTerminal('error', `✗ 执行失败: ${result.error}`);
-                    } else {
+                    currentRunningPid = result.pid;
+                    window._currentProcPid = result.pid;
+                    if (result.stdout && result.stdout.trim()) appendToTerminal('success', result.stdout.replace(/\n$/, ''));
+                    if (result.stderr && result.stderr.trim()) appendToTerminal('error', result.stderr.replace(/\n$/, ''));
+                    if (result.exitCode !== null && result.exitCode !== undefined) {
                         appendToTerminal('info', `─`.repeat(50));
-                        appendToTerminal('info', `✓ 程序已执行（退出代码: ${result.exitCode}）`);
+                        appendToTerminal('info', `✓ 进程已结束，退出代码为 ${result.exitCode}`);
+                        const missingModule = checkAndShowModuleNotFoundHint(result.stdout) || checkAndShowModuleNotFoundHint(result.stderr);
+                        if (missingModule) appendModuleNotFoundHint(missingModule);
+                        currentRunningPid = null;
+                        window._currentProcPid = null;
+                        isRunning = false;
+                        setRunButtonState(false);
+                        enableTerminalInput(false);
+                    } else {
+                        // 只在检测到输入提示时才显示输入框
+                        const hasInputPrompt = (result.stdout && (result.stdout.includes('请输入') || result.stdout.includes('Enter'))) ||
+                                              (result.stderr && (result.stderr.includes('请输入') || result.stderr.includes('Enter')));
+                        if (hasInputPrompt) {
+                            enableTerminalInput(true);
+                        } else {
+                            enableTerminalInput(false);
+                        }
+                        startOutputPolling(400);
                     }
+                } else {
+                    if (result.stderr && result.stderr.trim()) appendToTerminal('error', result.stderr);
+                    if (result.stdout && result.stdout.trim()) appendToTerminal('success', result.stdout);
+                    if (result.error) appendToTerminal('error', `✗ 执行失败: ${result.error}`);
+                    const missingModule = checkAndShowModuleNotFoundHint(result.stdout) || checkAndShowModuleNotFoundHint(result.stderr) || checkAndShowModuleNotFoundHint(result.error);
+                    if (missingModule) appendModuleNotFoundHint(missingModule);
+                    currentRunningPid = null;
+                    window._currentProcPid = null;
+                    isRunning = false;
+                    setRunButtonState(false);
+                    enableTerminalInput(false);
                 }
             } catch (error) {
                 appendToTerminal('error', `✗ 请求失败: ${error.message}`);
-                _resetRunButton();
+                currentRunningPid = null;
+                window._currentProcPid = null;
+                isRunning = false;
+                setRunButtonState(false);
+                enableTerminalInput(false);
             }
         }
 
@@ -6575,6 +7167,131 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
 
         // 运行/停止切换
         let isRunning = false;
+        let currentRunningPid = null;
+        let outputPollTimer = null;
+
+        function enableTerminalInput(enable) {
+            const row = document.getElementById('terminalInputRow');
+            const input = document.getElementById('terminalInput');
+            if (!row || !input) return;
+            if (enable) {
+                row.style.display = 'flex';
+                input.disabled = false;
+                setTimeout(() => input.focus(), 100);
+            } else {
+                row.style.display = 'none';
+                input.disabled = true;
+            }
+        }
+
+        function stopOutputPolling() {
+            if (outputPollTimer) {
+                clearInterval(outputPollTimer);
+                outputPollTimer = null;
+            }
+        }
+
+        async function pollOutputOnce() {
+            if (!currentRunningPid) { stopOutputPolling(); return; }
+            try {
+                const res = await fetch('/run-output', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pid: currentRunningPid })
+                });
+                const data = await res.json();
+                if (!data.success) return;
+
+                if (data.stdout && data.stdout.trim()) {
+                    appendToTerminal('success', data.stdout.replace(/\n$/, ''));
+                    // 检测输入提示，动态显示输入框
+                    if (data.stdout.includes('请输入') || data.stdout.includes('Enter')) {
+                        enableTerminalInput(true);
+                    }
+                }
+                if (data.stderr && data.stderr.trim()) {
+                    appendToTerminal('error', data.stderr.replace(/\n$/, ''));
+                    // 检测输入提示，动态显示输入框
+                    if (data.stderr.includes('请输入') || data.stderr.includes('Enter')) {
+                        enableTerminalInput(true);
+                    }
+                }
+
+                if (data.ended) {
+                    stopOutputPolling();
+                    appendToTerminal('info', `─`.repeat(50));
+                    appendToTerminal('info', `✓ 进程已结束，退出代码为 ${data.exitCode ?? '未知'}`);
+                    const missingModule = checkAndShowModuleNotFoundHint(data.stdout) || checkAndShowModuleNotFoundHint(data.stderr);
+                    if (missingModule) appendModuleNotFoundHint(missingModule);
+                    currentRunningPid = null;
+                    window._currentProcPid = null;
+                    isRunning = false;
+                    setRunButtonState(false);
+                    enableTerminalInput(false);
+                }
+            } catch (e) {
+                // 忽略轮询网络错误
+            }
+        }
+
+        function startOutputPolling(intervalMs = 400) {
+            stopOutputPolling();
+            outputPollTimer = setInterval(pollOutputOnce, intervalMs);
+        }
+
+        async function submitTerminalInput() {
+            const input = document.getElementById('terminalInput');
+            if (!input || input.disabled) return;
+            const text = input.value;
+            input.value = '';
+            if (!currentRunningPid) {
+                appendToTerminal('error', '进程未运行，无法输入');
+                enableTerminalInput(false);
+                return;
+            }
+            appendToTerminal('user-input', `❯ ${text}`);
+            try {
+                const res = await fetch('/run-input', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pid: currentRunningPid, text })
+                });
+                
+                // 检查 HTTP 状态码
+                if (!res.ok) {
+                    appendToTerminal('error', `输入发送失败: HTTP ${res.status}`);
+                    return;
+                }
+                
+                const data = await res.json();
+                console.log('run-input response:', data); // 调试日志
+                
+                if (!data.success) {
+                    const errorMsg = data.error || `未知错误 (success=${data.success})`;
+                    appendToTerminal('error', `输入发送失败: ${errorMsg}`);
+                    // 如果进程已结束，清除状态
+                    if (errorMsg.includes('已结束') || errorMsg.includes('不存在') || errorMsg.includes('断开')) {
+                        currentRunningPid = null;
+                        window._currentProcPid = null;
+                        enableTerminalInput(false);
+                    }
+                }
+            } catch (e) {
+                appendToTerminal('error', `输入发送异常: ${e.message}`);
+            }
+        }
+
+        // 绑定终端输入框 Enter 事件
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const input = document.getElementById('terminalInput');
+                if (input) {
+                    input.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') submitTerminalInput();
+                    });
+                }
+            }, 500);
+        });
 
         // function toggleRunCode() {
         //     if (isRunning) {
@@ -6588,18 +7305,23 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
         // }
 
         function toggleRunCode() {
-            if (window._currentProcPid) {
+            if (currentRunningPid || window._currentProcPid) {
+                const pid = currentRunningPid || window._currentProcPid;
                 fetch('/run-stop', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pid: window._currentProcPid })
+                    body: JSON.stringify({ pid })
                 }).finally(() => {
+                    stopOutputPolling();
                     if (window._runPollInterval) {
                         clearInterval(window._runPollInterval);
                         window._runPollInterval = null;
                     }
                     window._currentProcPid = null;
-                    _resetRunButton();
+                    currentRunningPid = null;
+                    setRunButtonState(false);
+                    enableTerminalInput(false);
+                    isRunning = false;
                     appendToTerminal('info', '⏹ 已请求停止');
                 });
             } else {
@@ -6677,29 +7399,49 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                 const result = await response.json();
 
                 if (result.success) {
-                    if (result.stdout) {
-                        appendToTerminal('success', result.stdout);
+                    currentRunningPid = result.pid;
+                    window._currentProcPid = result.pid;
+                    if (result.stdout && result.stdout.trim()) appendToTerminal('success', result.stdout.replace(/\n$/, ''));
+                    if (result.stderr && result.stderr.trim()) appendToTerminal('error', result.stderr.replace(/\n$/, ''));
+                    // 如果进程已经同步结束（没有 stdout/stderr 且 exitCode 非空），直接显示结束信息
+                    if (result.exitCode !== null && result.exitCode !== undefined) {
+                        appendToTerminal('info', `─`.repeat(50));
+                        appendToTerminal('info', `✓ 进程已结束，退出代码为 ${result.exitCode}`);
+                        const missingModule = checkAndShowModuleNotFoundHint(result.stdout) || checkAndShowModuleNotFoundHint(result.stderr);
+                        if (missingModule) appendModuleNotFoundHint(missingModule);
+                        currentRunningPid = null;
+                        window._currentProcPid = null;
+                        isRunning = false;
+                        setRunButtonState(false);
+                        enableTerminalInput(false);
+                    } else {
+                        // 进程仍在运行：只在检测到输入提示时才启用输入框
+                        const hasInputPrompt = (result.stdout && (result.stdout.includes('请输入') || result.stdout.includes('Enter'))) ||
+                                              (result.stderr && (result.stderr.includes('请输入') || result.stderr.includes('Enter')));
+                        if (hasInputPrompt) {
+                            enableTerminalInput(true);
+                        } else {
+                            enableTerminalInput(false);
+                        }
+                        startOutputPolling(400);
                     }
-                    if (result.stderr) {
-                        appendToTerminal('error', result.stderr);
-                    }
-                    appendToTerminal('info', `─`.repeat(50));
-                    appendToTerminal('info', `✓ 进程已结束，退出代码为 ${result.exitCode}`);
                 } else {
                     appendToTerminal('error', `✗ 执行失败: ${result.error}`);
+                    const missingModule = checkAndShowModuleNotFoundHint(result.stdout) || checkAndShowModuleNotFoundHint(result.stderr) || checkAndShowModuleNotFoundHint(result.error);
+                    if (missingModule) appendModuleNotFoundHint(missingModule);
+                    currentRunningPid = null;
+                    window._currentProcPid = null;
+                    isRunning = false;
+                    setRunButtonState(false);
+                    enableTerminalInput(false);
                 }
             } catch (error) {
-                // if (error.name === 'AbortError') {
-                //     // 用户手动停止，不显示错误
-                // } else if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
-                //     appendToTerminal('warning', '⚠ 执行超时（30秒），Flask 等 Web 服务无法通过此方式运行');
-                // } else {
-                //     appendToTerminal('error', `✗ 请求失败: ${error.message}`);
-                // }
                 appendToTerminal('error', `✗ 请求失败: ${error.message}`);
-            } finally {
+                currentRunningPid = null;
+                window._currentProcPid = null;
                 isRunning = false;
                 setRunButtonState(false);
+                enableTerminalInput(false);
             }
         }
 
@@ -6754,7 +7496,7 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
     <div class="settings-modal" id="pythonSettingsModal">
         <div class="settings-modal-content">
             <div class="settings-modal-header">
-                <span class="settings-modal-title">Python 解释器设置</span>
+                <span class="settings-modal-title">设置Python解释器</span>
                 <button class="settings-modal-close" onclick="closePythonSettings()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -6780,6 +7522,36 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             <div class="settings-modal-footer">
                 <button class="settings-btn-cancel" onclick="closePythonSettings()">取消</button>
                 <button class="settings-btn-save" onclick="savePythonSettings()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 安装Python库弹窗 -->
+    <div class="settings-modal" id="installLibraryModal">
+        <div class="settings-modal-content" style="width: 560px; max-width: 90%;">
+            <div class="settings-modal-header">
+                <span class="settings-modal-title">安装 Python 库</span>
+                <button class="settings-modal-close" onclick="closeInstallLibrary()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="settings-modal-body">
+                <div class="settings-form-group">
+                    <label class="settings-form-label">库名称</label>
+                    <input type="text" class="settings-form-input" id="installLibraryInput" placeholder="例如: requests, pandas, aiofiles" onkeydown="if(event.key==='Enter')installLibrary()">
+                    <p class="install-hint">多个库用空格分隔："requests pandas" 或指定版本："requests==2.31.0"</p>
+                </div>
+                <div class="settings-form-group">
+                    <label class="settings-form-label">安装输出</label>
+                    <textarea class="install-output" id="installLibraryOutput" readonly placeholder="点击下方安装按钮开始..."></textarea>
+                </div>
+            </div>
+            <div class="settings-modal-footer">
+                <button class="settings-btn-cancel" onclick="closeInstallLibrary()">关闭</button>
+                <button class="settings-btn-install" id="installLibraryBtn" onclick="installLibrary()">安装</button>
             </div>
         </div>
     </div>

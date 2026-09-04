@@ -12,34 +12,25 @@ import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from langchain_community.tools import sleep
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 
 # 导入 llm 和 get_llm_by_model
-from core.agent import get_llm_by_model
+from core.agent import get_llm_by_model, SessionMemoryManager
 from typing import Optional
 from core.skills.DocProcess.document_process import doc_processor
 from settings.Define import PathConfig, Params
-from core.agent import create_agent_graph
 from core.auth import init_db, get_current_user_optional, User
 from core.security import SecurityMiddleware, file_validator, get_audit_logger
 from settings.logger_manager import get_logger
 
 logger = get_logger(__name__)
 
-# 线程池配置 - 用于执行CPU密集型任务
 THREAD_POOL_SIZE = int(os.getenv("THREAD_POOL_SIZE", 8))
 EXECUTOR = ThreadPoolExecutor(max_workers=THREAD_POOL_SIZE, thread_name_prefix="agent-worker-")
 
-# 会话状态缓存（每个会话独立）
-session_graph_cache = {}
-cache_lock = threading.Lock()
-
-# 全局图缓存（兼容旧代码）
-graph_cache = {}
-
-# 全局：维护运行中的进程
 _running_procs = {}
 _proc_lock = None
 
@@ -56,24 +47,17 @@ class ChatRequest(BaseModel):
     model: str | None = None  # 用户选择的模型ID
 
 
-def get_graph_for_session(thread_id: int):
-    """获取或创建会话专属的图实例"""
-    with cache_lock:
-        if thread_id not in session_graph_cache:
-            session_graph_cache[thread_id] = create_agent_graph()
-            logger.info(f"为会话 {thread_id} 创建新的图实例")
-        return session_graph_cache[thread_id]
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("lifespan - 初始化数据库")
     init_db()
-    graph = create_agent_graph()
-    graph_cache["graph"] = graph
     yield
 
 
 app = FastAPI(title="MultiAgent Chat API")
+
+# 静态文件服务
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 安全中间件（速率限制、安全响应头）
 app.add_middleware(SecurityMiddleware)
@@ -208,6 +192,8 @@ async def scan_directory(request: ScanRequest):
             with os.scandir(path) as entries:
                 for entry in entries:
                     if entry.name.startswith('.'):
+                        continue
+                    if entry.name.endswith('.py.out') or entry.name.endswith('.py.err'):
                         continue
                     relative_path = os.path.join(parent_path, entry.name)
                     if entry.is_dir(follow_symlinks=False):
@@ -426,13 +412,11 @@ async def chat(
     thread_id = request.thread_id or random.randint(1, 100000)
 
     async def generate():
-        # 获取会话专属的图实例
-        g = get_graph_for_session(thread_id)
-        if not g:
-            yield f"data: {json.dumps('Graph not initialized')}\n\n"
-            return
+        async def _check_disconnected():
+            if await http_request.is_disconnected():
+                logger.info("[STOP] 客户端已断开连接，中止生成")
+                raise asyncio.CancelledError("客户端断开")
 
-        config = {"configurable": {"thread_id": thread_id}}
         try:
             file_path_for_state = None
             message_content = request.message
@@ -447,13 +431,25 @@ async def chat(
 
                 if file_path.exists():
                     file_path_for_state = str(file_path)
+                    # 存进会话记忆的 context，后续追问可自动恢复
+                    SessionMemoryManager.set_context(
+                        thread_id,
+                        file_path=file_path_for_state,
+                        file_name=request.file_name,
+                        ext=file_ext,
+                    )
+                    logger.info(f"[Memory] 保存文件上下文: file_path={file_path_for_state}")
+
                     if is_drawing_file:
                         # 图纸文件：不读取文本内容，由 drawing_node 直接处理
                         message_content = request.message
                         logger.info(f"图纸文件，跳过文本读取: {file_path}")
                     elif not request.file_content:
                         try:
-                            file_content = doc_processor.read_document(str(file_path))
+                            file_content = ""
+                            async for chunk_text in doc_processor.read_document(str(file_path)):
+                                file_content += chunk_text
+
                             original_ext = Path(request.file_name).suffix.lower()
                             message_content = f"[文档内容]\n{file_content}\n\n[用户要求]\n{request.message}\n\n[原始文件格式]\n{original_ext}"
                             logger.info(f"文档内容读取成功，长度: {len(file_content)}，格式: {original_ext}")
@@ -473,6 +469,13 @@ async def chat(
             elif request.file_content:
                 message_content = f"[文档内容]\n{request.file_content}\n\n[用户要求]\n{request.message}"
 
+            # 没上传文件时，尝试从会话记忆恢复上一次的文件路径
+            if not file_path_for_state and SessionMemoryManager.has_memory(thread_id):
+                _mem_file_path = SessionMemoryManager.get_context(thread_id, "file_path")
+                if _mem_file_path and Path(_mem_file_path).exists():
+                    file_path_for_state = _mem_file_path
+                    logger.info(f"[Memory] 从会话记忆恢复文件路径: {_mem_file_path}")
+
             # Build messages list with history
             messages_list = []
             if request.history:
@@ -487,7 +490,7 @@ async def chat(
             # Add current message
             messages_list.append(HumanMessage(content=message_content))
 
-            state_input = {"messages": messages_list}
+            state_input = {"messages": messages_list, "thread_id": thread_id}
             if file_path_for_state:
                 state_input["file_path"] = file_path_for_state
             if request.skill:
@@ -504,6 +507,7 @@ async def chat(
                 logger.info(f"接收到项目上下文: {request.project_context.get('project_name')}")
 
             # 先发送一个空响应，表示开始处理
+            await _check_disconnected()
             yield f"data: {json.dumps({'text': '', 'status': 'thinking'})}\n\n"
             await asyncio.sleep(0.1)
             
@@ -546,32 +550,42 @@ async def chat(
                             full_response += chunk
                             chunk_count += 1
                             logger.info(f"发送第 {chunk_count} 个 chunk，长度: {len(chunk)}")
+                            await _check_disconnected()
                             yield f"data: {json.dumps({'text': chunk, 'sources': sources, 'status': 'streaming'})}\n\n"
                             await asyncio.sleep(0.05)
                     
                     response = full_response
                     logger.info(f"流式响应完成，内容长度: {len(response)}, chunk数量: {chunk_count}")
                 else:
-                    # 使用专用线程池执行图，避免阻塞事件循环
-                    loop = asyncio.get_event_loop()
-                    result = await loop.run_in_executor(EXECUTOR, g.invoke, state_input, config)
-                    
-                    messages = result.get("messages", [])
-                    logger.info(f"messages: {messages}")
-                    if messages:
-                        last_msg = messages[-1]
-                        logger.debug(f"last_msg: {last_msg}")
-                        response = last_msg.content if hasattr(last_msg, 'content') else str(last_msg)
-                    else:
-                        response = "暂无响应"
-                    
-                    logger.info(f"响应生成成功: {response[:50]}...")
-                        
-                    # 获取sources数据（已经是列表格式，不需要JSON解析）
-                    sources = result.get("sources", []) if result else []
-                    # 确保sources是列表格式
-                    if not isinstance(sources, list):
-                        sources = []
+                    from core.agent import classify_skill, stream_skill
+
+                    skill_type = await classify_skill(messages_list, request.skill, thread_id=thread_id)
+                    logger.info(f"路由结果: {skill_type}")
+
+                    full_response = ""
+                    chunk_count = 0
+                    last_sources = []
+
+                    async for item in stream_skill(skill_type, state_input):
+                        await _check_disconnected()
+                        if item.get("step"):
+                            yield f"data: {json.dumps({'step': item['step'], 'status': 'step'})}\n\n"
+                        elif item.get("step_detail"):
+                            yield f"data: {json.dumps({'step_detail': item['step_detail'], 'status': 'step_detail'})}\n\n"
+                        else:
+                            chunk = item.get("chunk", "")
+                            chunk_sources = item.get("sources", [])
+                            if chunk:
+                                full_response += chunk
+                                chunk_count += 1
+                                if chunk_sources:
+                                    last_sources = chunk_sources
+                                yield f"data: {json.dumps({'text': chunk, 'sources': last_sources, 'status': 'streaming'})}\n\n"
+                                await asyncio.sleep(0.01)
+
+                    response = full_response
+                    sources = last_sources
+                    logger.info(f"流式响应完成，skill={skill_type}，内容长度={len(response)}，chunk数量={chunk_count}")
                 
                 # 提取文件变更信息（project_code 技能时都提取，包括多模态识图）
                 if request.skill == "project_code":
@@ -588,11 +602,44 @@ async def chat(
                 logger.error("Agent graph execution timeout")
                 response = "请求超时，请稍后重试或简化您的问题"
             except Exception as e:
-                logger.error(f"Agent graph execution error: {str(e)}")
-                response = f"服务执行出错: {str(e)}"
+                err_msg = str(e)
+                logger.error(f"Agent graph execution error: {err_msg}")
 
-            # 发送最终响应，包含文件变更信息
+                if '403' in err_msg and ('Free quota exhausted' in err_msg or 'AllocationQuota' in err_msg):
+                    response = "❌ API 免费额度已用完，请在阿里云 DashScope 控制台充值后再试，或切换其他模型。"
+                elif '401' in err_msg or 'Invalid API key' in err_msg or 'authentication' in err_msg.lower():
+                    response = "❌ API Key 无效，请检查环境变量 DASHSCOPE_API_KEY 是否正确配置。"
+                elif '429' in err_msg or 'rate limit' in err_msg.lower() or 'Too Many Requests' in err_msg:
+                    response = "❌ 请求频率过高，请稍后再试。"
+                elif 'timed out' in err_msg.lower() or 'TimeoutError' in err_msg:
+                    response = "❌ 模型服务响应超时，请稍后重试。"
+                else:
+                    response = f"❌ 服务执行出错: {err_msg[:200]}"
+
+            # 保存本轮对话到 LangChain 会话短期记忆
+            try:
+                SessionMemoryManager.save(thread_id, message_content, response)
+                logger.info(f"[Memory] 保存会话 thread_id={thread_id}, user_len={len(message_content)}, ai_len={len(response)}, total_sessions={SessionMemoryManager.session_count()}")
+            except Exception as _mem_err:
+                logger.warning(f"[Memory] 保存失败: {str(_mem_err)[:80]}")
+
+            # 所有分支都通过 streaming 逐块发送过了，done 只做结束信号，text 为空
             yield f"data: {json.dumps({'text': '', 'sources': sources, 'file_changes': file_changes, 'status': 'done'})}\n\n"
+        except asyncio.CancelledError:
+            partial = ""
+            try:
+                partial = full_response
+            except UnboundLocalError:
+                partial = ""
+            logger.info(f"[STOP] 生成被中止，保存已生成内容，长度={len(partial)}")
+            try:
+                SessionMemoryManager.save(thread_id, message_content, partial or "(已中止)")
+            except Exception:
+                pass
+            try:
+                yield f"data: {json.dumps({'text': '', 'status': 'stop'})}\n\n"
+            except Exception:
+                pass
         except Exception as e:
             logger.error(f"Stream error: {str(e)}")
             yield f"data: {json.dumps({'text': f'服务错误: {str(e)}', 'status': 'error'})}\n\n"
@@ -1038,11 +1085,7 @@ async def detect_python():
     # 4. 检测常见 Python 安装路径 (Windows)
     if os.name == 'nt':
         common_paths = [
-            r'C:\Python313\python.exe',
-            r'C:\Python312\python.exe',
-            r'C:\Python311\python.exe',
-            r'C:\Python310\python.exe',
-            r'C:\Python39\python.exe',
+            r'C:\Users\何山彪\AppData\Local\Programs\Python\Python313\python.exe',
             r'C:\Program Files\Python313\python.exe',
             r'C:\Program Files\Python312\python.exe',
             r'C:\Program Files\Python311\python.exe',
@@ -1596,166 +1639,187 @@ class RunPythonRequest(BaseModel):
 
 @app.post("/run-python")
 async def run_python(req: RunPythonRequest):
-    """在服务器上运行 Python 代码"""
+    """在服务器上运行 Python 代码（支持交互式 input()）"""
     import subprocess
-    import tempfile
     import os
-    import re
+    import threading
+    import time
     global _running_procs, _proc_lock
     if _proc_lock is None:
-        import threading
         _proc_lock = threading.Lock()
 
     logger.info(f"收到运行请求: {req}")
-    logger.debug(f"req.filename={req.filename}")
     if not req.code:
         return {'success': False, 'error': '代码为空'}
 
     try:
-        # 创建临时文件
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False, encoding='utf-8') as f:
-            f.write(req.code)
-            temp_file = f.name
-
         temp_file = os.path.join(req.projectRoot, req.filename)
-        # 构建 Python 命令
+
         if req.venvPath:
             if os.name == 'nt':
                 python_exe = os.path.join(req.venvPath, 'Scripts', 'python.exe')
             else:
                 python_exe = os.path.join(req.venvPath, 'bin', 'python')
-
             if not os.path.exists(python_exe):
                 python_exe = req.pythonCommand
         else:
             python_exe = req.pythonCommand
 
+        logger.info(f"正在执行: {python_exe} {temp_file}")
 
+        creationflags = 0
+        if os.name == 'nt':
+            creationflags = 0x08000000
 
-        def install_module(module_name: str):
-            """安装指定模块"""
-            install_process = subprocess.run(
-                [python_exe, '-m', 'pip', 'install', module_name],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                cwd=req.projectRoot or os.getcwd()
-            )
-            logger.info(f"安装模块 {module_name} 结果: {install_process.stdout}")
-            return install_process
+        p = subprocess.Popen(
+            [python_exe, '-u', temp_file],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=req.projectRoot or os.getcwd(),
+            env={**os.environ, 'PYTHONUNBUFFERED': '1'},
+            creationflags=creationflags
+        )
 
-        def run_code_nonblock():
-            import time
-            logger.info(f"正在执行: {python_exe} {temp_file}")
-
-            # 禁用 Flask debug reloader
-            try:
-                with open(temp_file, 'r', encoding='utf-8') as f:
-                    code_lines = f.readlines()
-                modified = False
-                for i, line in enumerate(code_lines):
-                    if 'app.run(' in line:
-                        code_lines[i] = '    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)\n'
-                        modified = True
-                        logger.info("已自动禁用 Flask debug reloader")
-                        break
-                if modified:
-                    with open(temp_file, 'w', encoding='utf-8') as f:
-                        f.writelines(code_lines)
-            except Exception as _e:
-                logger.warning(f"修改 Flask 代码失败: {_e}")
-
-            # 输出到临时文件
-            stdout_file = temp_file + '.out'
-            stderr_file = temp_file + '.err'
-            out_f = open(stdout_file, 'w', encoding='utf-8', buffering=1)
-            err_f = open(stderr_file, 'w', encoding='utf-8', buffering=1)
-
-            # Windows 上用 CREATE_NEW_PROCESS_GROUP + CREATE_NO_WINDOW
-            creationflags = 0
-            if os.name == 'nt':
-                creationflags = 0x00000008 | 0x08000000
-
-            p = subprocess.Popen(
-                [python_exe, '-u', temp_file],
-                stdout=out_f,
-                stderr=err_f,
-                cwd=req.projectRoot or os.getcwd(),
-                env={**os.environ, 'PYTHONUNBUFFERED': '1'},
-                creationflags=creationflags
-            )
-
-            # 等 2 秒给 Flask 启动
-            time.sleep(2)
-
-            # 读取初始输出
-            init_stdout = ''
-            init_stderr = ''
-            try:
-                with open(stdout_file, 'r', encoding='utf-8', errors='replace') as f:
-                    init_stdout = f.read()
-            except:
-                pass
-            try:
-                with open(stderr_file, 'r', encoding='utf-8', errors='replace') as f:
-                    init_stderr = f.read()
-            except:
-                pass
-
-            # 只存关键信息，不依赖 Python 的 Popen 对象（它可能失效）
-            with _proc_lock:
-                _running_procs[p.pid] = {
-                    'pid': p.pid,
-                    'stdout_file': stdout_file,
-                    'stderr_file': stderr_file,
-                    'temp_file': temp_file,
-                    'out_f': out_f,
-                    'err_f': err_f,
-                    'stdout_pos': len(init_stdout),
-                    'stderr_pos': len(init_stderr),
-                    'ended': False,
-                    'start_time': time.time(),
-                }
-
-            logger.info(f"Flask 进程已启动 PID={p.pid}")
-            return {
-                'pid': p.pid,
-                'stdout': init_stdout,
-                'stderr': init_stderr,
-            }
-
-        req_path = os.path.normpath(req.requirementsPath)
-        if os.path.exists(req_path):
-            with open(req_path, 'r') as f:
-                for line in f:
-                    module_name = line.strip()
-                    if module_name:
-                        if os.path.exists(module_name):
-                            logger.info(f"正在安装模块: {module_name}")
-                            install_module(module_name.strip())
-        else:
-            logger.info(f"requirements 文件不存在: {req_path}")
-
-        run_info  = run_code_nonblock()
-
-        # 立即返回 pid 和初始输出，后续通过 /run-output 轮询获取更多输出
-        return {
-            'success': True,
-            'pid': run_info['pid'],
-            'stdout': run_info['stdout'],
-            'stderr': run_info['stderr'],
-            'message': '程序已启动',
-            'exitCode': None
+        info = {
+            'pid': p.pid,
+            'proc': p,
+            'stdout_buf': '',
+            'stderr_buf': '',
+            'buf_lock': threading.Lock(),
+            'ended': False,
+            'exitCode': None,
+            'start_time': time.time(),
         }
 
-    # except subprocess.TimeoutExpired:
-    #     return {'success': False, 'error': '执行超时（15秒）'}
+        def _reader(stream, buf_key):
+            """后台线程：逐字节读取管道，正确处理 UTF-8 多字节字符"""
+            try:
+                utf8_buffer = bytearray()
+                while True:
+                    byte = stream.read(1)
+                    if not byte:
+                        break
+                    
+                    utf8_buffer.append(byte[0])
+                    
+                    # 检查是否构成完整的 UTF-8 字符
+                    try:
+                        text = utf8_buffer.decode('utf-8')
+                        with info['buf_lock']:
+                            info[buf_key] += text
+                        utf8_buffer.clear()
+                    except UnicodeDecodeError:
+                        # UTF-8 字符不完整，继续读取下一个字节
+                        if len(utf8_buffer) >= 4:
+                            # 超过最大 UTF-8 字节数，强制解码（避免卡死）
+                            text = utf8_buffer.decode('utf-8', errors='replace')
+                            with info['buf_lock']:
+                                info[buf_key] += text
+                            utf8_buffer.clear()
+            except Exception as _e:
+                logger.warning(f"管道读取线程异常: {_e}")
+            finally:
+                try: stream.close()
+                except: pass
+
+        threading.Thread(target=_reader, args=(p.stdout, 'stdout_buf'), daemon=True).start()
+        threading.Thread(target=_reader, args=(p.stderr, 'stderr_buf'), daemon=True).start()
+
+        def _waiter():
+            """等待进程结束，更新状态"""
+            try:
+                ret = p.wait()
+                info['exitCode'] = ret
+            # except subprocess.TimeoutExpired:
+            #     p.kill()
+            #     info['exitCode'] = -1
+            #     with info['buf_lock']:
+            #         info['stderr_buf'] += '\n\n[执行超时（10分钟），进程已被终止]\n'
+            except Exception as _e:
+                info['exitCode'] = -1
+                logger.warning(f"等待进程异常: {_e}")
+            finally:
+                info['ended'] = True
+                try:
+                    if p.stdin: p.stdin.close()
+                except: pass
+
+        threading.Thread(target=_waiter, daemon=True).start()
+
+        with _proc_lock:
+            _running_procs[p.pid] = info
+
+        time.sleep(0.3)
+        with info['buf_lock']:
+            init_stdout = info['stdout_buf']
+            init_stderr = info['stderr_buf']
+            info['stdout_buf'] = ''
+            info['stderr_buf'] = ''
+
+        return {
+            'success': True,
+            'pid': p.pid,
+            'stdout': init_stdout,
+            'stderr': init_stderr,
+            'exitCode': None,
+            'message': '程序已启动'
+        }
+
+    except Exception as e:
+        logger.error(f"执行失败: {e}")
+        return {'success': False, 'error': str(e)}
+
+
+@app.post("/run-input")
+async def run_input(req: dict = None):
+    """向运行中的进程 stdin 写入输入（用于 input() 交互）"""
+    import threading
+    global _running_procs, _proc_lock
+    if _proc_lock is None:
+        _proc_lock = threading.Lock()
+
+    if req is None:
+        return {'success': False, 'error': '参数为空'}
+    pid = req.get('pid')
+    text = req.get('text', '')
+    if not pid:
+        return {'success': False, 'error': '缺少 pid'}
+
+    try:
+        pid = int(pid)
+        with _proc_lock:
+            info = _running_procs.get(pid)
+
+        if not info:
+            return {'success': False, 'error': '进程不存在或已结束'}
+        if info['ended']:
+            return {'success': False, 'error': '进程已结束，无法再输入'}
+
+        proc = info['proc']
+        if not proc.stdin:
+            return {'success': False, 'error': '进程没有打开 stdin'}
+
+        try:
+            data = (text + '\n').encode('utf-8')
+            proc.stdin.write(data)
+            proc.stdin.flush()
+            return {'success': True}
+        except BrokenPipeError:
+            return {'success': False, 'error': '进程已断开（BrokenPipe）'}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
+
 @app.post("/run-output")
 async def run_output(req: dict = None):
-    import subprocess
+    import threading
+    global _running_procs, _proc_lock
+    if _proc_lock is None:
+        _proc_lock = threading.Lock()
     if req is None:
         return {'success': False, 'error': '参数为空'}
     pid = req.get('pid')
@@ -1769,54 +1833,20 @@ async def run_output(req: dict = None):
             if not info:
                 return {'success': True, 'stdout': '', 'stderr': '', 'ended': True, 'exitCode': None}
 
-        # ========= 核心改动：用 tasklist 检测进程是否还在 =========
-        ended = False
-        exit_code = None
-        try:
-            if os.name == 'nt':
-                result = subprocess.run(
-                    ['tasklist', '/FI', f'PID eq {pid}', '/FO', 'CSV', '/NH'],
-                    capture_output=True, text=True, timeout=3
-                )
-                # 如果输出里找不到这个 PID，进程结束了
-                if str(pid) not in result.stdout:
-                    ended = True
-            else:
-                result = subprocess.run(
-                    ['ps', '-p', str(pid), '-o', 'pid='],
-                    capture_output=True, text=True, timeout=3
-                )
-                if str(pid) not in result.stdout:
-                    ended = True
-        except:
-            # 检测失败，假设还在跑
-            ended = False
-
-        # 读取新增输出
         new_stdout = ''
         new_stderr = ''
-        try:
-            with open(info['stdout_file'], 'r', encoding='utf-8', errors='replace') as f:
-                f.seek(info['stdout_pos'])
-                new_stdout = f.read()
-                info['stdout_pos'] = f.tell()
-        except:
-            pass
-        try:
-            with open(info['stderr_file'], 'r', encoding='utf-8', errors='replace') as f:
-                f.seek(info['stderr_pos'])
-                new_stderr = f.read()
-                info['stderr_pos'] = f.tell()
-        except:
-            pass
+        with info['buf_lock']:
+            new_stdout = info['stdout_buf']
+            new_stderr = info['stderr_buf']
+            info['stdout_buf'] = ''
+            info['stderr_buf'] = ''
 
-        if ended and not info['ended']:
-            info['ended'] = True
-            try:
-                info['out_f'].close(); info['err_f'].close();
-            except:
-                pass
-            logger.info(f"进程 PID={pid} 已结束")
+        ended = info['ended']
+        exit_code = info['exitCode']
+
+        if ended and not new_stdout and not new_stderr:
+            with _proc_lock:
+                _running_procs.pop(pid, None)
 
         return {
             'success': True,
@@ -1826,12 +1856,17 @@ async def run_output(req: dict = None):
             'exitCode': exit_code
         }
     except Exception as e:
+        logger.error(f"run_output 异常: {e}")
         return {'success': False, 'error': str(e)}
 
 
 @app.post("/run-stop")
 async def run_stop(req: dict = None):
     import subprocess
+    import threading
+    global _running_procs, _proc_lock
+    if _proc_lock is None:
+        _proc_lock = threading.Lock()
     if req is None:
         return {'success': False, 'error': '参数为空'}
     pid = req.get('pid')
@@ -1845,28 +1880,87 @@ async def run_stop(req: dict = None):
             if not info:
                 return {'success': True, 'message': '进程不存在'}
 
-        # Windows 上强制 kill 进程树
         if os.name == 'nt':
             subprocess.run(
                 ['taskkill', '/F', '/T', '/PID', str(pid)],
                 capture_output=True, timeout=5
             )
         else:
-            subprocess.run(['kill', '-9', str(pid)], capture_output=True, timeout=3)
+            try:
+                info['proc'].kill()
+            except:
+                subprocess.run(['kill', '-9', str(pid)], capture_output=True, timeout=3)
 
-        # 清理
-        try: info['out_f'].close(); info['err_f'].close();
-        except: pass
-        try: os.remove(info['temp_file']);
-        except: pass
+        info['ended'] = True
+        if info['exitCode'] is None:
+            info['exitCode'] = -1
+
+        with _proc_lock:
+            _running_procs.pop(pid, None)
 
         return {'success': True, 'message': '已终止'}
     except Exception as e:
         return {'success': False, 'error': str(e)}
 
+
+class InstallPackageRequest(BaseModel):
+    package: str
+    pythonCommand: str = 'python'
+    venvPath: str = ''
+    projectRoot: str = ''
+
+
+@app.post("/install-package")
+async def install_package(req: InstallPackageRequest):
+    """安装 Python 包"""
+    import subprocess
+    import sys
+
+    if not req.package or not req.package.strip():
+        return {'success': False, 'error': '包名不能为空'}
+
+    try:
+        # 确定 Python 解释器路径
+        if req.venvPath:
+            if os.name == 'nt':
+                python_exe = os.path.join(req.venvPath, 'Scripts', 'python.exe')
+            else:
+                python_exe = os.path.join(req.venvPath, 'bin', 'python')
+            if not os.path.exists(python_exe):
+                python_exe = req.pythonCommand
+        else:
+            python_exe = req.pythonCommand
+
+        # 运行 pip install
+        cmd = [python_exe, '-m', 'pip', 'install', req.package.strip()]
+        logger.info(f'执行安装命令: {cmd}')
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+            cwd=req.projectRoot or os.getcwd(),
+            timeout=300
+        )
+
+        return {
+            'success': True,
+            'stdout': result.stdout,
+            'stderr': result.stderr,
+            'returncode': result.returncode
+        }
+
+    except subprocess.TimeoutExpired:
+        return {'success': False, 'error': '安装超时（5分钟）'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+
 if __name__ == "__main__":
     uvicorn.run(
         app, 
         host="0.0.0.0", 
-        port=5001
+        port=5001,
     )

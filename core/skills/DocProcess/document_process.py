@@ -4,6 +4,9 @@ import re
 from typing import Optional, Dict, Any, Tuple, List
 from pathlib import Path
 from settings.Define import Params, PathConfig
+from settings.logger_manager import get_logger
+
+logger = get_logger(__name__)
 
 try:
     from pypdf import PdfReader
@@ -15,14 +18,6 @@ try:
     XLRD_AVAILABLE = True
 except ImportError:
     XLRD_AVAILABLE = False
-
-try:
-    from unstructured.partition.pdf import partition_pdf
-    from unstructured.chunking.title import chunk_by_title
-    from unstructured.staging.base import elements_to_markdown
-    UNSTRUCTURED_AVAILABLE = True
-except ImportError:
-    UNSTRUCTURED_AVAILABLE = False
 
 try:
     import pytesseract
@@ -69,115 +64,158 @@ class DocumentProcessor:
         
         return str(file_path), saved_filename
     
-    def read_document(self, file_path: str) -> str:
+    async def read_document(self, file_path: str) -> str:
         """读取文档内容并返回文本（统一转换为MD格式）"""
         ext = Path(file_path).suffix.lower()
         
         if ext == '.docx':
-            return self._read_docx_to_md(file_path)
+            async for chunk_text in self._read_docx_with_paragraphs(file_path):
+                yield chunk_text
         elif ext == '.txt':
-            return self._read_txt(file_path)
-        elif ext in ['.xlsx', '.xls']:
-            return self._read_excel(file_path)
+            async for chunk_text in self._read_txt(file_path):
+                yield chunk_text
+        if ext in ['.xlsx', '.xls']:
+            async for chunk_text in self._read_excel(file_path):
+                yield chunk_text
         elif ext in ['.pptx', '.ppt']:
-            return self._read_pptx(file_path)
+            async for chunk_text in self._read_pptx(file_path):
+                yield chunk_text
         elif ext in ['.html', '.htm']:
-            return self._read_html(file_path)
+            async for chunk_text in self._read_html(file_path):
+                yield chunk_text
         elif ext in ['.py', '.java', '.cpp', '.c', '.h', '.js', '.ts', '.jsx', '.tsx', '.css', '.go', '.rs', '.rb', '.php', '.swift', '.kt', '.scala', '.cs', '.sh', '.bash', '.sql', '.yaml', '.yml', '.json', '.xml', '.md', '.ini', '.cfg', '.conf', '.toml']:
-            return self._read_txt(file_path)
+            async for chunk_text in self._read_txt(file_path):
+                yield chunk_text
         elif ext == '.doc':
-            return self._read_doc(file_path)
+            async for chunk_text in self._read_doc(file_path):
+                yield chunk_text
         elif ext == '.pdf':
-            return self._read_pdf(file_path)
+            async for chunk_text in self._read_pdf(file_path):
+                yield chunk_text
+        elif ext == '.md':
+            async for chunk_text in self._read_md(file_path):
+                yield chunk_text
         else:
             raise ValueError(f"不支持的文件格式: {ext}")
     
-    def process_document_modification(self, file_path: str, modification_request: str, 
+    async def process_document_modification(self, file_path: str, modification_request: str,
                                      conversation_history: List[Dict[str, str]], llm) -> Tuple[str, Optional[str]]:
-        """处理文档修改请求"""
+        """处理文档修改/整理/格式转换请求（异步）"""
         ext = Path(file_path).suffix.lower()
-        original_content = ""
+        output_ext = self.detect_output_format(modification_request, conversation_history)
+        is_format_conversion = (output_ext != ext)
         
         try:
+            text_only = ""
             if ext == '.docx':
-                text_only, text_paragraphs_info = self._read_docx_with_paragraphs(file_path)
+                async for chunk_text in self._read_docx_with_paragraphs(file_path):
+                    text_only += chunk_text
             elif ext == '.txt':
-                text_only = self._read_txt(file_path)
-                original_content = text_only
-                text_paragraphs_info = None
+                async for chunk_text in self._read_txt(file_path):
+                    text_only += chunk_text
             elif ext in ['.xlsx', '.xls']:
-                text_only = self._read_excel(file_path)
-                text_paragraphs_info = None
+                async for chunk_text in self._read_excel(file_path):
+                    text_only += chunk_text
             elif ext in ['.pptx', '.ppt']:
-                text_only = self._read_pptx(file_path)
-                text_paragraphs_info = None
+                async for chunk_text in self._read_pptx(file_path):
+                    text_only += chunk_text
             elif ext == '.doc':
-                text_only = self._read_doc(file_path)
-                text_paragraphs_info = None
+                async for chunk_text in self._read_doc(file_path):
+                    text_only += chunk_text
+            elif ext == '.pdf':
+                async for chunk_text in self.read_document(file_path):
+                    text_only += chunk_text
+            elif ext == '.md':
+                async for chunk_text in self._read_md(file_path):
+                    text_only += chunk_text
             else:
                 raise ValueError(f"不支持的文件格式: {ext}")
             
-            system_prompt = self._build_system_prompt(modification_request, ext)
+            system_prompt = self._build_system_prompt(modification_request, ext, output_ext)
             
             prompt_list = [
                 {"role": "system", "content": system_prompt},
             ] + conversation_history + [
-                {"role": "user", "content": f"修改要求：{modification_request}\n\n文档内容：\n{text_only}"},
+                {"role": "user", "content": f"用户需求：{modification_request}\n\n文档内容：\n{text_only}"},
             ]
             
-            response = llm.invoke(prompt_list)
-            content = response.content if hasattr(response, 'content') else str(response)
+            from core.agent import _stream_by_prompt
             
-            if not content or content.strip() == "":
-                return "抱歉，暂时无法处理文档修改请求。", None
+            content = ""
+            for chunk_text in _stream_by_prompt(prompt_list, model=Params.DEFAULT_TEXT_TOOL_MODEL):
+                content += chunk_text
+            content = content.strip()
+            
+            if not content:
+                return "抱歉，暂时无法处理文档请求。", None
+            
+            is_typo_request = any(kw in modification_request for kw in ['错别字', '错字', '纠错'])
+            no_change_markers = ['没有发现错别字', '未发现错别字', '没有错别字']
+            
+            if is_typo_request and any(m in content for m in no_change_markers):
+                return "文档检查完成，没有发现错别字。", None
             
             original_filename = Path(file_path).stem
-            output_filename = f"{original_filename}_{uuid.uuid4().hex[:8]}{ext}"
+            output_filename = f"{original_filename}_{uuid.uuid4().hex[:8]}{output_ext}"
             output_path = self.OUTPUT_DIR / output_filename
             
-            if ext == '.docx':
-                self._modify_docx_with_format(file_path, content, modification_request, str(output_path), text_paragraphs_info)
-            elif ext == '.txt':
-                self._modify_txt_with_format(content, str(output_path), modification_request, original_content)
-            elif ext in ['.xlsx', '.xls']:
-                self._modify_excel(file_path, content, str(output_path))
-            elif ext in ['.pptx', '.ppt']:
-                self._modify_pptx(file_path, content, str(output_path))
-            elif ext == '.doc':
-                self._modify_doc(content, str(output_path), original_filename)
+            if is_format_conversion:
+                logger.info(f"格式转换: {ext} → {output_ext}, request={modification_request[:80]}")
+                self._save_content_to_format(content, str(output_path), output_ext)
+            else:
+                if ext == '.docx':
+                    text_paragraphs_info = text_only
+                    self._modify_docx_with_format(file_path, content, modification_request, str(output_path), text_paragraphs_info)
+                elif ext == '.txt':
+                    original_content = text_only
+                    self._modify_txt_with_format(content, str(output_path), modification_request, original_content)
+                elif ext in ['.xlsx', '.xls']:
+                    self._modify_excel(file_path, content, str(output_path))
+                elif ext in ['.pptx', '.ppt']:
+                    self._modify_pptx(file_path, content, str(output_path))
+                elif ext == '.doc':
+                    self._modify_doc(content, str(output_path), original_filename)
+                elif ext == '.pdf':
+                    await self.aysnc_modify_pdf(file_path, content, str(output_path), modification_request, text_only)
+                elif ext == '.md':
+                    self._modify_txt_with_format(content, str(output_path), modification_request, text_only)
             
             if output_path.exists():
                 download_url = f"http://127.0.0.1:5001/download/{output_filename}"
                 
-                if ext == '.txt' and ('错别字' in modification_request or '错字' in modification_request or '错误字' in modification_request):
-                    with open(output_path, 'r', encoding='utf-8') as f:
-                        modified_content = f.read()
-                    
-                    original_lines = original_content.strip().split('\n')
-                    modified_lines = modified_content.strip().split('\n')
-                    
-                    changed_words = []
-                    for i, (orig_line, mod_line) in enumerate(zip(original_lines, modified_lines)):
-                        if orig_line.strip() != mod_line.strip():
-                            changed_words.append(orig_line.strip())
-                    
-                    if changed_words:
-                        unique_changes = list(dict.fromkeys(changed_words))
-                        changes_str = '，'.join(unique_changes)
-                        result_content = f"发现{len(unique_changes)}组错别字：{changes_str}\n\n文档修改完成！\n\n[下载修改后的文档]({download_url})"
-                    else:
-                        result_content = "没有发现错别字"
+                if is_format_conversion:
+                    result_content = f"文档已完成处理并保存为 {output_ext} 格式！\n\n[下载处理后的文档]({download_url})"
+                elif is_typo_request:
+                    result_content = f"错别字已修正完毕！\n\n[下载修正后的文档]({download_url})"
                 else:
                     result_content = f"文档修改完成！\n\n[下载修改后的文档]({download_url})"
                 
                 return result_content, str(output_path)
             else:
-                if content != "没有发现错别字":
-                    return "文档修改完成！", None
-                return content, None
+                return "抱歉，文档处理失败，请重试。", None
                 
         except Exception as e:
-            return f"抱歉，文档处理失败：{str(e)}", None
+            logger.error(f"文档处理失败: {str(e)[:200]}")
+            return f"抱歉，文档处理失败：{str(e)[:100]}", None
+    
+    def _save_content_to_format(self, content: str, output_path: str, output_ext: str):
+        """将内容保存为指定格式（用于格式转换场景）"""
+        if output_ext == '.pdf':
+            self._create_pdf(content, output_path)
+        elif output_ext in ['.docx', '.doc']:
+            self._create_docx(content, output_path)
+        elif output_ext == '.txt':
+            self._create_txt(content, output_path)
+        elif output_ext in ['.xlsx', '.xls']:
+            self._create_excel(content, output_path)
+        elif output_ext in ['.pptx', '.ppt']:
+            self._create_pptx(content, output_path)
+        elif output_ext == '.md':
+            self._create_md(content, output_path)
+        elif output_ext == '.json':
+            Path(output_path).write_text(content, encoding="utf-8")
+        else:
+            self._create_txt(content, output_path)
     
     def create_document(self, creation_request: str, conversation_history: List[Dict[str, str]], 
                        llm, output_ext: str = '.docx') -> Tuple[str, Optional[str]]:
@@ -259,75 +297,79 @@ class DocumentProcessor:
         except Exception as e:
             return f"抱歉，文档创建失败：{str(e)}", None
     
-    def _build_system_prompt(self, modification_request: str, file_ext: str) -> str:
-        """根据修改要求构建系统提示词"""
-        if '错别字' in modification_request or '错字' in modification_request or '错误字' in modification_request:
-            return """你是一个专业的文档校对助手。你的任务是检查并修正文档中的错别字和词语搭配错误。
+    def _build_system_prompt(self, modification_request: str, file_ext: str, 
+                            output_ext: str = None) -> str:
+        """根据用户需求动态构建系统提示词，覆盖修改、整理、转换、汇总等场景"""
+        if output_ext is None:
+            output_ext = self.detect_output_format(modification_request)
+        
+        is_format_conversion = (output_ext and output_ext != file_ext)
+        is_organize = any(kw in modification_request for kw in [
+            '整理', '汇总', '归纳', '提炼', '梳理', '归类', '整合',
+            '总结', '摘要', '概括', '简述', '精简', '浓缩',
+            '分析', '报告', '对比', '评估', '研究',
+            '提取', '筛选', '查找', '找出', '列出',
+            '转成', '转换成', '导出', '写入', '保存为', '另存为',
+        ])
+        
+        if '错别字' in modification_request or '错字' in modification_request or '纠错' in modification_request:
+            return """你是一个专业的文档校对助手。
 
-重要要求：
-1. 只返回修改后的文档内容，不要任何解释、说明或额外文字
+任务：检查并修正文档中的错别字和词语搭配错误。
+
+要求：
+1. 只返回修改后的文档内容本身，不要任何解释、说明、标注或额外文字
 2. 保持原文档的换行结构和格式完全一致
-3. 检查词语搭配是否合理（如"天弃"应改为"天气"，"银绗"应改为"银行"）
-4. 修正所有不合理的词语组合和错别字
-5. 如果没有发现错别字，直接回复"没有发现错别字"
+3. 如果没有发现错别字，直接回复"没有发现错别字"
 
-注意：你的回复将直接保存为文档文件，所以只能包含修改后的文档内容本身！"""
-        elif '格式' in modification_request or '排版' in modification_request or '对齐' in modification_request:
-            is_alignment_request = '对齐' in modification_request
-            
-            if is_alignment_request and file_ext == '.txt':
-                return """你是一个专业的文档格式调整助手。你的任务是根据用户要求调整文档的对齐方式。
+注意：你的回复将直接保存为文档文件。"""
 
-重要要求：
-1. 只调整对齐方式（如左对齐、居中对齐、右对齐），不要修改文字内容
-2. 对于 .txt 纯文本文件：
-   - 左对齐：去除每行开头的所有空格和制表符，让内容紧贴左侧
-   - 居中对齐：在每行前后添加适当空格使内容居中
-   - 右对齐：在每行开头添加适当空格使内容靠右
-3. 保留原文档的所有文字内容
-4. 直接返回修改后的文本，保持原文本的换行结构
+        if is_format_conversion:
+            return f"""你是一个专业的文档处理助手，擅长将一种格式的文档内容转换为另一种格式。
 
-注意：只调整对齐方式，不要改变任何文字内容！"""
-            else:
-                return """你是一个专业的文档格式调整助手。你的任务是根据用户要求调整文档格式。
+源文件格式：{file_ext}
+目标输出格式：{output_ext}
+
+任务：根据用户需求，将下方提供的{file_ext}文件内容进行相应处理后，以{output_ext}格式输出。
 
 要求：
-1. 只调整格式（排版、对齐方式、字体样式等）
-2. 不要修改文档的文字内容
-3. 保留原文档的所有内容
-4. 直接返回修改后的文本，保持原文本的换行结构
+1. 完整理解用户需求，对源文件内容进行整理/汇总/分析/改写等操作
+2. 输出高质量、结构化的内容，适合保存为{output_ext}文件
+3. 如果是表格类内容，请用 Markdown 表格格式输出（| 列1 | 列2 | ... |）
+4. 如果是文档类内容，请合理使用 Markdown 标题（# / ## / ###）、列表、表格等格式
+5. 只返回最终内容本身，不要任何解释、开头语或结束语
 
-注意：只调整格式，不要改变文字内容。"""
-        elif '内容' in modification_request or '修改' in modification_request or '增删' in modification_request:
-            return """你是一个专业的文档修改助手。你的任务是根据用户要求修改文档内容。
+注意：你的回复将直接被保存为{output_ext}文件！"""
 
-要求：
-1. 只修改用户指定的内容部分
-2. 保留文档的其他内容不变
-3. 保留原文档的结构和格式
-4. 直接返回修改后的文本，保持原文本的换行结构
+        if is_organize:
+            return f"""你是一个专业的文档分析与整理助手。
 
-注意：只修改用户要求的部分，不要影响其他内容。"""
-        elif '结构' in modification_request or '优化' in modification_request:
-            return """你是一个专业的文档优化助手。你的任务是优化文档结构和表达。
+任务：根据用户需求，对下方提供的文档内容进行整理、汇总、分析或改写。
+
+用户需求理解：{modification_request}
 
 要求：
-1. 只优化文档结构和表达方式
-2. 保留文档的核心内容
-3. 不要删除重要信息
-4. 直接返回优化后的文本，保持原文本的换行结构
+1. 准确把握用户的核心意图（整理结构 / 汇总数据 / 提炼要点 / 分析内容 / 格式转换等）
+2. 输出结构化、条理清晰、重点突出的内容
+3. 使用 Markdown 格式组织内容（标题用 # / ## / ###，表格用 | 分隔，列表用 - 或数字编号）
+4. 保留对用户有用的所有重要信息，不要遗漏关键数据
+5. 只返回最终整理好的内容本身，不要任何解释、开头语或结束语
 
-注意：只优化结构和表达，不要改变核心内容。"""
-        else:
-            return """你是一个专业的文档修改助手。你需要根据用户的要求来修改文档内容。
+注意：你的回复将直接被保存为文档文件！"""
+
+        return f"""你是一个专业的文档修改助手。
+
+任务：根据用户的具体要求，对下方提供的文档内容进行针对性的修改。
+
+用户的修改要求：{modification_request}
 
 要求：
-1. 只修改用户指定的部分
-2. 保留文档的其他内容不变
-3. 保留原文档的结构和格式
-4. 直接返回修改后的文本，保持原文本的换行结构
+1. 严格按照用户要求进行修改（增删内容 / 调整格式 / 润色语言 / 修正错误等）
+2. 只修改用户指定的部分，未提及的内容保持原样
+3. 保留原文档的结构和换行格式
+4. 直接返回修改后的完整内容，不要解释、不要说明改了什么
 
-注意：严格按照用户的要求进行修改，不要影响其他部分。"""
+注意：你的回复将直接保存为文档文件。"""
     
     def _read_docx(self, file_path: str) -> str:
         """读取 .docx 文件"""
@@ -374,21 +416,19 @@ class DocumentProcessor:
         except ImportError:
             raise ImportError("请安装 python-docx: pip install python-docx")
     
-    def _read_docx_with_paragraphs(self, file_path: str) -> Tuple[str, List[Tuple[int, str]]]:
-        """读取 .docx 文件并返回文本和段落信息"""
+    async def _read_docx_with_paragraphs(self, file_path: str):
+        """读取 .docx 文件，逐段 yield 文本"""
         from docx import Document
         doc = Document(file_path)
-        text_paragraphs_info = []
         for i, para in enumerate(doc.paragraphs):
             if para.text.strip():
-                text_paragraphs_info.append((i, para.text))
-        text_only = '\n'.join([text for _, text in text_paragraphs_info])
-        return text_only, text_paragraphs_info
+                yield para.text + '\n'
     
-    def _read_txt(self, file_path: str) -> str:
-        """读取 .txt 文件"""
+    async def _read_txt(self, file_path: str):
+        """读取 .txt 文件，逐行 yield"""
         with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
+            for line in f:
+                yield line
     
     def _read_html(self, file_path: str) -> str:
         """读取 HTML 文件，提取纯文本内容并转换为 Markdown 格式"""
@@ -419,22 +459,23 @@ class DocumentProcessor:
             print(f"HTML解析失败，尝试作为文本文件读取: {str(e)}")
             return self._read_txt(file_path)
     
-    def _read_excel(self, file_path: str) -> str:
+    async def _read_excel(self, file_path: str) -> str:
         """读取 Excel 文件并转换为 Markdown 格式（支持 .xls 和 .xlsx）"""
         ext = Path(file_path).suffix.lower()
         
         # 处理旧版 .xls 格式
         if ext == '.xls':
-            return self._read_excel_xls(file_path)
+            async for chunk_text in self._read_excel_xls(file_path):
+                yield chunk_text
         
         # 处理 .xlsx 格式
         elif ext == '.xlsx':
-            return self._read_excel_xlsx(file_path)
-        
+            async for chunk_text in self._read_excel_xlsx(file_path):
+                yield chunk_text
         else:
             raise ValueError(f"不支持的 Excel 格式: {ext}")
     
-    def _read_excel_xls(self, file_path: str) -> str:
+    async def _read_excel_xls(self, file_path: str) -> str:
         """读取 .xls 格式 Excel 文件"""
         if not XLRD_AVAILABLE:
             raise ImportError("请安装 xlrd: pip install xlrd")
@@ -469,18 +510,20 @@ class DocumentProcessor:
                         content.append('| ' + ' | '.join(row) + ' |')
                 
                 content.append('')  # 空行分隔不同sheet
-            
-            return '\n'.join(content)
+                # 每个sheet的内容作为一块文本
+                yield '\n'.join(content)
+
+            # return '\n'.join(content)
         except Exception as e:
-            # xlrd读取失败，尝试作为文本文件读取（可能是CSV或其他文本格式）
-            print(f"xlrd 读取失败，尝试作为文本文件读取: {str(e)}")
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                # 尝试解析为CSV格式
-                return self._parse_text_as_csv(content, file_path)
-            except Exception as text_e:
-                raise ValueError(f"无法读取文件 '{file_path}'。文件可能不是有效的 Excel 格式，或已损坏。尝试的错误: xlrd: {str(e)}, 文本读取: {str(text_e)}")
+            # # xlrd读取失败，尝试作为文本文件读取（可能是CSV或其他文本格式）
+            # print(f"xlrd 读取失败，尝试作为文本文件读取: {str(e)}")
+            # try:
+            #     with open(file_path, 'r', encoding='utf-8') as f:
+            #         content = f.read()
+            #     # 尝试解析为CSV格式
+            #     yield self._parse_text_as_csv(content, file_path)
+            # except Exception as text_e:
+            raise ValueError(f"无法读取文件 '{file_path}'。文件可能不是有效的 Excel 格式，或已损坏。尝试的错误: xlrd: {str(e)}")
     
     def _parse_text_as_csv(self, content: str, file_path: str) -> str:
         """将文本内容解析为CSV格式并转换为MD表格"""
@@ -520,7 +563,7 @@ class DocumentProcessor:
         
         return f"## {Path(file_path).name}\n\n{content}"
     
-    def _read_excel_xlsx(self, file_path: str) -> str:
+    async def _read_excel_xlsx(self, file_path: str) -> str:
         """读取 .xlsx 格式 Excel 文件"""
         try:
             import openpyxl
@@ -545,20 +588,22 @@ class DocumentProcessor:
                         content.append('| ' + ' | '.join(row) + ' |')
                 
                 content.append('')  # 空行分隔不同sheet
-            
-            return '\n'.join(content)
+
+                # 每个sheet的内容作为一块文本
+                yield '\n'.join(content)
+
+            # return '\n'.join(content)
         except ImportError:
             raise ImportError("请安装 openpyxl: pip install openpyxl")
     
-    def _read_pptx(self, file_path: str) -> str:
-        """读取 PowerPoint 文件并转换为 Markdown 格式"""
+    async def _read_pptx(self, file_path: str):
+        """读取 PowerPoint 文件，逐页 yield Markdown 内容"""
         try:
             from pptx import Presentation
             prs = Presentation(file_path)
-            content_parts = []
 
             for i, slide in enumerate(prs.slides, 1):
-                content_parts.append(f"## 幻灯片 {i}")
+                parts = [f"## 幻灯片 {i}\n"]
                 
                 slide_texts = []
                 for shape in slide.shapes:
@@ -569,20 +614,34 @@ class DocumentProcessor:
                                 slide_texts.append(text_content)
                 
                 if slide_texts:
-                    # 尝试识别标题（通常是第一张形状或最大的字体）
-                    if slide_texts:
-                        content_parts.append(f"### {slide_texts[0]}")
-                        for text in slide_texts[1:]:
-                            content_parts.append(text)
+                    parts.append(f"### {slide_texts[0]}\n")
+                    for text in slide_texts[1:]:
+                        parts.append(text + '\n')
                 
-                content_parts.append('')  # 空行分隔不同幻灯片
-
-            return '\n'.join(content_parts)
+                parts.append('')
+                yield '\n'.join(parts)
         except ImportError:
             raise ImportError("请安装 python-pptx: pip install python-pptx")
-    
-    def _read_doc(self, file_path: str) -> str:
-        """读取旧版 .doc 文件"""
+
+    async def _read_md(self, file_path: str):
+        """异步分片读取markdown原始文本，按chunk_size流式yield文本片段"""
+        import aiofiles
+        chunk_size = 1024
+        try:
+            async with aiofiles.open(file_path, 'r', encoding="utf-8") as f:
+                while True:
+                    chunk = await f.read(chunk_size)
+                    if not chunk:
+                        break
+                    yield chunk
+        except FileNotFoundError:
+            raise FileNotFoundError(f"md文件不存在: {file_path}")
+        except PermissionError:
+            raise PermissionError(f"无权限读取文件: {file_path}")
+        except Exception as e:
+            raise RuntimeError(f"读取md文件失败：{str(e)}") from e
+    async def _read_doc(self, file_path: str):
+        """读取旧版 .doc 文件，一次性 yield"""
         try:
             import win32com.client
             word = win32com.client.Dispatch("Word.Application")
@@ -591,14 +650,20 @@ class DocumentProcessor:
             text_only = doc_obj.Content.Text
             doc_obj.Close()
             word.Quit()
-            return text_only
+            yield text_only
         except ImportError:
             raise ValueError("暂不支持直接读取 .doc 文件，请先转换为 .docx 格式")
     
     def _read_pdf(self, file_path: str) -> str:
         """读取 PDF 文件内容（支持扫描件OCR识别，并转换为MD格式）"""
-        # 优先使用 unstructured 库进行智能分区解析并转换为MD格式
-        if UNSTRUCTURED_AVAILABLE:
+        try:
+            from unstructured.partition.pdf import partition_pdf
+            from unstructured.staging.base import elements_to_markdown
+            _unstructured_ok = True
+        except ImportError:
+            _unstructured_ok = False
+
+        if _unstructured_ok:
             try:
                 print(f"使用 unstructured 解析 PDF: {file_path}")
                 elements = partition_pdf(file_path)
@@ -608,7 +673,6 @@ class DocumentProcessor:
                 else:
                     print(f"unstructured 解析到 {len(elements)} 个元素")
                 
-                # 将元素转换为 Markdown 格式（保留标题、表格等结构）
                 text = elements_to_markdown(elements)
                 print(f"unstructured 提取总文本长度: {len(text)}")
                 
@@ -846,6 +910,146 @@ class DocumentProcessor:
                     current_text_idx += 1
         
         prs.save(output_path)
+
+    async def aysnc_modify_pdf(self, original_path: str, modified_content: str, 
+                               output_path: str, instructions: str, original_content: str):
+        """异步修改pdf文件内容"""
+        import asyncio
+        
+        def _extract_modified_text(text: str) -> str:
+            markers = [
+                '修改后的内容', '修改后内容', '以下是修改后的', 
+                '修改后的文档', '修改后的PDF', '文档内容如下',
+                '以下是修改后的内容', '以下是修改后'
+            ]
+            for marker in markers:
+                if marker in text:
+                    idx = text.index(marker)
+                    newline_idx = text.find('\n', idx)
+                    if newline_idx != -1:
+                        return text[newline_idx + 1:].strip()
+            if text.startswith('好的') or text.startswith('已经') or text.startswith('我') or text.startswith('以下'):
+                paragraphs = text.split('\n\n')
+                if len(paragraphs) > 1:
+                    return '\n\n'.join(paragraphs[1:]).strip()
+            return text.strip()
+        
+        def _run_pdf_edit():
+            import fitz
+            
+            is_typo_request = any(kw in instructions for kw in ['错别字', '错字', '纠错', '拼写错误', '语法错误'])
+            is_format_request = any(kw in instructions for kw in ['对齐', '格式', '排版', '字体', '行距', '缩进', '布局'])
+            is_rewrite_request = any(kw in instructions for kw in ['重写', '改写', '重新写', '润色', '扩写', '缩写'])
+            
+            extracted = _extract_modified_text(modified_content)
+            
+            no_change_markers = ['没有发现', '未发现', '没有错别字', '无需修改', 
+                                 '原文档内容', '文档内容正确', '内容保持不变']
+            is_no_change_reply = any(marker in modified_content for marker in no_change_markers)
+            
+            if is_typo_request and is_no_change_reply:
+                logger.info("错别字检查未发现问题，直接保存原 PDF")
+                try:
+                    import shutil
+                    shutil.copy2(original_path, output_path)
+                    return True
+                except Exception:
+                    pass
+            
+            if is_no_change_reply:
+                extracted = original_content.strip()
+            
+            try:
+                doc = fitz.open(original_path)
+            except Exception as e:
+                logger.warning(f"无法打开原始 PDF，将重新创建: {e}")
+                doc = None
+            
+            if is_format_request or is_rewrite_request:
+                if doc is not None:
+                    try:
+                        doc.close()
+                    except Exception:
+                        pass
+                logger.info(f"指令涉及布局变更 (format={is_format_request}, rewrite={is_rewrite_request})，重建 PDF")
+                self._create_pdf(extracted, output_path)
+                return True
+            
+            if doc is not None and len(doc) > 0:
+                try:
+                    extracted_clean = re.sub(r'\s+', '', extracted)
+                    original_clean = re.sub(r'\s+', '', original_content)
+                    
+                    if len(extracted_clean) > 0 and len(original_clean) > 0:
+                        try:
+                            from difflib import SequenceMatcher
+                            ratio = SequenceMatcher(None, original_clean, extracted_clean).ratio()
+                            
+                            no_change_threshold = 0.97 if is_typo_request else 0.95
+                            if ratio > no_change_threshold:
+                                doc.save(output_path)
+                                doc.close()
+                                logger.info("PDF 内容无实质性变化，直接保存原文件")
+                                return True
+                            
+                            if ratio < 0.5:
+                                logger.info(f"内容相似度较低 ({ratio:.2f})，文本改动幅度大，重建 PDF")
+                                doc.close()
+                                self._create_pdf(extracted, output_path)
+                                return True
+                            
+                            lower_bound = 0.55 if is_typo_request else 0.4
+                            changed_blocks = []
+                            orig_blocks = original_content.split('\n')
+                            mod_blocks = extracted.split('\n')
+                            
+                            for orig_line in orig_blocks:
+                                orig_stripped = orig_line.strip()
+                                if not orig_stripped or len(orig_stripped) < 2:
+                                    continue
+                                for mod_line in mod_blocks:
+                                    mod_stripped = mod_line.strip()
+                                    if mod_stripped and mod_stripped != orig_stripped:
+                                        try:
+                                            line_ratio = SequenceMatcher(None, orig_stripped, mod_stripped).ratio()
+                                            if lower_bound < line_ratio < no_change_threshold and orig_stripped not in [b[0] for b in changed_blocks]:
+                                                changed_blocks.append((orig_stripped, mod_stripped))
+                                        except Exception:
+                                            pass
+                            
+                            replaced = 0
+                            if changed_blocks:
+                                for page in doc:
+                                    for orig_text, new_text in changed_blocks:
+                                        try:
+                                            rects = page.search_for(orig_text)
+                                            for rect in rects:
+                                                page.add_redact_annot(rect, text=new_text, fill=(1, 1, 1))
+                                                replaced += 1
+                                        except Exception:
+                                            continue
+                                
+                                if replaced > 0:
+                                    doc.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE)
+                                    doc.save(output_path)
+                                    doc.close()
+                                    logger.info(f"PDF 就地修改完成，替换了 {replaced} 处文本 (typo={is_typo_request})")
+                                    return True
+                        except Exception as e:
+                            logger.warning(f"就地编辑失败，尝试重新创建: {e}")
+                    
+                    doc.close()
+                except Exception as e:
+                    logger.warning(f"PDF 就地编辑异常: {e}")
+                    try:
+                        doc.close()
+                    except Exception:
+                        pass
+            
+            self._create_pdf(extracted, output_path)
+            return True
+        
+        await asyncio.to_thread(_run_pdf_edit)
     
     def _modify_doc(self, modified_content: str, output_path: str, original_filename: str):
         """修改 .doc 文件（转换为 .docx）"""
@@ -998,6 +1202,11 @@ class DocumentProcessor:
     
     def _create_txt(self, content: str, output_path: str):
         """创建 .txt 文档"""
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+    def _create_md(self, content: str, output_path: str):
+        """创建 .md 文档"""
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(content)
     
@@ -1183,24 +1392,188 @@ class DocumentProcessor:
         
         prs.save(output_path)
     
-    def detect_output_format(self, creation_request: str, conversation_history: List[Dict[str, str]]) -> str:
+    def _create_pdf(self, content: str, output_path: str):
+        """创建 PDF 文档（优先使用 reportlab，自动回退到 docx→pdf 转换）"""
+        from docx import Document
+        from docx.shared import Pt
+        
+        doc = Document()
+        
+        def clean_md_inline(text):
+            text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+            text = re.sub(r'\*(.+?)\*', r'\1', text)
+            text = re.sub(r'~~(.+?)~~', r'\1', text)
+            text = re.sub(r'`(.+?)`', r'\1', text)
+            return text.strip()
+        
+        def is_table_row(line):
+            s = line.strip()
+            return s.startswith('|') and s.endswith('|') and '|' in s[1:-1]
+        
+        def is_table_separator(line):
+            s = line.strip()
+            cells = s.strip('|').split('|')
+            return all(re.match(r'^[\s\-:]+$', cell) for cell in cells if cell.strip())
+        
+        def parse_table_rows(lines):
+            if len(lines) < 3:
+                return None, []
+            header = [cell.strip() for cell in lines[0].strip().strip('|').split('|')]
+            data_rows = []
+            for line in lines[2:]:
+                if is_table_row(line) and not is_table_separator(line):
+                    row = [cell.strip() for cell in line.strip().strip('|').split('|')]
+                    data_rows.append(row)
+            return header, data_rows
+        
+        paragraphs = content.split('\n')
+        i = 0
+        while i < len(paragraphs):
+            para = paragraphs[i]
+            
+            if is_table_row(para) and not is_table_separator(para):
+                table_lines = [para]
+                j = i + 1
+                while j < len(paragraphs):
+                    if is_table_row(paragraphs[j]) or is_table_separator(paragraphs[j]):
+                        table_lines.append(paragraphs[j])
+                        j += 1
+                    else:
+                        break
+                
+                header, data_rows = parse_table_rows(table_lines)
+                if header and data_rows:
+                    table = doc.add_table(rows=len(data_rows) + 1, cols=len(header))
+                    table.style = 'Table Grid'
+                    header_cells = table.rows[0].cells
+                    for col_idx, cell_text in enumerate(header):
+                        cell = header_cells[col_idx]
+                        cell.text = clean_md_inline(cell_text)
+                        for paragraph in cell.paragraphs:
+                            for run in paragraph.runs:
+                                run.font.bold = True
+                                run.font.size = Pt(10)
+                    for row_idx, row_data in enumerate(data_rows):
+                        row_cells = table.rows[row_idx + 1].cells
+                        for col_idx, cell_text in enumerate(row_data):
+                            if col_idx < len(row_cells):
+                                row_cells[col_idx].text = clean_md_inline(cell_text)
+                                for paragraph in row_cells[col_idx].paragraphs:
+                                    for run in paragraph.runs:
+                                        run.font.size = Pt(10)
+                    i = j
+                    continue
+                else:
+                    doc.add_paragraph(para.strip())
+                    i = j
+                    continue
+            
+            stripped = para.strip()
+            if not stripped:
+                i += 1
+                continue
+            
+            if stripped.startswith('#'):
+                title_text = stripped.lstrip('#').strip()
+                if stripped.startswith('######'):
+                    heading_level = 6
+                elif stripped.startswith('#####'):
+                    heading_level = 5
+                elif stripped.startswith('####'):
+                    heading_level = 4
+                elif stripped.startswith('###'):
+                    heading_level = 3
+                elif stripped.startswith('##'):
+                    heading_level = 2
+                else:
+                    heading_level = 1
+                doc.add_heading(title_text, level=heading_level)
+            else:
+                doc.add_paragraph(stripped)
+            
+            i += 1
+        
+        temp_docx = self.OUTPUT_DIR / f"_temp_{uuid.uuid4().hex[:8]}.docx"
+        doc.save(str(temp_docx))
+        
+        try:
+            import win32com.client
+            word = win32com.client.Dispatch("Word.Application")
+            word.Visible = False
+            doc_obj = word.Documents.Open(str(temp_docx))
+            doc_obj.SaveAs(str(output_path), FileFormat=17)
+            doc_obj.Close()
+            word.Quit()
+        except Exception:
+            try:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.styles import getSampleStyleSheet
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                from reportlab.pdfbase import pdfmetrics
+                from reportlab.pdfbase.ttfonts import TTFont
+                
+                font_paths = [
+                    r'C:\Windows\Fonts\msyh.ttc',
+                    r'C:\Windows\Fonts\simhei.ttf',
+                    r'C:\Windows\Fonts\simsun.ttc',
+                ]
+                font_name = 'Helvetica'
+                for fp in font_paths:
+                    if os.path.exists(fp):
+                        try:
+                            pdfmetrics.registerFont(TTFont('CNFont', fp))
+                            font_name = 'CNFont'
+                            break
+                        except Exception:
+                            continue
+                
+                styles = getSampleStyleSheet()
+                styles['Normal'].fontName = font_name
+                styles['Normal'].fontSize = 11
+                styles['Title'].fontName = font_name
+                styles['Heading1'].fontName = font_name
+                styles['Heading2'].fontName = font_name
+                
+                story = []
+                for line in paragraphs:
+                    stripped = line.strip()
+                    if not stripped:
+                        story.append(Spacer(1, 6))
+                        continue
+                    story.append(Paragraph(clean_md_inline(stripped), styles['Normal']))
+                
+                doc_pdf = SimpleDocTemplate(str(output_path), pagesize=A4)
+                doc_pdf.build(story)
+            except Exception:
+                import shutil
+                shutil.copy(str(temp_docx), str(output_path))
+        finally:
+            try:
+                temp_docx.unlink()
+            except Exception:
+                pass
+    
+    def detect_output_format(self, creation_request: str, conversation_history: List[Dict[str, str]] = None) -> str:
         """检测用户期望的输出文件格式"""
         format_keywords = {
-            'word': '.docx', 'docx': '.docx', 'doc': '.doc',
+            'pdf': '.pdf', 'PDF': '.pdf',
+            'word': '.docx', 'docx': '.docx', 'doc': '.docx', '文档': '.docx',
             'txt': '.txt', '文本': '.txt', '纯文本': '.txt',
-            'excel': '.xlsx', 'xlsx': '.xlsx', 'xls': '.xls', '表格': '.xlsx',
-            'ppt': '.pptx', 'pptx': '.pptx', '幻灯片': '.pptx', '演示': '.pptx', 'powerpoint': '.pptx'
+            'excel': '.xlsx', 'xlsx': '.xlsx', 'xls': '.xlsx', '表格': '.xlsx', '工作表': '.xlsx',
+            'ppt': '.pptx', 'pptx': '.pptx', '幻灯片': '.pptx', '演示': '.pptx', 'powerpoint': '.pptx', '演示文稿': '.pptx',
+            'md': '.md', 'markdown': '.md', 'Markdown': '.md'
         }
         
         for keyword, ext in format_keywords.items():
-            if keyword in creation_request.lower():
+            if keyword in creation_request:
                 return ext
         
-        for msg in reversed(conversation_history):
-            msg_content = msg.get('content', '') if isinstance(msg, dict) else str(msg)
-            for keyword, ext in format_keywords.items():
-                if keyword in msg_content.lower():
-                    return ext
+        if conversation_history:
+            for msg in reversed(conversation_history):
+                msg_content = msg.get('content', '') if isinstance(msg, dict) else str(msg)
+                for keyword, ext in format_keywords.items():
+                    if keyword in msg_content:
+                        return ext
         
         return '.docx'
     

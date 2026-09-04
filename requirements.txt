@@ -37,3 +37,5 @@ python-magic-bin
 xlrd
 redis>=5.0.0
 numpy>=1.24.0
+reportlab
+pymupdf

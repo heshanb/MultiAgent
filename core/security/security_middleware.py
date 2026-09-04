@@ -44,7 +44,7 @@ class RateLimiter:
 
 
 # 全局速率限制器实例
-rate_limiter = RateLimiter(max_requests=100, window_seconds=60)
+rate_limiter = RateLimiter(max_requests=1000, window_seconds=60)
 
 
 class SecurityMiddleware(BaseHTTPMiddleware):

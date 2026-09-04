@@ -108,14 +108,10 @@ class ShortTermMemory:
         history = []
         
         for msg in self.state_list[:-1]:
-            if hasattr(msg, 'content'):
-                content = msg.content
-            else:
-                content = str(msg)
-
-            msg_type = str(type(msg))
+            # 先判断消息类型，再提取内容
             is_assistant = False
             is_user = False
+            content = ""
             
             if isinstance(msg, dict):
                 role = msg.get("role", "")
@@ -123,11 +119,17 @@ class ShortTermMemory:
                     is_assistant = True
                 elif role == "user":
                     is_user = True
+                content = msg.get("content", "")
             else:
+                msg_type = str(type(msg))
                 if "AIMessage" in msg_type:
                     is_assistant = True
                 elif "HumanMessage" in msg_type:
                     is_user = True
+                if hasattr(msg, 'content'):
+                    content = msg.content
+                else:
+                    content = str(msg)
             
             if is_assistant:
                 history.append({"role": "assistant", "content": content})

@@ -79,6 +79,9 @@
         .assistant { background: #ffffff; color: #333; border: 1px solid #e0e0e0; border-bottom-left-radius: 4px; }
         .message-time { font-size: 0.75rem; color: #999; margin-top: 6px; }
         .message-content { word-break: break-word; }
+        .msg-file-badge { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.25); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; font-size: 0.85rem; }
+        .msg-file-badge .file-ext { background: rgba(255,255,255,0.4); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px; }
+        .msg-file-badge .file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .message-content h1, .message-content h2, .message-content h3, .message-content h4, .message-content h5, .message-content h6 { margin: 16px 0 8px; font-weight: 600; line-height: 1.4; }
         .message-content h1 { font-size: 1.3rem; }
         .message-content h2 { font-size: 1.15rem; }
@@ -139,7 +142,38 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .typing-cursor::after { content: '|'; animation: blink 1s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        .loading-text { color: #999; font-style: italic; }
+        .loading-text { color: #999; font-style: italic; display: inline-flex; align-items: center; }
+        .loading-text::after { content: ''; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.4s steps(4, end) infinite; }
+        @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
+
+        .dots-anim {
+            display: inline-block;
+        }
+        .dots-anim::after {
+            content: '';
+            display: inline-block;
+            width: 1.2em;
+            text-align: left;
+            animation: dots 1.4s steps(4, end) infinite;
+        }
+        .agent-single-step { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 0; font-size: 0.85rem; color: #555; margin-bottom: 8px; }
+        .agent-single-step.done { opacity: 0.6; }
+        .step-arrow { flex-shrink: 0; font-size: 0.95rem; color: #667eea; cursor: pointer; user-select: none; width: 18px; text-align: center; font-weight: bold; transition: transform 0.2s, color 0.2s; }
+        .step-arrow:hover { color: #764ba2; }
+        .step-icon { flex-shrink: 0; width: 18px; text-align: center; color: #52c41a; font-size: 0.9rem; }
+        .agent-single-step.running .step-icon { color: #1677ff; }
+        .step-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #e0e0e0; border-top-color: #1677ff; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .step-title { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .wave-text { background: linear-gradient(90deg, #bbb 0%, #667eea 25%, #764ba2 50%, #667eea 75%, #bbb 100%); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: waveMove 2s linear infinite; }
+        @keyframes waveMove { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        .step-dots::after { content: ''; display: inline-block; width: 1.5em; text-align: left; animation: dots 1.4s steps(4, end) infinite; }
+        .step-detail-body { width: 100%; padding: 6px 0 6px 26px; font-size: 0.78rem; color: #888; line-height: 1.6; animation: slideDown 0.18s ease; border-left: 1px dashed #e0e0e0; margin-left: 5px; }
+        @keyframes slideDown { from { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; } to { opacity: 1; max-height: 1000px; } }
+        .step-detail-item { padding: 2px 0; color: #777; white-space: pre-wrap; word-break: break-word; }
+        .step-sub-title { font-size: 0.8rem; font-weight: 600; color: #555; padding: 6px 0 2px; }
+        .step-sub-title:first-child { padding-top: 0; }
+        .agent-final { margin-top: 8px; padding-top: 8px; border-top: 1px solid #eef0f2; }
 
         .input-wrapper { padding: 15px 24px 20px; background: white; border-top: 1px solid #eee; position: relative; z-index: 10; flex-shrink: 0; }
         .input-box { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 10px; border: 2px solid #e0e0e0; border-radius: 24px; transition: all 0.3s; background: #fafafa; position: relative; }
@@ -160,12 +194,16 @@
         .file-tag-inline .file-size { font-size: 0.7rem; color: #999; }
         .file-tag-inline .remove { cursor: pointer; color: #999; margin-left: 4px; }
         .file-tag-inline .remove:hover { color: #f44336; }
-        .input-row input { flex: 1; border: none; background: transparent; font-size: 1rem; outline: none; padding: 4px 0; }
-        .input-row input::placeholder { color: #999; }
+        .input-row textarea { flex: 1; border: none; background: transparent; font-size: 1rem; outline: none; padding: 4px 0; resize: none; max-height: 160px; line-height: 1.55; overflow-y: auto; font-family: inherit; }
+        .input-row textarea::placeholder { color: #999; }
         .send-btn { width: 40px; height: 40px; border: none; border-radius: 50%; background: #1677ff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: white; flex-shrink: 0; }
         .send-btn:hover { background: #4096ff; box-shadow: 0 4px 12px rgba(22,119,255,0.3); }
         .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .send-btn svg { width: 20px; height: 20px; fill: white; }
+        .send-btn.stop-mode { background: #ff4d4f; }
+        .send-btn.stop-mode:hover { background: #ff7875; box-shadow: 0 4px 12px rgba(255,77,79,0.4); }
+        .stop-icon { width: 14px; height: 14px; background: white; border-radius: 2px; }
+        .stop-tag { font-size: 0.75rem; color: #aaa; margin-top: 8px; padding-top: 6px; border-top: 1px solid #f0f0f0; }
         .toolbar-row { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid #eee; }
         .toolbar-btn { padding: 4px 10px; border: none; border-radius: 12px; background: transparent; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; transition: all 0.2s; color: #666; }
         .toolbar-btn:hover { background: #f0f0f0; color: #667eea; }
@@ -201,12 +239,33 @@
         .skill-info p { font-size: 0.8rem; color: #666; }
 
         .message-actions { display: flex; gap: 4px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #f0f0f0; }
-        .action-btn { width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: #999; font-size: 0.95rem; }
+        .action-btn { width: 28px; height: 28px; border: none; border-radius: 6px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: #999; font-size: 0.95rem; position: relative; }
         .action-btn:hover { background: #f0f0f0; color: #667eea; }
         .action-btn.active { color: #667eea; background: #eef0ff; }
         .action-btn svg { width: 16px; height: 16px; fill: currentColor; }
         .sources-btn { background: #f0f5ff; color: #667eea; }
         .sources-btn:hover { background: #e6edff; }
+
+        /* 用户消息 hover 操作栏 */
+        .message.user { position: relative; }
+        .user-hover-bar { display: none; position: absolute; top: -42px; right: 0; align-items: center; gap: 2px; background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 4px 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 5; white-space: nowrap; }
+        .user-hover-bar.show { display: flex; }
+        .user-hover-bar .hover-time { font-size: 0.72rem; color: #999; padding: 0 6px 0 4px; border-right: 1px solid #f0f0f0; margin-right: 2px; }
+        .user-hover-bar .action-btn { width: 26px; height: 26px; color: #888; }
+        .user-hover-bar .action-btn:hover { background: #f5f5f5; color: #667eea; }
+
+        /* 三点菜单 */
+        .dropdown-menu { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); min-width: 120px; z-index: 20; padding: 4px 0; }
+        .dropdown-menu.show { display: block; animation: fadeIn 0.15s ease; }
+        .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.85rem; color: #333; cursor: pointer; transition: background 0.15s; border: none; background: none; width: 100%; text-align: left; }
+        .dropdown-item:hover { background: #f5f5f5; }
+        .dropdown-item.danger { color: #f44336; }
+        .dropdown-item.danger:hover { background: #fff1f0; }
+        .dropdown-item svg { width: 14px; height: 14px; fill: currentColor; }
+
+        /* AI 回复耗时 */
+        .msg-duration { font-size: 0.72rem; color: #bbb; margin-left: 6px; display: inline-flex; align-items: center; gap: 3px; }
+        .msg-duration svg { width: 12px; height: 12px; fill: currentColor; }
 
         /* 引用来源弹窗样式 */
         .sources-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
@@ -438,8 +497,8 @@
                         <span id="skillTagName"></span>
                         <span class="remove" onclick="removeSkill()">✕</span>
                     </div>
-                    <input type="text" id="messageInput" placeholder="输入问题或任务，/ 选择技能" onkeypress="handleKeyPress(event)" onpaste="handlePaste(event)">
-                    <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="发送"><svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg></button>
+                    <textarea id="messageInput" rows="1" placeholder="输入问题或任务，/ 选择技能" onkeydown="handleKeyPress(event)" onpaste="handlePaste(event)" oninput="autoResizeInput(this)"></textarea>
+                    <button class="send-btn" id="sendBtn" onclick="window._sendOrStop()" title="发送"><svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg></button>
                 </div>
                 <div class="toolbar-row">
                     <button class="toolbar-btn" id="uploadFileBtn" disabled onclick="document.getElementById('fileInput').click()">➕ 上传文件</button>
@@ -554,6 +613,24 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function animateTrailingDots(root) {
+            if (!root) return;
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+            const targets = [];
+            let node;
+            while ((node = walker.nextNode())) {
+                if (node.nodeValue && node.nodeValue.endsWith('...') && node.nodeValue.trim().length > 3) {
+                    targets.push(node);
+                }
+            }
+            for (const textNode of targets) {
+                const span = document.createElement('span');
+                span.className = 'dots-anim';
+                textNode.nodeValue = textNode.nodeValue.slice(0, -3);
+                textNode.parentNode.insertBefore(span, textNode.nextSibling);
+            }
         }
 
         function renderMarkdown(text) {
@@ -687,7 +764,12 @@
                 if (msg.role === 'assistant') {
                     displayContent = renderMarkdown(msg.content);
                 } else {
-                    displayContent = escapeHtml(msg.content).replace(/\n/g, '<br>');
+                    let fileBadgeHTML = '';
+                    if (msg.file_name) {
+                        const ext = msg.file_name.split('.').pop().toUpperCase();
+                        fileBadgeHTML = `<div class="msg-file-badge"><span class="file-ext">${ext}</span><span class="file-name">${escapeHtml(msg.file_name)}</span></div>`;
+                    }
+                    displayContent = fileBadgeHTML + escapeHtml(msg.content).replace(/\n/g, '<br>');
                 }
 
                 let actionsHTML = '';
@@ -700,6 +782,8 @@
                                 <svg viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
                             </button>`;
                     }
+
+                    const durationHTML = msg.duration ? `<span class="msg-duration"><svg viewBox="0 0 24 24"><path d="M12 20c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>${msg.duration}</span>` : '';
                     
                     actionsHTML = `
                         <div class="message-actions">
@@ -716,13 +800,51 @@
                                 <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                             </button>
                             ${sourcesBtnHTML}
+                            ${durationHTML}
                         </div>`;
                 }
 
-                msgDiv.innerHTML = `<div class="message-content">${displayContent}</div><div class="message-time">${msg.time || ''}</div>${actionsHTML}`;
+                let userHoverBar = '';
+                if (msg.role === 'user') {
+                    userHoverBar = `
+                        <div class="user-hover-bar">
+                            <span class="hover-time">${msg.time || ''}</span>
+                            <button class="action-btn" title="复制" onclick="handleCopy(this)">
+                                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                            </button>
+                            <button class="action-btn" title="分享" onclick="handleShare(this)">
+                                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+                            </button>
+                            <button class="action-btn" title="更多" onclick="toggleUserMenu(event, this)">
+                                <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                            </button>
+                            <div class="dropdown-menu" onclick="event.stopPropagation()">
+                                <button class="dropdown-item danger" onclick="handleDeleteMessage(this)">
+                                    <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+                                    删除
+                                </button>
+                            </div>
+                        </div>`;
+                }
+
+                msgDiv.innerHTML = `${userHoverBar}<div class="message-content">${displayContent}</div><div class="message-time">${msg.time || ''}</div>${actionsHTML}`;
                 // 保存sources数据到msgDiv，用于showSources函数
                 if (msg.sources) {
                     msgDiv.sources = msg.sources;
+                }
+                // 用户消息：绑定 mouseenter/mouseleave 控制 hover-bar 显隐
+                if (msg.role === 'user') {
+                    msgDiv.addEventListener('mouseenter', () => {
+                        const bar = msgDiv.querySelector('.user-hover-bar');
+                        if (bar) bar.classList.add('show');
+                    });
+                    msgDiv.addEventListener('mouseleave', () => {
+                        const bar = msgDiv.querySelector('.user-hover-bar');
+                        if (bar) bar.classList.remove('show');
+                        // 离开时同时关掉三点菜单
+                        const menu = msgDiv.querySelector('.dropdown-menu.show');
+                        if (menu) menu.classList.remove('show');
+                    });
                 }
                 chatArea.appendChild(msgDiv);
             });
@@ -742,10 +864,10 @@
             return conversations.find(c => c.id === currentConvId);
         }
 
-        function addMessageToConv(role, content, time, sources) {
+        function addMessageToConv(role, content, time, sources, duration, file_name) {
             const conv = getCurrentConv();
             if (!conv) return;
-            conv.messages.push({ role, content, time: time || getTime(), sources: sources || [] });
+            conv.messages.push({ role, content, time: time || getTime(), sources: sources || [], duration: duration || null, file_name: file_name || null });
 
             if (role === 'user' && conv.messages.filter(m => m.role === 'user').length === 1) {
                 conv.title = content.substring(0, 20) + (content.length > 20 ? '...' : '');
@@ -797,17 +919,25 @@
             const emptyChat = document.getElementById('emptyChat');
             if (emptyChat) emptyChat.remove();
 
-            addMessageToConv('user', message);
+            addMessageToConv('user', message, null, null, null, uploadedFiles.length > 0 ? uploadedFiles[0].name : null);
             renderMessages(getCurrentConv().messages);
 
             input.value = '';
+            autoResizeInput(input);
             setLoading(true);
+
+            const startTime = performance.now();
 
             const thinkingMsg = document.createElement('div');
             thinkingMsg.className = 'message assistant';
-            thinkingMsg.innerHTML = `<div class="thinking-indicator"><span class="thinking-icon"></span><span>正在分析您的问题...</span></div><div class="message-time">${getTime()}</div>`;
+            thinkingMsg.innerHTML = `<div class="message-content"></div><div class="message-time">${getTime()}</div>`;
             document.getElementById('chatArea').appendChild(thinkingMsg);
             document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+
+            let latestResponse = '';
+            let state = 'thinking';
+            let steps = [];
+            let stepExpanded = false;
 
             try {
                 let fileContent = null;
@@ -835,6 +965,8 @@
                     headers['Authorization'] = 'Bearer ' + authToken;
                 }
                 
+                currentAbortController = new AbortController();
+
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: headers,
@@ -846,15 +978,59 @@
                         skill: currentSkill,
                         images: imagesData,
                         history: conv.messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }))
-                    })
+                    }),
+                    signal: currentAbortController.signal
                 });
 
                 if (!response.ok) throw new Error('网络请求失败');
 
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder('utf-8');
-                let latestResponse = '';
-                let state = 'thinking';
+
+                function buildStepHTML() {
+                    if (!steps.length) return '';
+                    const hasRunning = steps.some(s => s.status === 'running');
+                    const arrow = stepExpanded ? 'v' : '>';
+                    const displayTitle = hasRunning ? '进行中' : '已完成';
+                    const titleClass = hasRunning ? 'wave-text' : '';
+                    let detailsHtml = '';
+                    if (stepExpanded) {
+                        for (const s of steps) {
+                            const icon = s.status === 'running' ? '⏳' : '✓';
+                            detailsHtml += '<div class="step-sub-title">' + icon + ' ' + escapeHtml(s.title) + '</div>';
+                            if (s.details && s.details.length > 0) {
+                                for (const d of s.details) {
+                                    detailsHtml += '<div class="step-detail-item">' + escapeHtml(d) + '</div>';
+                                }
+                            }
+                        }
+                    }
+                    return `<div class="agent-single-step">
+                        <span class="step-title ${titleClass}">${displayTitle}</span>
+                        <span class="step-arrow" onclick="window._toggleStepDetail()">${arrow}</span>
+                        <div class="step-detail-body" style="display:${stepExpanded ? 'block' : 'none'};">${detailsHtml}</div>
+                    </div>`;
+                }
+                window._toggleStepDetail = function() {
+                    stepExpanded = !stepExpanded;
+                    renderContent();
+                };
+
+                function renderContent() {
+                    const contentDiv = thinkingMsg.querySelector('.message-content');
+                    if (!contentDiv) return;
+                    let html = '';
+                    if (steps.length) {
+                        html += buildStepHTML();
+                    }
+                    if (latestResponse) {
+                        html += '<div class="agent-final">' + renderMarkdown(latestResponse) + '</div>';
+                    } else if (state === 'thinking') {
+                        html += '<div class="agent-final"><span class="loading-text">正在思考</span></div>';
+                    }
+                    contentDiv.innerHTML = html;
+                    animateTrailingDots(contentDiv);
+                }
 
                 while (true) {
                     const { done, value } = await reader.read();
@@ -865,34 +1041,87 @@
                         if (!line.startsWith('data: ')) continue;
                         try {
                             const data = JSON.parse(line.substring(6));
-                            // 支持两种格式：直接文本或对象
                             const text = typeof data === 'string' ? data : (data.text || '');
-                            latestResponse = text;
-                            // 保存来源信息
+                            const isDone = data.status === 'done';
+                            const isStop = data.status === 'stop';
+                            const isError = data.status === 'error';
+                            const isStep = data.status === 'step';
+                            const isStepDetail = data.status === 'step_detail';
+
+                            if (isStop) {
+                                state = 'stopped';
+                                for (const s of steps) s.status = 'done';
+                                renderContent();
+                                break;
+                            }
+
+                            if (isError) {
+                                state = 'error';
+                                latestResponse += '⚠️ ' + (text || '服务错误');
+                                renderContent();
+                                break;
+                            }
+
+                            if (isStep && data.step) {
+                                const stepData = data.step;
+                                if (stepData.status === 'running') {
+                                    steps.push({ title: stepData.title, status: 'running', details: [] });
+                                } else if (stepData.status === 'done' && steps.length) {
+                                    const last = steps[steps.length - 1];
+                                    if (last.title === stepData.title) {
+                                        last.status = 'done';
+                                    } else {
+                                        steps.push({ title: stepData.title, status: 'done', details: [] });
+                                    }
+                                }
+                                renderContent();
+                            }
+
+                            if (isStepDetail && data.step_detail) {
+                                if (steps.length) {
+                                    let lastRunning = null;
+                                    for (let i = steps.length - 1; i >= 0; i--) {
+                                        if (steps[i].status === 'running') {
+                                            lastRunning = steps[i];
+                                            break;
+                                        }
+                                    }
+                                    if (lastRunning) {
+                                        lastRunning.details.push(data.step_detail);
+                                    }
+                                }
+                            }
+
+                            if (!isDone && text && !isStep && !isStepDetail) {
+                                latestResponse += text;
+                            }
+
                             if (data.sources) {
                                 thinkingMsg.sources = data.sources;
                             }
-                            const renderedResponse = latestResponse.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" style="color: #667eea; text-decoration: underline; cursor: pointer;">$1</a>');
-                            if (state === 'thinking') {
-                                // 显示加载中提示（不显示光标）
-                                const displayText = text || '<span class="loading-text">正在思考...</span>';
-                                thinkingMsg.innerHTML = `<div class="message-content">${displayText}</div><div class="message-time">${getTime()}</div>`;
+
+                            if (state === 'thinking' && latestResponse) {
                                 state = 'responding';
-                            } else {
-                                const contentDiv = thinkingMsg.querySelector('.message-content');
-                                contentDiv.innerHTML = text;
+                            }
+
+                            if (!isStep && !isStepDetail) {
+                                renderContent();
                             }
                         } catch (e) {}
                     }
                     document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
                 }
 
-                if (state !== 'thinking') {
+                if (state !== 'thinking' && state !== 'stopped') {
                     const contentDiv = thinkingMsg.querySelector('.message-content');
-                    const renderedResponse = renderMarkdown(latestResponse);
-                    contentDiv.innerHTML = renderedResponse || '暂无响应';
+                    renderContent();
+                    if (contentDiv && contentDiv.querySelector('.agent-final')) {
+                        contentDiv.querySelector('.agent-final').innerHTML = renderMarkdown(latestResponse) || '';
+                    }
 
-                    // 构建来源按钮HTML
+                    const elapsedMs = performance.now() - startTime;
+                    const durationStr = formatDuration(elapsedMs);
+
                     let sourcesBtnHTML = '';
                     if (thinkingMsg.sources && thinkingMsg.sources.length > 0) {
                         sourcesBtnHTML = `
@@ -916,16 +1145,29 @@
                                 <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
                             </button>
                             ${sourcesBtnHTML}
+                            <span class="msg-duration"><svg viewBox="0 0 24 24"><path d="M12 20c4.42 0 8-3.58 8-8s-3.58-8-8-8-8 3.58-8 8 3.58 8 8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg>${durationStr}</span>
                         </div>`;
                     thinkingMsg.insertAdjacentHTML('beforeend', actionsHTML);
 
-                    addMessageToConv('assistant', latestResponse || '暂无响应', getTime(), thinkingMsg.sources || []);
+                    addMessageToConv('assistant', latestResponse || '暂无响应', getTime(), thinkingMsg.sources || [], durationStr);
+                } else if (state === 'stopped') {
+                    for (const s of steps) s.status = 'done';
+                    renderContent();
+                    thinkingMsg.insertAdjacentHTML('beforeend', '<div class="stop-tag">这条消息已停止</div>');
                 } else {
-                    thinkingMsg.innerHTML = `<div class="message-content">⚠️ 抱歉，服务响应超时</div><div class="message-time">${getTime()}</div>`;
+                    thinkingMsg.querySelector('.message-content').innerHTML = '⚠️ 抱歉，服务响应超时';
                 }
             } catch (error) {
-                thinkingMsg.innerHTML = `<div class="message-content">⚠️ 抱歉，服务出现错误: ${error.message}</div><div class="message-time">${getTime()}</div>`;
+                if (error.name === 'AbortError') {
+                    state = 'stopped';
+                    for (const s of steps) s.status = 'done';
+                    renderContent();
+                    thinkingMsg.insertAdjacentHTML('beforeend', '<div class="stop-tag">这条消息已停止</div>');
+                } else {
+                    thinkingMsg.innerHTML = `<div class="message-content">⚠️ 抱歉，服务出现错误: ${error.message}</div><div class="message-time">${getTime()}</div>`;
+                }
             } finally {
+                currentAbortController = null;
                 setLoading(false);
                 removeFileTag();
             }
@@ -936,18 +1178,105 @@
             sendMessage();
         }
 
-        function handleKeyPress(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
+        function autoResizeInput(el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+
+        function formatDuration(ms) {
+            if (ms < 1000) return Math.round(ms) + 'ms';
+            const s = ms / 1000;
+            if (s < 60) return s.toFixed(1) + 's';
+            const m = Math.floor(s / 60);
+            const sec = Math.round(s % 60);
+            return m + 'm ' + sec + 's';
+        }
+
+        function toggleUserMenu(event, btn) {
+            event.stopPropagation();
+            const bar = btn.closest('.user-hover-bar');
+            const menu = bar.querySelector('.dropdown-menu');
+            document.querySelectorAll('.dropdown-menu.show').forEach(m => { if (m !== menu) m.classList.remove('show'); });
+            menu.classList.toggle('show');
+        }
+
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown-menu.show').forEach(m => m.classList.remove('show'));
+        });
+
+        function handleDeleteMessage(btn) {
+            const msgDiv = btn.closest('.message');
+            const isUser = msgDiv.classList.contains('user');
+            const conv = getCurrentConv();
+            if (!conv) return;
+
+            const contentText = msgDiv.querySelector('.message-content').innerText;
+            const idx = conv.messages.findIndex(m =>
+                (isUser ? m.role === 'user' : m.role === 'assistant') && m.content === contentText
+            );
+
+            if (idx !== -1) {
+                conv.messages.splice(idx, 1);
+                saveConversations();
+            }
+
+            msgDiv.remove();
+            showToast('✅ 已删除');
+        }
+
+        function handleShare(btn) {
+            const msgDiv = btn.closest('.message');
+            const text = msgDiv.querySelector('.message-content').innerText;
+            if (navigator.share) {
+                navigator.share({ title: '分享内容', text }).catch(() => {});
+            } else {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('✅ 已复制到剪贴板，可粘贴分享');
+                }).catch(() => showToast('❌ 分享失败'));
             }
         }
 
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                const btn = document.getElementById('sendBtn');
+                if (!btn.classList.contains('stop-mode')) {
+                    sendMessage();
+                }
+            }
+        }
+
+        let currentAbortController = null;
+
+        window._sendOrStop = function() {
+            const btn = document.getElementById('sendBtn');
+            if (btn.classList.contains('stop-mode')) {
+                stopGeneration();
+            } else {
+                sendMessage();
+            }
+        };
+
         function setLoading(loading) {
-            document.getElementById('sendBtn').disabled = loading;
-            document.getElementById('sendBtn').innerHTML = loading
-                ? '<div class="loading-dots"><span></span><span></span><span></span></div>'
-                : '<svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>';
+            const btn = document.getElementById('sendBtn');
+            if (loading) {
+                btn.disabled = false;
+                btn.classList.add('stop-mode');
+                btn.title = '停止';
+                btn.innerHTML = '<div class="stop-icon"></div>';
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('stop-mode');
+                btn.title = '发送';
+                btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>';
+            }
+        }
+
+        function stopGeneration() {
+            if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
+            }
         }
 
         function toggleSkillPanel() {
