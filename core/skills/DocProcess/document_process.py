@@ -19,29 +19,34 @@ try:
 except ImportError:
     XLRD_AVAILABLE = False
 
-try:
-    import pytesseract
-    from PIL import Image
-    import pdf2image
-    
-    # 配置Tesseract路径（支持Windows）
-    import platform
-    if platform.system() == 'Windows':
-        # Windows系统常见的Tesseract路径
-        possible_tesseract_paths = [
-            r'C:\Program Files\Tesseract-OCR\tesseract.exe',
-            r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
-            r'C:\Tesseract-OCR\tesseract.exe',
-        ]
-        for path in possible_tesseract_paths:
-            if os.path.exists(path):
-                pytesseract.pytesseract.tesseract_cmd = path
-                print(f"设置 Tesseract 路径: {path}")
-                break
-    
-    OCR_AVAILABLE = True
-except ImportError:
-    OCR_AVAILABLE = False
+
+def _ensure_ocr():
+    """懒加载 OCR 相关依赖（pytesseract / PIL / pdf2image），并配置 Tesseract 路径。"""
+    _state = getattr(_ensure_ocr, "_state", None)
+    if _state is not None:
+        return _state
+    try:
+        import pytesseract
+        from PIL import Image
+        import pdf2image
+
+        import platform as _platform
+        if _platform.system() == 'Windows':
+            possible_tesseract_paths = [
+                r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+                r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+                r'C:\Tesseract-OCR\tesseract.exe',
+            ]
+            for path in possible_tesseract_paths:
+                if os.path.exists(path):
+                    pytesseract.pytesseract.tesseract_cmd = path
+                    print(f"设置 Tesseract 路径: {path}")
+                    break
+
+        _ensure_ocr._state = (True, pytesseract, Image, pdf2image)
+    except ImportError:
+        _ensure_ocr._state = (False, None, None, None)
+    return _ensure_ocr._state
 
 class DocumentProcessor:
     """文档处理工具类，支持多种文档格式的读取、修改和保存"""
@@ -705,7 +710,8 @@ class DocumentProcessor:
                 print(f"pypdf 读取错误: {str(e)}")
         
         # 如果以上方法都失败，尝试OCR（处理扫描件）
-        if OCR_AVAILABLE:
+        ocr_ok, pytesseract, Image, pdf2image = _ensure_ocr()
+        if ocr_ok:
             try:
                 print(f"尝试使用 OCR 解析扫描件 PDF: {file_path}")
                 

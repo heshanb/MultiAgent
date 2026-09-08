@@ -88,15 +88,36 @@ class Message(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
+class Agent(Base):
+    """智能体表"""
+    __tablename__ = "agents"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    avatar = Column(String(20), nullable=True, default="🤖")
+    system_prompt = Column(Text, nullable=True)
+    model = Column(String(50), nullable=True, default="")
+    variables = Column(Text, nullable=True)
+    knowledge_base = Column(Text, nullable=True)
+    opening = Column(Text, nullable=True)
+    presets = Column(Text, nullable=True)
+    is_published = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 def init_db():
     """初始化数据库，创建所有表，并安全迁移新增列"""
     try:
         Base.metadata.create_all(bind=engine)
-        # 安全迁移：为已存在的 users 表添加 phone 列（SQLite 专用）
+
+        _ensure_agents_table()
+
         if USE_SQLITE:
             try:
                 with engine.connect() as conn:
-                    # 检查 phone 列是否存在
                     result = conn.execute(
                         __import__("sqlalchemy").text("PRAGMA table_info(users)")
                     )
@@ -107,8 +128,6 @@ def init_db():
                         ))
                         conn.commit()
                         print("✅ SQLite 迁移：成功添加 phone 列到 users 表")
-                    # 移除 email 列的 NOT NULL 约束（SQLite 不支持 ALTER COLUMN，需要重建表）
-                    # 检查 email 是否是 NOT NULL 的（通过尝试插入空值来检测）
             except Exception as migrate_err:
                 print(f"⚠️  数据库迁移提示: {migrate_err}")
                 print("   如需完整迁移，可删除 users.db 让数据库重建")
@@ -126,6 +145,29 @@ def init_db():
             print("2. .env文件中的数据库配置是否正确")
             print("3. 数据库是否已创建（CREATE DATABASE multiagent_db）")
         raise
+
+
+def _ensure_agents_table():
+    """确保 agents 表存在（兼容已存在的旧数据库）"""
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    if not inspector.has_table("agents"):
+        print("📌 检测到 agents 表不存在，正在创建...")
+        Agent.__table__.create(bind=engine, checkfirst=True)
+        print("✅ agents 表创建成功")
+    else:
+        existing_cols = {c['name'] for c in inspector.get_columns("agents")}
+        missing = [c for c in Agent.__table__.columns.keys() if c not in existing_cols]
+        for col_name in missing:
+            col_obj = Agent.__table__.c[col_name]
+            col_type = str(col_obj.type)
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE agents ADD COLUMN {col_name} {col_type}"))
+                    conn.commit()
+                print(f"📌 agents 表新增列: {col_name} ({col_type})")
+            except Exception as e:
+                print(f"⚠️ agents 表新增列 {col_name} 失败: {e}")
 
 
 def get_db():

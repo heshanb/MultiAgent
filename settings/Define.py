@@ -70,7 +70,7 @@ class Params:
         OTHER_NODE: "other"
     }
 
-    DOC_SUPPORTED_FORMATS = {'.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt', '.html', '.htm'}
+    DOC_SUPPORTED_FORMATS = {'.docx', '.doc', '.txt', '.xlsx', '.xls', '.pptx', '.ppt', '.html', '.json', '.pdf', '.md'}
 
     # ===================== 图纸助手节点名称 =====================
     RESET_DRAWING_NODE = "reset_drawing"
@@ -88,7 +88,7 @@ class Params:
     COLLECTION_NAME = "engineering_standard"
     CHUNK_SIZE = 800
     CHUNK_OVERLAP = 150
-    SEPARATORS = ["\n\n", "\n", "。", "、", " "]
+    SEPARATORS = ["\n\n", "\n", "。", "；", "，", " ", ""]
 
 
     # ===================== 代码助手节点名称 =====================

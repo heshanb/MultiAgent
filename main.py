@@ -80,6 +80,10 @@ app.include_router(auth_router)
 from core.knowledge import router as knowledge_router
 app.include_router(knowledge_router)
 
+# 注册智能体管理路由
+from core.agents import router as agents_router
+app.include_router(agents_router)
+
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
@@ -101,6 +105,22 @@ async def project_code_page():
     """项目编程页面 - AI辅助项目开发"""
     project_code_file = os.path.join(PathConfig.TEMPLATES_DIR, "project-code.html")
     with open(project_code_file, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/agents", response_class=HTMLResponse)
+async def agents_page():
+    """智能体管理页面"""
+    agent_file = os.path.join(PathConfig.TEMPLATES_DIR, "agents.html")
+    with open(agent_file, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/agent-editor", response_class=HTMLResponse)
+async def agent_editor_page():
+    """智能体编辑页面"""
+    editor_file = os.path.join(PathConfig.TEMPLATES_DIR, "agent-editor.html")
+    with open(editor_file, "r", encoding="utf-8") as f:
         return f.read()
 
 

@@ -14,12 +14,10 @@ from operator import add
 from pathlib import Path
 from langchain_community.chat_models import ChatTongyi
 from langchain_openai import ChatOpenAI
-from langchain_community.embeddings import DashScopeEmbeddings
 from langchain_core.messages import AnyMessage, HumanMessage, AIMessage
 from settings.Define import Params, PathConfig
 from settings.logger_manager import get_logger
 from openai import OpenAI
-from langchain_classic.memory import ConversationBufferWindowMemory
 
 try:
     from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -48,9 +46,9 @@ llm = ChatTongyi(
     streaming=True
 )
 
-logger.info(f"开始创建绑定工具的大模型客户端")
 from core.tools.doc_tools import create_doc_tools
 
+logger.info(f"开始创建绑定工具的大模型客户端")
 doc_tools = create_doc_tools()
 llm_with_tools = ChatOpenAI(
     model=Params.DEFAULT_TEXT_TOOL_MODEL,
@@ -63,13 +61,14 @@ logger.info(f"创建完毕")
 _SESSION_MEMORIES: dict = {}
 _SESSION_CONTEXTS: dict = {}
 _MAX_SESSIONS = 200
+_WINDOW_SIZE = 5
 
 
 class SessionMemoryManager:
-    """基于 LangChain ConversationBufferWindowMemory 的会话短期记忆管理器。
+    """轻量级会话短期记忆管理器（手写实现，避免 LangChain 0.3+ 的 DeprecationWarning）。
     
-    每个 thread_id 对应一个独立的 ConversationBufferWindowMemory 实例，
-    自动维护滑动窗口（保留最近 k 轮对话），防止内存泄漏。
+    每个 thread_id 对应一个独立的消息列表 [HumanMessage, AIMessage, ...]，
+    自动维护滑动窗口（保留最近 5 轮对话 = 10 条消息），防止内存泄漏。
     同时维护一份 session context（文件路径等元信息），让后续追问能
     自动恢复上次对话关联的文件上下文。
     """
@@ -81,11 +80,7 @@ class SessionMemoryManager:
                 old_key = next(iter(_SESSION_MEMORIES))
                 _SESSION_MEMORIES.pop(old_key, None)
                 _SESSION_CONTEXTS.pop(old_key, None)
-            _SESSION_MEMORIES[thread_id] = ConversationBufferWindowMemory(
-                memory_key="chat_history",
-                return_messages=True,
-                k=5,
-            )
+            _SESSION_MEMORIES[thread_id] = []
             _SESSION_CONTEXTS[thread_id] = {}
             logger.info(f"[Memory] 创建新会话记忆 thread_id={thread_id}, 总会话数={len(_SESSION_MEMORIES)}")
         return _SESSION_MEMORIES[thread_id]
@@ -94,15 +89,17 @@ class SessionMemoryManager:
     def save(thread_id, user_msg: str, assistant_msg: str):
         if not thread_id or not user_msg:
             return
-        mem = SessionMemoryManager.get_or_create(thread_id)
-        mem.save_context({"input": user_msg}, {"output": assistant_msg or ""})
+        history = SessionMemoryManager.get_or_create(thread_id)
+        history.append(HumanMessage(content=user_msg))
+        history.append(AIMessage(content=assistant_msg or ""))
+        if len(history) > _WINDOW_SIZE * 2:
+            del history[:len(history) - _WINDOW_SIZE * 2]
 
     @staticmethod
     def load(thread_id) -> list:
         if not thread_id or thread_id not in _SESSION_MEMORIES:
             return []
-        mem = _SESSION_MEMORIES[thread_id]
-        return mem.load_memory_variables({}).get("chat_history", [])
+        return list(_SESSION_MEMORIES[thread_id])
 
     @staticmethod
     def set_context(thread_id, **kwargs):
@@ -126,7 +123,6 @@ class SessionMemoryManager:
     @staticmethod
     def clear(thread_id):
         if thread_id in _SESSION_MEMORIES:
-            _SESSION_MEMORIES[thread_id].clear()
             del _SESSION_MEMORIES[thread_id]
             _SESSION_CONTEXTS.pop(thread_id, None)
             logger.info(f"[Memory] 清除会话 thread_id={thread_id}")
@@ -138,9 +134,6 @@ class SessionMemoryManager:
     @staticmethod
     def session_count() -> int:
         return len(_SESSION_MEMORIES)
-
-
-embedding_model = DashScopeEmbeddings(model=Params.DEFAULT_EMBEDDING_MODEL)
 
 
 def get_llm_by_model(model_id: str):
@@ -251,8 +244,7 @@ async def classify_skill(messages_list, skill_hint: str = "", thread_id=None) ->
 def _build_prompt_list(messages_list, system_prompt: str, user_query: str, thread_id=None) -> list:
     """通用：构建带 system + 历史对话 + 用户消息的 prompt_list
     
-    优先从 LangChain ConversationBufferWindowMemory 读取历史，
-    memory 自动维护滑动窗口（最近 k=5 轮对话）。
+    优先从 SessionMemoryManager 读取历史，自动维护滑动窗口（最近 5 轮对话）。
     无 memory 时 fallback 到前端传来的 messages_list。
     """
     conversation_history = []
@@ -515,75 +507,76 @@ async def stream_skill(skill_type: str, state_input: dict):
         return
 
     elif skill_type == "other":
-        sources = []
-        knowledge_context = ""
-        try:
-            from core.knowledge.knowledge_manager import get_vector_store, get_all_users
-            logger.info(f"[DEBUG] stream_skill other: 开始知识库检索, user_query={user_query[:60]}, current_user={current_user}")
-            all_users = get_all_users()
-            logger.info(f"[DEBUG] stream_skill other: all_users={all_users}")
-            for user in all_users:
-                try:
-                    logger.info(f"[DEBUG] stream_skill other: 检索用户 {user}")
-                    vs = get_vector_store(user)
-                    logger.info(f"[DEBUG] stream_skill other: vs={vs}")
-                    results = vs.similarity_search(user_query, k=2)
-                    logger.info(f"[DEBUG] stream_skill other: 用户 {user} 检索到 {len(results)} 条")
-                    sources.extend(results)
-                except Exception as e:
-                    logger.warning(f"[DEBUG] stream_skill other: 用户 {user} 检索失败: {str(e)[:120]}")
-                    continue
-            if current_user and current_user not in all_users:
-                try:
-                    logger.info(f"[DEBUG] stream_skill other: 检索当前用户 {current_user}")
-                    vs = get_vector_store(current_user)
-                    results = vs.similarity_search(user_query, k=3)
-                    logger.info(f"[DEBUG] stream_skill other: 当前用户 {current_user} 检索到 {len(results)} 条")
-                    sources.extend(results)
-                except Exception as e:
-                    logger.warning(f"[DEBUG] stream_skill other: 当前用户 {current_user} 检索失败: {str(e)[:120]}")
-                    pass
-            logger.info(f"[DEBUG] stream_skill other: 汇总 sources 共 {len(sources)} 条")
-            if sources:
-                knowledge_context = "\n\n".join([doc.page_content for doc in sources])
-                logger.info(f"[DEBUG] stream_skill other: knowledge_context 长度={len(knowledge_context)}")
-        except Exception as e:
-            logger.warning(f"知识库检索失败: {str(e)[:80]}")
-
-        if knowledge_context:
-            system_prompt = f"""你是一个专业的知识问答助手。请根据提供的参考资料回答用户的问题：
-
-参考资料：
-{knowledge_context}
-
-用户问题：{user_query}
-
-要求：
-1. 仔细阅读并分析参考资料，寻找与用户问题相关的信息
-2. 如果找到相关信息，请基于这些信息进行专业、准确的回答
-3. 如果参考资料中没有相关信息，请说明"抱歉，我无法回答这个问题"
-4. 回答要简洁、清晰，使用自然友好的语言，不要提及"知识库"或"来源"等字样"""
-
-            full_sources = []
-            for doc in sources:
-                full_sources.append({
-                    "source": doc.metadata.get('source', '未知'),
-                    "content": doc.page_content,
-                })
-
-            prompt_list = _build_prompt_list(messages_list, system_prompt, user_query, thread_id=thread_id)
-            async for chunk_text in _stream_by_prompt_async(prompt_list):
-                yield {"chunk": chunk_text, "sources": full_sources}
-        else:
-            # 智能回答助手
-            system_prompt = f"""你是一个专业的智能回答助手，需要根据用户问题来做出相应回应，回答要专业、清晰，使用自然友好的语言"""
-            prompt_list = _build_prompt_list(messages_list, system_prompt, user_query, thread_id)
-            full_text = ""
-            async for chunk_text in _stream_by_prompt_async(prompt_list):
-                full_text += chunk_text
-                yield {"chunk": chunk_text, "sources": []}
-            if not full_text:
-                yield {"chunk": "抱歉，您咨询的问题不在我的知识库中。", "sources": []}
+        # sources = []
+        # knowledge_context = ""
+        # try:
+        #     from core.knowledge.knowledge_manager import get_vector_store, get_all_users
+        #     logger.info(f"[DEBUG] stream_skill other: 开始知识库检索, user_query={user_query[:60]}, current_user={current_user}")
+        #     all_users = get_all_users()
+        #     logger.info(f"[DEBUG] stream_skill other: all_users={all_users}")
+        #     for user in all_users:
+        #         try:
+        #             logger.info(f"[DEBUG] stream_skill other: 检索用户 {user}")
+        #             vs = get_vector_store(user)
+        #             logger.info(f"[DEBUG] stream_skill other: vs={vs}")
+        #             results = vs.similarity_search(user_query, k=2)
+        #             logger.info(f"[DEBUG] stream_skill other: 用户 {user} 检索到 {len(results)} 条")
+        #             sources.extend(results)
+        #         except Exception as e:
+        #             logger.warning(f"[DEBUG] stream_skill other: 用户 {user} 检索失败: {str(e)[:120]}")
+        #             continue
+        #     if current_user and current_user not in all_users:
+        #         try:
+        #             logger.info(f"[DEBUG] stream_skill other: 检索当前用户 {current_user}")
+        #             vs = get_vector_store(current_user)
+        #             results = vs.similarity_search(user_query, k=3)
+        #             logger.info(f"[DEBUG] stream_skill other: 当前用户 {current_user} 检索到 {len(results)} 条")
+        #             sources.extend(results)
+        #         except Exception as e:
+        #             logger.warning(f"[DEBUG] stream_skill other: 当前用户 {current_user} 检索失败: {str(e)[:120]}")
+        #             pass
+        #     logger.info(f"[DEBUG] stream_skill other: 汇总 sources 共 {len(sources)} 条")
+        #     if sources:
+        #         knowledge_context = "\n\n".join([doc.page_content for doc in sources])
+        #         logger.info(f"[DEBUG] stream_skill other: knowledge_context 长度={len(knowledge_context)}")
+        # except Exception as e:
+        #     logger.warning(f"知识库检索失败: {str(e)[:80]}")
+        #
+        # logger.info(f"[DEBUG] stream_skill other: knowledge_context={knowledge_context}...")
+#         if knowledge_context:
+#             system_prompt = f"""你是一个专业的知识问答助手。请根据提供的参考资料回答用户的问题：
+#
+# 参考资料：
+# {knowledge_context}
+#
+# 用户问题：{user_query}
+#
+# 要求：
+# 1. 仔细阅读并分析参考资料，寻找与用户问题相关的信息
+# 2. 如果找到相关信息，请基于这些信息进行专业、准确的回答
+# 3. 如果参考资料中没有相关信息，请说明"抱歉，我无法回答这个问题"
+# 4. 回答要简洁、清晰，使用自然友好的语言，不要提及"知识库"或"来源"等字样"""
+#
+#             full_sources = []
+#             for doc in sources:
+#                 full_sources.append({
+#                     "source": doc.metadata.get('source', '未知'),
+#                     "content": doc.page_content,
+#                 })
+#
+#             prompt_list = _build_prompt_list(messages_list, system_prompt, user_query, thread_id=thread_id)
+#             async for chunk_text in _stream_by_prompt_async(prompt_list):
+#                 yield {"chunk": chunk_text, "sources": full_sources}
+#         else:
+        # 智能回答助手
+        system_prompt = f"""你是一个专业的智能回答助手，需要根据用户问题来做出相应回应，回答要专业、清晰，使用自然友好的语言"""
+        prompt_list = _build_prompt_list(messages_list, system_prompt, user_query, thread_id)
+        full_text = ""
+        async for chunk_text in _stream_by_prompt_async(prompt_list):
+            full_text += chunk_text
+            yield {"chunk": chunk_text, "sources": []}
+        if not full_text:
+            yield {"chunk": "抱歉，您咨询的问题不在我的能力范围内。", "sources": []}
 
         return
 

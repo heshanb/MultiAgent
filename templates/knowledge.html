@@ -471,7 +471,7 @@
             </div>
         </div>
 
-        <input type="file" id="fileInput" accept=".docx,.doc,.txt,.xlsx,.xls,.pptx,.ppt,.md,.pdf,.html,.htm" multiple>
+        <input type="file" id="fileInput" accept=".docx,.doc,.txt,.xlsx,.xls,.pptx,.ppt,.md,.pdf,.html,.json" multiple>
 
         <div class="document-list">
             <div class="list-header">
@@ -665,7 +665,7 @@
         function updateDocument(filename) {
             const input = document.createElement('input');
             input.type = 'file';
-            input.accept = '.docx,.doc,.txt,.xlsx,.xls,.pptx,.ppt,.md,.pdf,.html,.htm';
+            input.accept = '.docx,.doc,.txt,.xlsx,.xls,.pptx,.ppt,.md,.pdf,.html,.json';
             
             input.onchange = async (e) => {
                 const file = e.target.files[0];

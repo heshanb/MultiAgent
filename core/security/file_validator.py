@@ -7,7 +7,12 @@
 import os
 from typing import Set, Tuple
 from fastapi import HTTPException, UploadFile
-import magic
+try:
+    import magic
+    _magic_available = True
+except Exception:
+    magic = None
+    _magic_available = False
 import mimetypes
 
 # 允许的文件扩展名
