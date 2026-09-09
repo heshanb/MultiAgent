@@ -37,7 +37,8 @@
 
         .col { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
         .col-left { flex: 2; min-width: 460px; background: white; border-right: 1px solid #eef0f5; }
-        .col-mid { flex: 1.4; min-width: 360px; overflow-y: auto; background: #f7f8fc; border-right: 1px solid #eef0f5; }
+        .col-mid { flex: 1.4; min-width: 360px; overflow-y: auto; background: #f7f8fc; border-right: 1px solid #eef0f5; scrollbar-width: none; }
+        .col-mid::-webkit-scrollbar { display: none; }
         .col-right { flex: 2; min-width: 420px; background: white; }
 
         .col-header { padding: 18px 20px 12px; display: flex; align-items: center; justify-content: space-between; }
@@ -67,11 +68,58 @@
         .optimize-popup-title { font-size: 0.85rem; font-weight: 500; color: #333; margin-bottom: 10px; display: flex; gap: 6px; }
         .optimize-popup-title span { padding: 4px 10px; border-radius: 16px; cursor: pointer; font-size: 0.75rem; border: 1px solid #e5e7eb; color: #888; }
         .optimize-popup-title span.active { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-color: transparent; }
-        .optimize-popup-input { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; resize: none; font-family: inherit; min-height: 34px; }
+        .optimize-popup-input { width: 100%; border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 12px; font-size: 0.82rem; resize: vertical; font-family: inherit; min-height: 34px; }
         .optimize-popup-input:focus { outline: none; border-color: #667eea; }
-        .optimize-popup-go { margin-top: 8px; width: 100%; padding: 8px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 0.85rem; cursor: pointer; }
+        .optimize-popup-btns { margin-top: 8px; display: flex; gap: 8px; }
+        .optimize-popup-go { flex: 1; padding: 8px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 4px; transition: all 0.2s; }
+        .optimize-popup-go:hover:not(:disabled) { box-shadow: 0 4px 12px rgba(102,126,234,0.35); transform: translateY(-1px); }
+        .optimize-popup-go:disabled { opacity: 0.7; cursor: not-allowed; }
+        .optimize-popup-cancel { flex: 0 0 auto; padding: 8px 14px; background: white; color: #ff4757; border: 1px solid #ffcccc; border-radius: 8px; font-size: 0.85rem; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 4px; transition: all 0.2s; }
+        .optimize-popup-cancel:hover { background: #fff1f1; border-color: #ff4757; }
 
-        textarea.prompt-textarea { flex: 1; min-height: 300px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 0.85rem; line-height: 1.7; font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, 'Microsoft YaHei', monospace; resize: none; background: #fafbff; color: #333; }
+        .var-suggest {
+            position: fixed; background: white; border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12); border: 1px solid #eef0f5;
+            z-index: 9999; width: 280px; max-height: 280px; overflow-y: auto;
+            display: none; scrollbar-width: none;
+        }
+        .var-suggest::-webkit-scrollbar { display: none; }
+        .var-suggest-group { padding: 4px 0; }
+        .var-suggest-group-title {
+            padding: 6px 12px 4px; font-size: 0.7rem; color: #999;
+            text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+        }
+        .var-suggest-item {
+            display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+            cursor: pointer; transition: background 0.12s;
+        }
+        .var-suggest-item:hover, .var-suggest-item.active {
+            background: #f5f3ff;
+        }
+        .var-suggest-item .vi-key {
+            font-size: 0.8rem; font-family: 'SF Mono', Consolas, monospace;
+            color: #667eea; background: #f0eeff; padding: 2px 8px; border-radius: 4px;
+            font-weight: 600;
+        }
+        .var-suggest-item .vi-name {
+            font-size: 0.78rem; color: #666; flex: 1; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap;
+        }
+        .var-suggest-item .vi-tag {
+            font-size: 0.65rem; padding: 1px 6px; border-radius: 3px; font-weight: 500;
+        }
+        .var-suggest-item[data-builtin="1"] .vi-tag {
+            background: #e8f5e9; color: #43a047;
+        }
+        .var-suggest-item[data-builtin="0"] .vi-tag {
+            background: #fff3e0; color: #ef6c00;
+        }
+        .var-suggest-empty {
+            padding: 16px; text-align: center; color: #bbb; font-size: 0.8rem;
+        }
+
+        textarea.prompt-textarea { flex: 1; min-height: 300px; padding: 14px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 0.85rem; line-height: 1.7; font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Consolas, 'Microsoft YaHei', monospace; resize: none; background: #fafbff; color: #333; scrollbar-width: none; }
+        textarea.prompt-textarea::-webkit-scrollbar { display: none; }
         textarea.prompt-textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.08); background: white; }
 
         .model-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: background 0.15s; gap: 12px; }
@@ -107,10 +155,36 @@
         .var-ph { font-size: 0.7rem; color: #667eea; background: #f5f3ff; padding: 1px 6px; border-radius: 4px; font-family: 'SF Mono', Consolas, monospace; }
         .var-add { margin-top: 4px; width: 100%; padding: 9px; background: #fafbff; border: 1px dashed #c7cbff; border-radius: 8px; color: #667eea; cursor: pointer; font-size: 0.82rem; }
         .var-add:hover { background: #f5f3ff; }
+        .var-builtin-title { font-size: 0.72rem; color: #999; padding: 14px 4px 6px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; }
+        .var-builtin-title::after { content: ''; flex: 1; height: 1px; background: #eef0f5; }
+        .var-builtin-row { display: grid; grid-template-columns: 1fr 1fr 80px 1fr; gap: 6px; align-items: center; margin-bottom: 10px; opacity: 0.75; }
+        .var-builtin-row input, .var-builtin-row select { padding: 6px 8px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.8rem; font-family: inherit; background: #fafbfa; color: #999; }
+        .var-builtin-tag { font-size: 0.65rem; color: #667eea; background: #f5f3ff; padding: 1px 6px; border-radius: 3px; font-weight: 500; }
+
+        .builtin-group { border: 1px solid #eef0f5; border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+        .builtin-header { display: flex; align-items: center; gap: 6px; padding: 10px 14px; cursor: pointer; background: #fafbff; user-select: none; }
+        .builtin-header:hover { background: #f5f6ff; }
+        .builtin-header .model-chevron { transition: transform 0.2s; }
+        .builtin-header.open .model-chevron { transform: rotate(90deg); }
+        .builtin-header .bh-title { font-size: 0.8rem; font-weight: 600; color: #333; }
+        .builtin-header .bh-count { font-size: 0.72rem; color: #999; margin-left: auto; }
+        .builtin-body { display: none; padding: 8px 10px 12px; background: white; }
+        .builtin-body.show { display: block; }
+        .builtin-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: 6px; cursor: help; transition: background 0.15s; }
+        .builtin-item:hover { background: #fafbff; }
+        .builtin-item .bi-name { font-size: 0.82rem; font-weight: 600; color: #222; font-family: 'SF Mono', Consolas, monospace; }
+        .builtin-item .bi-type { font-size: 0.7rem; color: #667eea; background: #f0eeff; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+        .builtin-tip { display: none; position: absolute; background: #333; color: white; font-size: 0.72rem; padding: 6px 10px; border-radius: 6px; max-width: 240px; z-index: 99; line-height: 1.5; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .builtin-item:hover .builtin-tip { display: block; left: 100%; margin-left: 8px; top: 50%; transform: translateY(-50%); }
 
         .kb-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
         .kb-item:hover { background: #fafbff; }
-        .kb-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: #667eea; }
+        .kb-item-act { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: bold; flex-shrink: 0; cursor: pointer; border: none; }
+        .kb-item-act.add { background: #eef1ff; color: #667eea; }
+        .kb-item-act.add:hover { background: #667eea; color: white; }
+        .kb-item-act.remove { background: #ffecec; color: #ff4757; }
+        .kb-item-act.remove:hover { background: #ff4757; color: white; }
+        .kb-item-act.disabled { background: #f0f0f0; color: #ccc; cursor: not-allowed; }
         .kb-ic { width: 30px; height: 30px; border-radius: 6px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem; flex-shrink: 0; }
         .kb-info { flex: 1; min-width: 0; }
         .kb-name { font-size: 0.84rem; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -118,14 +192,18 @@
         .kb-empty { text-align: center; padding: 28px 20px; color: #bbb; font-size: 0.82rem; }
         .kb-empty .ic { font-size: 2rem; margin-bottom: 6px; }
         .kb-empty a { color: #667eea; text-decoration: none; font-size: 0.78rem; }
+        .kb-section-title { font-size: 0.75rem; color: #999; padding: 10px 4px 4px; letter-spacing: 0.5px; }
+        .kb-section-title:first-child { padding-top: 0; }
+        .kb-divider { height: 1px; background: #eef0f5; margin: 6px 0; }
 
         .preview-head { padding: 14px 18px; border-bottom: 1px solid #eef0f5; display: flex; justify-content: space-between; align-items: center; }
         .preview-head-title { font-size: 0.92rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 8px; }
         .preview-dot { width: 7px; height: 7px; border-radius: 50%; background: #38ef7d; box-shadow: 0 0 6px #38ef7d; }
         .preview-clear { font-size: 0.78rem; color: #bbb; background: none; border: none; cursor: pointer; }
         .preview-clear:hover { color: #ff4757; }
-        .preview-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-        .preview-welcome { text-align: center; padding: 40px 20px; color: #bbb; }
+        .preview-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: none; }
+        .preview-msgs::-webkit-scrollbar { display: none; }
+        .preview-welcome { text-align: center; padding: 30px 20px; color: #bbb; }
         .preview-welcome .ic { font-size: 2.8rem; margin-bottom: 8px; }
         .preview-welcome .t { font-size: 0.95rem; color: #555; margin-bottom: 4px; }
         .preview-welcome .d { font-size: 0.82rem; }
@@ -134,7 +212,8 @@
         .msg.user { flex-direction: row-reverse; }
         .msg-av { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; }
         .msg.user .msg-av { background: linear-gradient(135deg, #f093fb, #f5576c); }
-        .msg-bub { padding: 9px 13px; border-radius: 12px; font-size: 0.85rem; line-height: 1.6; word-wrap: break-word; white-space: pre-wrap; max-width: calc(100% - 44px); }
+        .msg-bub { padding: 9px 13px; border-radius: 12px; font-size: 0.85rem; line-height: 1.6; word-wrap: break-word; max-width: calc(100% - 44px); }
+        .msg.user .msg-bub { white-space: pre-wrap; }
         .msg.assistant .msg-bub { background: #f5f6fa; color: #333; border-top-left-radius: 4px; }
         .msg.user .msg-bub { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-top-right-radius: 4px; }
         .msg-bub p { margin: 0 0 6px; } .msg-bub p:last-child { margin-bottom: 0; }
@@ -143,27 +222,122 @@
         .msg-bub pre { background: #1e1e2e; color: #cdd6f4; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 6px 0; }
         .msg-bub pre code { background: none; padding: 0; color: inherit; font-size: 0.8rem; }
         .msg-bub ul, .msg-bub ol { padding-left: 18px; margin: 3px 0; }
-        .msg-think { font-size: 0.73rem; color: #aaa; font-style: italic; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
-        .dots span { display: inline-block; width: 3px; height: 3px; border-radius: 50%; background: #bbb; animation: tg 1.2s infinite; }
+        .msg-actions { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; gap: 4px; }
+        .msg-actions.show { display: flex; }
+        .msg-act-btn { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border: none; background: transparent; border-radius: 5px; cursor: pointer; font-size: 0.72rem; color: #999; transition: all 0.15s; }
+        .msg-act-btn:hover { background: #f0eeff; color: #667eea; }
+        .msg-act-btn.like.active { background: #e8f5e9; color: #43a047; }
+        .msg-act-btn.dislike.active { background: #ffebee; color: #ef5350; }
+        .msg-act-btn svg { width: 14px; height: 14px; }
+        .msg-think { font-size: 0.73rem; color: #aaa; margin-bottom: 3px; display: flex; align-items: center; gap: 5px; }
+        .msg.assistant .msg-bub > .msg-think:first-child:last-child { margin-bottom: 0; padding: 4px 2px; justify-content: center; }
+        .dots span { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: #888; animation: tg 1.2s infinite; }
         .dots span:nth-child(2) { animation-delay: 0.2s; } .dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes tg { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-3px); } }
 
-        .preview-input { padding: 10px; border-top: 1px solid #eef0f5; }
-        .preview-input-row { display: flex; gap: 8px; align-items: flex-end; }
-        .preview-input textarea { flex: 1; padding: 9px 12px; border: 1px solid #e5e7eb; border-radius: 10px; font-size: 0.85rem; resize: none; font-family: inherit; min-height: 40px; max-height: 130px; line-height: 1.5; }
+        .preview-vars { padding: 10px 12px; border-top: 1px solid #eef0f5; background: #fafbff; }
+        .preview-vars-title { font-size: 0.72rem; color: #999; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+        .preview-vars-title svg { width: 12px; height: 12px; }
+        .preview-vars-list { display: flex; flex-direction: column; gap: 6px; }
+        .preview-var-item { display: flex; align-items: center; gap: 8px; }
+        .preview-var-key { flex: 0 0 auto; font-size: 0.72rem; font-family: 'SF Mono', Consolas, monospace; color: #667eea; background: #f0eeff; padding: 2px 8px; border-radius: 4px; }
+        .preview-var-desc { flex: 0 0 auto; font-size: 0.72rem; color: #888; }
+        .preview-var-input { flex: 1; padding: 4px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.8rem; background: white; outline: none; transition: border-color 0.15s; }
+        .preview-var-input:focus { border-color: #667eea; }
+        .preview-var-input.err { border-color: #ff4757; background: #fff5f5; }
+        .preview-input { padding: 10px; border-top: 1px solid #eef0f5; margin-bottom: 16px; }
+        .preview-input-row { position: relative; }
+        .preview-input textarea { 
+            width: 100%; 
+            padding: 10px 96px 10px 12px; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 10px; 
+            font-size: 0.85rem; 
+            resize: none; 
+            font-family: inherit; 
+            min-height: 40px; 
+            max-height: 130px; 
+            line-height: 1.5; 
+            box-sizing: border-box; 
+            scrollbar-width: none; 
+        }
+        .preview-input textarea::-webkit-scrollbar { display: none; }
         .preview-input textarea:focus { outline: none; border-color: #667eea; }
-        .preview-send { width: 40px; height: 40px; border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .preview-send:hover { transform: scale(1.04); }
-        .preview-send:disabled { opacity: 0.5; cursor: not-allowed; }
-        .preview-send svg { width: 16px; height: 16px; fill: white; }
+        .preview-attach { 
+            position: absolute; 
+            right: 54px; 
+            bottom: 6px; 
+            width: 36px; height: 36px; 
+            border: none; 
+            background: transparent; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            color: #aaa; 
+            transition: all 0.15s; 
+        }
+        .preview-attach:hover { color: #667eea; background: #f0eeff; }
+        .preview-attach svg { width: 22px; height: 22px; }
+        .preview-attach .attach-tooltip { position: absolute; bottom: 40px; right: 0; background: #333; color: white; font-size: 0.72rem; padding: 8px 12px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 100; line-height: 1.6; text-align: right; }
+        .preview-attach:hover .attach-tooltip { opacity: 1; }
+        .preview-send { 
+            position: absolute; 
+            right: 8px; 
+            bottom: 6px; 
+            width: 34px; height: 34px; 
+            border: none; 
+            background: #3b82f6; 
+            color: white; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; align-items: center; justify-content: center; 
+            transition: all 0.2s ease; 
+            box-shadow: 0 2px 6px rgba(59,130,246,0.3); 
+        }
+        .preview-send:hover { 
+            background: #2563eb; 
+            transform: scale(1.08); 
+            box-shadow: 0 4px 10px rgba(59,130,246,0.4); 
+        }
+        .preview-send:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+            opacity: 0.6;
+        }
+        .preview-send:disabled:hover {
+            background: #cbd5e1;
+            transform: none;
+        }
+        .preview-send.sending { 
+            background: white; 
+            border: 2px solid #3b82f6; 
+            color: #3b82f6; 
+            box-shadow: 0 2px 6px rgba(59,130,246,0.2); 
+        }
+        .preview-send.sending:hover { 
+            background: #eff6ff; 
+            transform: scale(1.08); 
+        }
+        .preview-send svg { 
+            width: 22px; height: 22px; 
+            transition: all 0.2s ease; 
+        }
+        .preview-send .icon-plane { display: block; }
+        .preview-send .icon-stop { display: none; }
+        .preview-send.sending .icon-plane { display: none; }
+        .preview-send.sending .icon-stop { display: block; }
 
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 22px; border-radius: 10px; font-size: 0.85rem; z-index: 9999; box-shadow: 0 4px 18px rgba(0,0,0,0.2); animation: tin 0.3s; }
         .toast.success { background: linear-gradient(135deg, #11998e, #38ef7d); }
         .toast.error { background: linear-gradient(135deg, #f12711, #f5af19); }
         @keyframes tin { from { opacity: 0; transform: translateX(-50%) translateY(-15px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
-        .optimizing-indicator { display: flex; gap: 5px; align-items: center; color: #667eea; font-size: 0.78rem; }
-        .optimizing-indicator .dots span { background: #667eea; }
+        .optimizing-indicator { display: flex; gap: 5px; align-items: center; color: white; font-size: 0.78rem; }
+        .optimizing-indicator .dots span { background: white; }
 
         @media (max-width: 1280px) { .col-left { min-width: 480px; } .col-mid { min-width: 360px; } .col-right { min-width: 340px; } }
         @media (max-width: 1100px) { .col-left { flex: 2; min-width: 420px; } .col-mid { flex: 2; min-width: 340px; } .col-right { flex: 1; min-width: 320px; } }
@@ -182,7 +356,6 @@
                 <span id="hdrName">未命名智能体</span>
                 <span class="header-badge badge-draft" id="hdrBadge">草稿</span>
             </div>
-            <div class="header-sub" id="hdrSub">配置完成后即可发布使用</div>
         </div>
     </div>
     <div class="header-right">
@@ -215,7 +388,10 @@
                     <span data-mode="targeted" onclick="switchOptMode('targeted', this)">根据目标优化</span>
                 </div>
                 <textarea class="optimize-popup-input" id="optInstr" placeholder="例如：让我的智能体更有创意 / 更严谨 / 更简洁..."></textarea>
-                <button class="optimize-popup-go" id="optGoBtn" onclick="runOptimize()">✨ 开始优化</button>
+                <div class="optimize-popup-btns">
+                    <button class="optimize-popup-go" id="optGoBtn" onclick="runOptimize()">✨ 开始优化</button>
+                    <button class="optimize-popup-cancel" id="optCancelBtn" onclick="cancelOptimize()" style="display:none;">取消优化</button>
+                </div>
             </div>
         </div>
     </div>
@@ -242,12 +418,26 @@
         </div>
 
         <div class="group-label">记忆</div>
-        <!-- Variables -->
+        <!-- Builtin Variables -->
+        <div class="section section-plain">
+            <div class="model-row" onclick="this.classList.toggle('open'); document.getElementById('builtinBody').classList.toggle('show');">
+                <span class="model-row-left">
+                    <svg class="model-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                    系统内置变量
+                </span>
+                <span class="entry-count" id="builtinCount">1 个</span>
+            </div>
+            <div class="sub-body" id="builtinBody">
+                <div id="builtinList"></div>
+            </div>
+        </div>
+
+        <!-- Custom Variables -->
         <div class="section section-plain">
             <div class="model-row" onclick="this.classList.toggle('open'); document.getElementById('varBody').classList.toggle('show');">
                 <span class="model-row-left">
                     <svg class="model-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-                    变量
+                    自定义变量
                 </span>
                 <span class="entry-count" id="varCount">0 个</span>
             </div>
@@ -304,15 +494,27 @@
         <div class="preview-msgs" id="pMsgs">
             <div class="preview-welcome">
                 <div class="ic" id="pWelcomeIc">🤖</div>
-                <div class="t" id="pWelcomeT">准备开始调试</div>
-                <div class="d">配置好提示词后在这里测试</div>
+                <div class="t" id="pWelcomeT">智能体</div>
             </div>
+        </div>
+        <div class="preview-vars" id="pVars" style="display:none;">
+            <div class="preview-vars-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                请输入自定义变量的内容
+            </div>
+            <div class="preview-vars-list" id="pVarsList"></div>
         </div>
         <div class="preview-input">
             <div class="preview-input-row">
                 <textarea id="pInput" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行" onkeydown="onPKey(event)"></textarea>
+                <button type="button" class="preview-attach" onclick="document.getElementById('pFileInput').click()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    <div class="attach-tooltip">上传文件：image、pdf、docx、excel、csv、audio</div>
+                </button>
+                <input type="file" id="pFileInput" accept="image/*,.pdf,.docx,.xlsx,.xls,.csv,audio/*" style="display:none" onchange="onPFile(event)">
                 <button class="preview-send" id="pSendBtn" onclick="sendP()">
-                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                    <svg class="icon-plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="4"/><polyline points="4 12 12 4 20 12"/></svg>
+                    <svg class="icon-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>
                 </button>
             </div>
         </div>
@@ -327,6 +529,11 @@ const VAR_TYPES = [
     { value: 'number', label: 'number' },
     { value: 'boolean', label: 'boolean' },
 ];
+const VAR_BUILTINS = [
+    { key: 'knowledge_content', name: '知识库检索内容', desc: '根据用户问题自动检索的知识库片段' },
+];
+let _vsActive = -1;
+let _vsFilter = '';
 let agentId = null;
 let agentData = {
     name: '', description: '', avatar: '🤖',
@@ -336,6 +543,7 @@ let agentData = {
 };
 let saveTimer = null;
 let saving = false;
+let _pasting = false;
 let optMode = 'auto';
 
 function showToast(msg, type) {
@@ -350,6 +558,22 @@ function showToast(msg, type) {
 function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function getToken() { return localStorage.getItem('authToken'); }
+
+(function() {
+    var _origFetch = window.fetch;
+    window.fetch = function() {
+        return _origFetch.apply(this, arguments).then(function(response) {
+            if (response.status === 401) {
+                localStorage.removeItem('authToken');
+                if (document.body) {
+                    try { showToast('登录已过期，请重新登录', 'error'); } catch(e) {}
+                }
+                setTimeout(function() { window.location.href = '/'; }, 1500);
+            }
+            return response;
+        });
+    };
+})();
 
 function goBack() {
     var ref = document.referrer;
@@ -387,31 +611,53 @@ function pickAvatar(a, el) {
 }
 
 /* ===== Variables ===== */
+var BUILTIN_VARS = [
+    { key: 'knowledge_content', name: '知识库内容', type: 'string', default: '', desc: '知识库检索到的参考内容' },
+];
+function renderBuiltinVars() {
+    var list = document.getElementById('builtinList');
+    document.getElementById('builtinCount').textContent = BUILTIN_VARS.length + ' 个';
+    var html = '';
+    BUILTIN_VARS.forEach(function(bv) {
+        html += '<div class="builtin-item" title="' + esc(bv.desc) + '">' +
+            '<span class="bi-name">' + esc(bv.key) + '</span>' +
+            '<span class="bi-type">' + esc(bv.type) + '</span>' +
+        '</div>';
+    });
+    list.innerHTML = html;
+}
 function renderVars() {
     const list = document.getElementById('varList');
     document.getElementById('varCount').textContent = agentData.variables.length + ' 个';
     if (agentData.variables.length === 0) {
         list.innerHTML = '<div class="var-empty">还没有添加变量</div>';
-        return;
-    }
-    list.innerHTML = agentData.variables.map(function(v, i) {
-        const typeSel = VAR_TYPES.map(function(t) {
-            const sel = (t.value === (v.type || 'string')) ? ' selected' : '';
-            return '<option value="' + t.value + '"' + sel + '>' + t.label + '</option>';
+    } else {
+        list.innerHTML = agentData.variables.map(function(v, i) {
+            const typeSel = VAR_TYPES.map(function(t) {
+                const sel = (t.value === (v.type || 'string')) ? ' selected' : '';
+                return '<option value="' + t.value + '"' + sel + '>' + t.label + '</option>';
+            }).join('');
+            return '<div>' +
+                '<div class="var-row">' +
+                    '<input type="text" placeholder="变量名称" value="' + esc(v.key || '') + '" oninput="updVar(' + i + ',\'key\',this.value)">' +
+                    '<input type="text" placeholder="描述" value="' + esc(v.name || '') + '" oninput="updVar(' + i + ',\'name\',this.value)">' +
+                    '<select onchange="updVar(' + i + ',\'type\',this.value)">' + typeSel + '</select>' +
+                    '<input type="text" placeholder="默认值" value="' + esc(v.default || '') + '" oninput="updVar(' + i + ',\'default\',this.value)">' +
+                    '<button class="var-del" onclick="delVar(' + i + ')" title="删除">✕</button>' +
+                '</div>' +
+                '<div style="margin-bottom:8px;font-size:0.72rem;color:#999;">引用占位符 <span class="var-ph" id="var-ph-' + i + '">{{' + esc(v.key || 'key') + '}}</span></div>' +
+            '</div>';
         }).join('');
-        return '<div>' +
-            '<div class="var-row">' +
-                '<input type="text" placeholder="变量名称" value="' + esc(v.key || '') + '" oninput="updVar(' + i + ',\'key\',this.value)">' +
-                '<input type="text" placeholder="描述" value="' + esc(v.name || '') + '" oninput="updVar(' + i + ',\'name\',this.value)">' +
-                '<select onchange="updVar(' + i + ',\'type\',this.value)">' + typeSel + '</select>' +
-                '<input type="text" placeholder="默认值" value="' + esc(v.default || '') + '" oninput="updVar(' + i + ',\'default\',this.value)">' +
-                '<button class="var-del" onclick="delVar(' + i + ')" title="删除">✕</button>' +
-            '</div>' +
-            '<div style="margin-bottom:8px;font-size:0.72rem;color:#999;">引用占位符 <span class="var-ph">{{' + esc(v.key || 'key') + '}}</span></div>' +
-        '</div>';
-    }).join('');
+    }
 }
-function updVar(i, f, v) { agentData.variables[i][f] = v; markDirty(); if (f === 'key') renderVars(); }
+function updVar(i, f, v) {
+    agentData.variables[i][f] = v;
+    markDirty();
+    if (f === 'key') {
+        var ph = document.getElementById('var-ph-' + i);
+        if (ph) ph.textContent = '{{' + (v || 'key') + '}}';
+    }
+}
 function addVariable() { agentData.variables.push({ key: '', name: '', type: 'string', default: '' }); renderVars(); markDirty(); }
 function delVar(i) { agentData.variables.splice(i, 1); renderVars(); markDirty(); }
 
@@ -420,8 +666,7 @@ function showInitialPreview() {
     var msgs = document.getElementById('pMsgs');
     var welcomeHtml = '<div class="preview-welcome">' +
         '<div class="ic">' + esc(agentData.avatar) + '</div>' +
-        '<div class="t">调试 ' + esc(agentData.name || '智能体') + '</div>' +
-        '<div class="d">配置好提示词后在这里测试</div>' +
+        '<div class="t">' + esc(agentData.name || '智能体') + '</div>' +
     '</div>';
     var openingHtml = '';
     if (agentData.opening && agentData.opening.trim()) {
@@ -442,49 +687,99 @@ function updateOpening() {
     if (!hasUserMsg) showInitialPreview();
 }
 /* ===== Knowledge ===== */
+var _kbMetaList = [];
 async function loadKB() {
     const body = document.getElementById('kbBody');
+    if (!body) return;
     body.innerHTML = '<div class="kb-empty"><div class="ic">📚</div><div>加载知识库列表中...</div></div>';
     try {
-        const resp = await fetch('/api/agents/knowledge', { headers: { 'Authorization': 'Bearer ' + getToken() } });
+        const resp = await fetchTimeout('/api/agents/knowledge', { headers: { 'Authorization': 'Bearer ' + getToken() } }, 8000);
         if (!resp.ok) throw new Error('fail');
         const data = await resp.json();
-        const docs = data.documents || [];
-        if (docs.length === 0) {
-            body.innerHTML = '<div class="kb-empty"><div class="ic">📚</div><div>还没有上传知识库文档</div><div style="margin-top:6px;"><a href="/knowledge">去上传 →</a></div></div>';
-            document.getElementById('kbCount').textContent = '已选 0 个';
+        _kbMetaList = data.documents || [];
+        if (_kbMetaList.length === 0) {
+            body.innerHTML = '<div class="kb-empty"><div class="ic">📚</div><div>还没有创建知识库</div><div style="margin-top:6px;"><a href="/knowledge">去创建 →</a></div></div>';
+            document.getElementById('kbCount').textContent = '已添加 0 个';
             return;
         }
-        body.innerHTML = docs.map(function(d) {
-            const id = String(d.id);
-            const checked = agentData.knowledge_base.indexOf(id) !== -1 ? 'checked' : '';
-            const kbIc = (d.file_type || '').toLowerCase();
-            let icEmoji = '📄';
-            if (['pdf'].indexOf(kbIc) !== -1) icEmoji = '📕';
-            else if (['doc','docx'].indexOf(kbIc) !== -1) icEmoji = '📘';
-            else if (['xls','xlsx','csv'].indexOf(kbIc) !== -1) icEmoji = '📊';
-            else if (['txt','md'].indexOf(kbIc) !== -1) icEmoji = '📝';
-            return '<label class="kb-item">' +
-                '<input type="checkbox" ' + checked + ' onchange="toggleKB(\'' + id + '\',this.checked)">' +
-                '<div class="kb-ic">' + icEmoji + '</div>' +
-                '<div class="kb-info">' +
-                    '<div class="kb-name">' + esc(d.filename) + '</div>' +
-                    '<div class="kb-meta">' + (d.file_type || '') + (d.size ? ' · ' + (d.size/1024).toFixed(1) + ' KB' : '') + '</div>' +
-                '</div>' +
-            '</label>';
-        }).join('');
-        updateKBCount();
+        autoDetectKBFromPrompt();
+        renderKB();
     } catch (e) {
         body.innerHTML = '<div class="kb-empty"><div class="ic">⚠️</div><div>加载知识库失败</div></div>';
     }
 }
-function toggleKB(id, checked) {
-    const idx = agentData.knowledge_base.indexOf(id);
-    if (checked && idx === -1) agentData.knowledge_base.push(id);
-    else if (!checked && idx !== -1) agentData.knowledge_base.splice(idx, 1);
-    updateKBCount(); markDirty();
+function autoDetectKBFromPrompt() {
+    if (!agentData.system_prompt || agentData.system_prompt.trim() === '') return;
+    var prompt = agentData.system_prompt;
+    var addedIds = {};
+    agentData.knowledge_base.forEach(function(id) { addedIds[String(id)] = true; });
+
+    _kbMetaList.forEach(function(kb) {
+        var kbName = kb.name || '';
+        if (!kbName) return;
+        var id = String(kb.id);
+        if (addedIds[id]) return;
+        var normalizedName = kbName.replace(/知识库$/, '');
+        if (prompt.indexOf(kbName) !== -1 || prompt.indexOf(normalizedName) !== -1) {
+            agentData.knowledge_base.push(id);
+            addedIds[id] = true;
+        }
+    });
 }
-function updateKBCount() { document.getElementById('kbCount').textContent = '已选 ' + agentData.knowledge_base.length + ' 个'; }
+function renderKB() {
+    const body = document.getElementById('kbBody');
+    var addedIds = {};
+    agentData.knowledge_base.forEach(function(id) { addedIds[id] = true; });
+
+    var addedList = _kbMetaList.filter(function(d) { return addedIds[String(d.id)]; });
+    var availList = _kbMetaList.filter(function(d) { return !addedIds[String(d.id)]; });
+
+    var html = '';
+
+    if (addedList.length > 0) {
+        html += '<div class="kb-section-title">已添加的知识库</div>';
+        addedList.forEach(function(d) {
+            const id = String(d.id);
+            html += '<div class="kb-item" title="点击移除">' +
+                '<div class="kb-ic">📚</div>' +
+                '<div class="kb-info"><div class="kb-name">' + esc(d.name || d.id || '未命名') + '</div></div>' +
+                '<button class="kb-item-act remove" onclick="removeKB(\'' + id + '\')">−</button>' +
+            '</div>';
+        });
+        html += '<div class="kb-divider"></div>';
+    }
+
+    html += '<div class="kb-section-title">可添加的知识库</div>';
+    if (availList.length === 0) {
+        html += '<div class="kb-empty" style="padding:16px;color:#bbb;">已全部添加</div>';
+    } else {
+        availList.forEach(function(d) {
+            const id = String(d.id);
+            html += '<div class="kb-item" title="点击添加">' +
+                '<div class="kb-ic">📚</div>' +
+                '<div class="kb-info"><div class="kb-name">' + esc(d.name || d.id || '未命名') + '</div></div>' +
+                '<button class="kb-item-act add" onclick="addKB(\'' + id + '\')">+</button>' +
+            '</div>';
+        });
+    }
+
+    body.innerHTML = html;
+    updateKBCount();
+}
+function addKB(id) {
+    if (agentData.knowledge_base.indexOf(id) !== -1) return;
+    agentData.knowledge_base.push(id);
+    renderKB();
+    markDirty();
+}
+function removeKB(id) {
+    var idx = agentData.knowledge_base.indexOf(id);
+    if (idx === -1) return;
+    agentData.knowledge_base.splice(idx, 1);
+    renderKB();
+    markDirty();
+}
+function updateKBCount() { document.getElementById('kbCount').textContent = '已添加 ' + agentData.knowledge_base.length + ' 个'; }
 
 /* ===== Models ===== */
 const DEFAULT_MODELS = [
@@ -493,6 +788,14 @@ const DEFAULT_MODELS = [
     { id: 'qwen_vl', name: 'Qwen VL Max', desc: '阿里百炼，多模态' },
     { id: 'default', name: '通义千问 (默认)', desc: '稳定通用，均衡表现' },
 ];
+function fetchTimeout(url, opts, ms) {
+    opts = opts || {};
+    ms = ms || 5000;
+    var ctrl = new AbortController();
+    opts.signal = ctrl.signal;
+    var t = setTimeout(function() { ctrl.abort(); }, ms);
+    return fetch(url, opts).finally(function() { clearTimeout(t); });
+}
 async function loadModels() {
     const sel = document.getElementById('modelSel');
     const render = function(models) {
@@ -504,7 +807,7 @@ async function loadModels() {
         document.getElementById('modelDesc').textContent = desc;
     };
     try {
-        const resp = await fetch('/api/agents/models');
+        const resp = await fetchTimeout('/api/agents/models', null, 5000);
         if (!resp.ok) throw new Error('fail');
         const data = await resp.json();
         if (data.models && data.models.length) { render(data.models); return; }
@@ -516,13 +819,19 @@ async function loadModels() {
 
 /* ===== Header ===== */
 function refreshHeader() {
-    document.getElementById('hdrAvatar').textContent = agentData.avatar;
-    document.getElementById('hdrName').textContent = agentData.name || '未命名智能体';
-    const badge = document.getElementById('hdrBadge');
-    if (agentData.is_published) { badge.textContent = '已发布'; badge.className = 'header-badge badge-published'; }
-    else { badge.textContent = '草稿'; badge.className = 'header-badge badge-draft'; }
-    document.getElementById('pWelcomeIc').textContent = agentData.avatar;
-    document.getElementById('pWelcomeT').textContent = '调试 ' + (agentData.name || '智能体');
+    var el = document.getElementById('hdrAvatar');
+    if (el) el.textContent = agentData.avatar;
+    el = document.getElementById('hdrName');
+    if (el) el.textContent = agentData.name || '未命名智能体';
+    var badge = document.getElementById('hdrBadge');
+    if (badge) {
+        if (agentData.is_published) { badge.textContent = '已发布'; badge.className = 'header-badge badge-published'; }
+        else { badge.textContent = '草稿'; badge.className = 'header-badge badge-draft'; }
+    }
+    el = document.getElementById('pWelcomeIc');
+    if (el) el.textContent = agentData.avatar;
+    el = document.getElementById('pWelcomeT');
+    if (el) el.textContent = '调试 ' + (agentData.name || '智能体');
 }
 
 /* ===== Auto Save ===== */
@@ -582,6 +891,267 @@ function syncUI() {
 }
 function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
+function _vsBuildList() {
+    var items = [];
+    VAR_BUILTINS.forEach(function(v) {
+        items.push({ key: v.key, name: v.name, desc: v.desc, builtin: true });
+    });
+    (agentData.variables || []).forEach(function(v) {
+        if (v.key) {
+            items.push({ key: v.key, name: v.name || v.key, desc: '', builtin: false });
+        }
+    });
+    return items;
+}
+function _vsRender() {
+    var box = document.getElementById('varSuggest');
+    var all = _vsBuildList();
+    var f = (_vsFilter || '').toLowerCase();
+    var filtered = f ? all.filter(function(it) {
+        return it.key.toLowerCase().indexOf(f) !== -1 || (it.name && it.name.toLowerCase().indexOf(f) !== -1);
+    }) : all;
+
+    var builtinList = filtered.filter(function(it) { return it.builtin; });
+    var customList = filtered.filter(function(it) { return !it.builtin; });
+
+    var html = '';
+    if (builtinList.length > 0) {
+        html += '<div class="var-suggest-group"><div class="var-suggest-group-title">系统内置变量</div>';
+        builtinList.forEach(function(it, idx) {
+            var nameTxt = esc(it.name) + (it.desc ? (' — ' + esc(it.desc)) : '');
+            html += '<div class="var-suggest-item" data-key="' + esc(it.key) + '" data-builtin="1" onclick="_vsPick(\'' + esc(it.key) + '\')">' +
+                '<span class="vi-key">{{' + esc(it.key) + '}}</span>' +
+                '<span class="vi-name">' + nameTxt + '</span>' +
+            '</div>';
+        });
+        html += '</div>';
+    }
+    if (customList.length > 0) {
+        html += '<div class="var-suggest-group"><div class="var-suggest-group-title">自定义变量</div>';
+        customList.forEach(function(it) {
+            var nameTxt = esc(it.name) + (it.desc ? (' — ' + esc(it.desc)) : '');
+            html += '<div class="var-suggest-item" data-key="' + esc(it.key) + '" data-builtin="0" onclick="_vsPick(\'' + esc(it.key) + '\')">' +
+                '<span class="vi-key">{{' + esc(it.key) + '}}</span>' +
+                '<span class="vi-name">' + nameTxt + '</span>' +
+            '</div>';
+        });
+        html += '</div>';
+    }
+    if (!html) {
+        html = '<div class="var-suggest-empty">没有匹配的变量</div>';
+    }
+    box.innerHTML = html;
+    _vsActive = -1;
+    _vsHighlight(0);
+}
+function _vsHighlight(idx) {
+    var box = document.getElementById('varSuggest');
+    var items = box.querySelectorAll('.var-suggest-item');
+    if (items.length === 0) return;
+    if (idx < 0) idx = items.length - 1;
+    if (idx >= items.length) idx = 0;
+    items.forEach(function(it, i) {
+        if (i === idx) it.classList.add('active'); else it.classList.remove('active');
+    });
+    _vsActive = idx;
+    var active = items[idx];
+    if (active) active.scrollIntoView({ block: 'nearest' });
+}
+function _vsPick(key) {
+    var ta = document.getElementById('sysPrompt');
+    var pos = ta.selectionStart;
+    var val = ta.value;
+    var before = val.substring(0, pos);
+    var after = val.substring(pos);
+    var triggerStart = before.lastIndexOf('{{');
+    if (triggerStart !== -1) {
+        var already = before.substring(triggerStart + 2);
+        var newVal = val.substring(0, triggerStart) + '{{' + key + '}}' + after.substring(already.length);
+        ta.value = newVal;
+        var newPos = triggerStart + 2 + key.length + 2;
+        ta.setSelectionRange(newPos, newPos);
+        agentData.system_prompt = ta.value; markDirty();
+        document.getElementById('promptChars').textContent = ta.value.length;
+        ta.focus();
+    }
+    _vsHide();
+}
+function _vsShow(filter, cursorPx) {
+    _vsFilter = filter || '';
+    var box = document.getElementById('varSuggest');
+    _vsRender();
+    box.style.top = 'auto'; box.style.left = 'auto'; box.style.bottom = 'auto';
+    if (cursorPx) {
+        var ta = document.getElementById('sysPrompt');
+        var boxH = box.offsetHeight;
+        var boxW = box.offsetWidth;
+        var top = cursorPx.top + 20;
+        var left = cursorPx.left;
+        if (top + boxH > window.innerHeight - 10) {
+            top = cursorPx.top - boxH - 8;
+        }
+        if (left + boxW > window.innerWidth - 10) {
+            left = window.innerWidth - boxW - 10;
+        }
+        top = Math.max(6, top);
+        left = Math.max(6, left);
+        box.style.top = top + 'px';
+        box.style.left = left + 'px';
+    } else {
+        var taRect = document.getElementById('sysPrompt').getBoundingClientRect();
+        box.style.top = (taRect.bottom - box.offsetHeight - 10) + 'px';
+        box.style.left = (taRect.left + 10) + 'px';
+    }
+    box.style.display = 'block';
+    box._shown = true;
+}
+function _vsHide() {
+    var box = document.getElementById('varSuggest');
+    box.style.display = 'none';
+    box._shown = false;
+    _vsFilter = '';
+    _vsActive = -1;
+}
+function _vsIsVisible() {
+    var box = document.getElementById('varSuggest');
+    return box._shown === true;
+}
+function _kbBuildList() {
+    var addedIds = {};
+    (agentData.knowledge_base || []).forEach(function(id) { addedIds[String(id)] = true; });
+    return _kbMetaList.filter(function(kb) { return addedIds[String(kb.id)]; }).map(function(kb) {
+        return { id: kb.id, name: kb.name };
+    });
+}
+function _kbRender() {
+    var box = document.getElementById('kbSuggest');
+    var all = _kbBuildList();
+    var f = (_kbFilter || '').toLowerCase();
+    var filtered = f ? all.filter(function(it) { return it.name.toLowerCase().indexOf(f) !== -1; }) : all;
+    if (filtered.length === 0) {
+        box.innerHTML = '<div class="var-suggest-empty">' + (_kbMetaList.length === 0 ? '还没有添加知识库' : '没有匹配的知识库') + '</div>';
+    } else {
+        box.innerHTML = filtered.map(function(it) {
+            return '<div class="var-suggest-item" data-name="' + esc(it.name) + '" onclick="_kbPick(\'' + esc(it.name) + '\')">' +
+                '<span class="vi-key" style="color:#43a047;">📚 ' + esc(it.name) + '</span>' +
+                '<span class="vi-name">知识库</span>' +
+            '</div>';
+        }).join('');
+    }
+    _kbActive = -1;
+    _kbHighlight(0);
+}
+function _kbHighlight(idx) {
+    var box = document.getElementById('kbSuggest');
+    var items = box.querySelectorAll('.var-suggest-item');
+    if (items.length === 0) return;
+    if (idx < 0) idx = items.length - 1;
+    if (idx >= items.length) idx = 0;
+    items.forEach(function(it, i) {
+        if (i === idx) it.classList.add('active'); else it.classList.remove('active');
+    });
+    _kbActive = idx;
+    var active = items[idx];
+    if (active) active.scrollIntoView({ block: 'nearest' });
+}
+function _kbPick(name) {
+    var ta = document.getElementById('sysPrompt');
+    var pos = ta.selectionStart;
+    var val = ta.value;
+    var before = val.substring(0, pos);
+    var after = val.substring(pos);
+    var triggerStart = before.lastIndexOf('`');
+    if (triggerStart !== -1) {
+        var already = before.substring(triggerStart + 1);
+        var newVal = val.substring(0, triggerStart) + '`' + name + '`' + after.substring(already.length);
+        ta.value = newVal;
+        var newPos = triggerStart + 1 + name.length + 1;
+        ta.setSelectionRange(newPos, newPos);
+        agentData.system_prompt = ta.value; markDirty();
+        document.getElementById('promptChars').textContent = ta.value.length;
+        ta.focus();
+    }
+    _kbHide();
+}
+function _kbShow(filter, cursorPx) {
+    _kbFilter = filter || '';
+    var box = document.getElementById('kbSuggest');
+    _kbRender();
+    box.style.top = 'auto'; box.style.left = 'auto'; box.style.bottom = 'auto';
+    if (cursorPx) {
+        var boxH = box.offsetHeight;
+        var boxW = box.offsetWidth;
+        var top = cursorPx.top + 20;
+        var left = cursorPx.left;
+        if (top + boxH > window.innerHeight - 10) {
+            top = cursorPx.top - boxH - 8;
+        }
+        if (left + boxW > window.innerWidth - 10) {
+            left = window.innerWidth - boxW - 10;
+        }
+        top = Math.max(6, top);
+        left = Math.max(6, left);
+        box.style.top = top + 'px';
+        box.style.left = left + 'px';
+    } else {
+        var taRect = document.getElementById('sysPrompt').getBoundingClientRect();
+        box.style.top = (taRect.bottom - box.offsetHeight - 10) + 'px';
+        box.style.left = (taRect.left + 10) + 'px';
+    }
+    box.style.display = 'block';
+    box._shown = true;
+}
+function _kbHide() {
+    var box = document.getElementById('kbSuggest');
+    box.style.display = 'none';
+    box._shown = false;
+    _kbFilter = '';
+    _kbActive = -1;
+}
+function _kbIsVisible() {
+    var box = document.getElementById('kbSuggest');
+    return box._shown === true;
+}
+let _kbActive = -1;
+let _kbFilter = '';
+function _getCaretCoords(ta) {
+    var pos = ta.selectionStart;
+    var mirror = document.createElement('div');
+    var cs = getComputedStyle(ta);
+    var props = ['boxSizing','paddingTop','paddingRight','paddingBottom','paddingLeft',
+        'fontFamily','fontSize','fontWeight','fontStyle','letterSpacing','lineHeight','textTransform','textIndent','tabSize','whiteSpace','wordWrap'];
+    props.forEach(function(p) { mirror.style[p] = cs.getPropertyValue(p); });
+    mirror.style.position = 'absolute';
+    mirror.style.overflow = 'hidden';
+    mirror.style.visibility = 'hidden';
+    mirror.style.pointerEvents = 'none';
+    mirror.style.whiteSpace = 'pre-wrap';
+    mirror.style.wordWrap = 'break-word';
+    var rect = ta.getBoundingClientRect();
+    mirror.style.width = rect.width + 'px';
+    mirror.style.height = rect.height + 'px';
+    mirror.style.left = rect.left + 'px';
+    mirror.style.top = rect.top + 'px';
+
+    var textBefore = ta.value.substring(0, pos);
+    var after = ta.value.substring(pos);
+    var marker = document.createElement('span');
+    marker.textContent = '\u200b';
+    mirror.appendChild(document.createTextNode(textBefore));
+    mirror.appendChild(marker);
+    mirror.appendChild(document.createTextNode(after));
+    document.body.appendChild(mirror);
+
+    var mRect = marker.getBoundingClientRect();
+    var taRect = ta.getBoundingClientRect();
+    var result = {
+        top: taRect.top + (mRect.top - mirror.getBoundingClientRect().top) - ta.scrollTop,
+        left: taRect.left + (mRect.left - mirror.getBoundingClientRect().left) - ta.scrollLeft + 2
+    };
+    mirror.remove();
+    return result;
+}
+
 async function loadAgent() {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
@@ -606,43 +1176,129 @@ async function loadAgent() {
         document.getElementById('openingText').value = agentData.opening;
         document.getElementById('openingChars').textContent = agentData.opening.length;
         updateOpening();
-        initAvatars(); renderVars(); refreshHeader(); updatePubBtn();
+        initAvatars(); renderBuiltinVars(); renderVars(); _refreshPreviewVars(); refreshHeader(); updatePubBtn();
         await loadModels(); await loadKB();
     } catch (e) {
         initNew();
     }
 }
 function initNew() {
-    initAvatars(); renderVars(); refreshHeader(); updatePubBtn();
+    initAvatars(); renderBuiltinVars(); renderVars(); _refreshPreviewVars(); refreshHeader(); updatePubBtn();
     showInitialPreview();
     loadModels(); loadKB();
 }
-function safeParse(s, fb) { if (!s) return fb; try { return JSON.parse(s); } catch(e) { return fb; } }
+function safeParse(s, fb) {
+    if (!s) return fb;
+    if (Array.isArray(s)) return s;
+    try { return JSON.parse(s); } catch(e) { return fb; }
+}
 
 function updatePubBtn() {
     const b = document.getElementById('pubBtn');
     if (agentData.is_published) { b.textContent = '📕 取消发布'; b.classList.add('unpublish'); }
     else { b.textContent = '🚀 发布'; b.classList.remove('unpublish'); }
 }
+function _showPublishDialog() {
+    var existing = document.getElementById('publishDialog');
+    if (existing) existing.remove();
+
+    var lastVer = agentData.publish_version || '';
+    var dlg = document.createElement('div');
+    dlg.id = 'publishDialog';
+    dlg.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    dlg.onclick = function(e) { if (e.target === dlg) dlg.remove(); };
+    dlg.innerHTML =
+        '<div style="background:white;border-radius:14px;width:480px;max-width:92vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+            '<div style="padding:20px 24px;border-bottom:1px solid #eef0f5;">' +
+                '<div style="display:flex;align-items:center;gap:10px;">' +
+                    '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;">🚀</div>' +
+                    '<div>' +
+                        '<div style="font-size:1rem;font-weight:600;color:#1a1a1a;">发布智能体</div>' +
+                        '<div style="font-size:0.8rem;color:#888;">发布后其他用户可以在市场中使用此智能体</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="padding:20px 24px;">' +
+                '<div style="margin-bottom:16px;">' +
+                    '<label style="display:block;font-size:0.85rem;font-weight:500;color:#333;margin-bottom:6px;">📌 发布版本</label>' +
+                    '<input id="pubVerInput" type="text" placeholder="如 v1.0.0" value="' + esc(lastVer) + '" maxlength="50" style="width:100%;padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:0.88rem;outline:none;transition:border-color .2s;" onfocus="this.style.borderColor=\'#667eea\'" onblur="this.style.borderColor=\'#e5e7eb\'">' +
+                '</div>' +
+                '<div>' +
+                    '<label style="display:block;font-size:0.85rem;font-weight:500;color:#333;margin-bottom:6px;">📝 发布描述</label>' +
+                    '<textarea id="pubDescInput" rows="4" placeholder="简要描述本次发布更新了什么（可选）..." style="width:100%;padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:0.88rem;outline:none;resize:vertical;transition:border-color .2s;font-family:inherit;" onfocus="this.style.borderColor=\'#667eea\'" onblur="this.style.borderColor=\'#e5e7eb\'"></textarea>' +
+                '</div>' +
+            '</div>' +
+            '<div style="padding:14px 24px;border-top:1px solid #eef0f5;display:flex;justify-content:flex-end;gap:10px;background:#fafbfc;">' +
+                '<button onclick="document.getElementById(\'publishDialog\').remove()" style="padding:9px 22px;border:1px solid #e5e7eb;background:white;color:#555;border-radius:8px;cursor:pointer;font-size:0.88rem;transition:all .2s;">取消</button>' +
+                '<button id="pubConfirmBtn" style="padding:9px 22px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.88rem;font-weight:500;transition:opacity .2s;">✅ 确认发布</button>' +
+            '</div>' +
+        '</div>';
+
+    document.body.appendChild(dlg);
+
+    setTimeout(function() {
+        var verInput = document.getElementById('pubVerInput');
+        if (verInput) verInput.focus();
+    }, 50);
+
+    document.getElementById('pubConfirmBtn').onclick = async function() {
+        var version = document.getElementById('pubVerInput').value.trim();
+        var desc = document.getElementById('pubDescInput').value.trim();
+        var btn = this;
+        btn.disabled = true; btn.style.opacity = '0.7'; btn.textContent = '发布中...';
+        try {
+            var r = await fetch('/api/agents/' + agentId + '/publish', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken() },
+                body: JSON.stringify({ version: version, publish_desc: desc })
+            });
+            if (!r.ok) {
+                var err = await r.json().catch(function() { return {}; });
+                throw new Error(err.detail || '发布失败');
+            }
+            var res = await r.json();
+            agentData.is_published = true;
+            agentData.publish_version = res.publish_version || version;
+            dlg.remove();
+            refreshHeader(); updatePubBtn();
+            showToast('发布成功 🎉', 'success');
+        } catch (e) {
+            btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '✅ 确认发布';
+            showToast(e.message || '发布失败', 'error');
+        }
+    };
+}
 async function togglePublish() {
     if (!agentId) { await doSave(false); if (!agentId) return; }
-    try {
-        const endpoint = agentData.is_published ? 'unpublish' : 'publish';
-        const r = await fetch('/api/agents/' + agentId + '/' + endpoint, {
-            method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }
-        });
-        if (!r.ok) throw new Error('操作失败');
-        const res = await r.json();
-        agentData.is_published = res.is_published;
-        refreshHeader(); updatePubBtn();
-        showToast(agentData.is_published ? '发布成功 🎉' : '已取消发布');
-    } catch (e) { showToast(e.message || '操作失败', 'error'); }
+
+    if (agentData.is_published) {
+        try {
+            const r = await fetch('/api/agents/' + agentId + '/unpublish', {
+                method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }
+            });
+            if (!r.ok) throw new Error('操作失败');
+            agentData.is_published = false;
+            refreshHeader(); updatePubBtn();
+            showToast('已取消发布');
+        } catch (e) { showToast(e.message || '操作失败', 'error'); }
+    } else {
+        _showPublishDialog();
+    }
 }
 
 /* ===== Prompt Optimize ===== */
 function toggleOptPopup() {
     const p = document.getElementById('optPopup');
-    p.style.display = (p.style.display === 'none') ? 'block' : 'none';
+    const show = p.style.display === 'none';
+    p.style.display = show ? 'block' : 'none';
+    if (show) {
+        const btn = document.getElementById('optBtn');
+        const wrap = document.querySelector('.prompt-editor-wrap');
+        const btnRect = btn.getBoundingClientRect();
+        const wrapRect = wrap.getBoundingClientRect();
+        p.style.top = (btnRect.bottom - wrapRect.top + 6) + 'px';
+        p.style.left = (btnRect.right - wrapRect.left - 280) + 'px';
+    }
 }
 function switchOptMode(mode, el) {
     optMode = mode;
@@ -653,21 +1309,30 @@ function switchOptMode(mode, el) {
         ? '可选：补充你的优化方向（留空则自动优化）'
         : '描述你希望达到的目标，如：让 AI 更加简洁专业、适合客服场景...';
 }
+let optAbortCtrl = null;
+let optCurPromptBackup = '';
 async function runOptimize() {
     const btn = document.getElementById('optGoBtn');
+    const cancelBtn = document.getElementById('optCancelBtn');
     const origHtml = btn.innerHTML;
     btn.disabled = true;
+    cancelBtn.style.display = 'flex';
     btn.innerHTML = '<div class="optimizing-indicator">优化中 <span class="dots"><span></span><span></span><span></span></span></div>';
 
     const curPrompt = document.getElementById('sysPrompt').value;
     const instruction = document.getElementById('optInstr').value;
     const lenBefore = curPrompt.length;
+    optCurPromptBackup = curPrompt;
+    suppressHistory = true;
+
+    optAbortCtrl = new AbortController();
 
     try {
         const r = await fetch('/api/agents/prompt-optimize', {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-            body: JSON.stringify({ prompt: curPrompt, instruction: instruction })
+            body: JSON.stringify({ prompt: curPrompt, instruction: instruction, mode: optMode, knowledge_bases: agentData.knowledge_base }),
+            signal: optAbortCtrl.signal
         });
         if (!r.ok) throw new Error('优化请求失败');
 
@@ -708,11 +1373,25 @@ async function runOptimize() {
             document.getElementById('promptChars').textContent = lenBefore;
         }
     } catch (e) {
-        showToast(e.message || '优化失败', 'error');
+        if (e.name === 'AbortError') {
+            document.getElementById('sysPrompt').value = optCurPromptBackup;
+            document.getElementById('promptChars').textContent = optCurPromptBackup.length;
+            showToast('已取消优化', 'success');
+        } else {
+            showToast(e.message || '优化失败', 'error');
+        }
     } finally {
+        optAbortCtrl = null;
+        suppressHistory = false;
+        const finalVal = document.getElementById('sysPrompt').value;
+        if (finalVal !== curPrompt) pushHistory(finalVal);
         btn.disabled = false; btn.innerHTML = origHtml;
+        cancelBtn.style.display = 'none';
         document.getElementById('optPopup').style.display = 'none';
     }
+}
+function cancelOptimize() {
+    if (optAbortCtrl) optAbortCtrl.abort();
 }
 
 /* ===== Preview ===== */
@@ -720,52 +1399,221 @@ function clearPreview() {
     showInitialPreview();
 }
 let hasUserMsg = false;
+function onPFile(e) {
+    var files = e.target.files;
+    if (!files || files.length === 0) return;
+    var names = [];
+    for (var i = 0; i < files.length; i++) names.push(files[i].name);
+    toast('已选择：' + names.join('、'), 'success');
+    e.target.value = '';
+}
 function onPKey(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendP(); }
     const ta = e.target;
     ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 130) + 'px';
 }
+
+var _PREVIEW_BUILTINS = ['knowledge_content', 'user_input', 'current_time', 'agent_name'];
+
+function _extractPromptVars() {
+    var sp = document.getElementById('sysPrompt').value || '';
+    var found = {};
+    var re = /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g;
+    var m;
+    while ((m = re.exec(sp)) !== null) {
+        var k = m[1];
+        if (_PREVIEW_BUILTINS.indexOf(k) === -1 && !found[k]) {
+            found[k] = true;
+        }
+    }
+    return Object.keys(found);
+}
+
+function _refreshPreviewVars() {
+    var keys = _extractPromptVars();
+    var varsEl = document.getElementById('pVars');
+    var listEl = document.getElementById('pVarsList');
+    var sendBtn = document.getElementById('pSendBtn');
+
+    if (keys.length === 0) {
+        varsEl.style.display = 'none';
+        sendBtn.disabled = false;
+        sendBtn.title = '';
+        return;
+    }
+
+    var customVars = agentData.variables || [];
+    var customKeys = {};
+    customVars.forEach(function(v) { if (v.key) customKeys[v.key] = true; });
+
+    var html = '';
+    var hasEmpty = false;
+    keys.forEach(function(key) {
+        if (!customKeys[key]) return;
+        var cv = customVars.find(function(v) { return v.key === key; });
+        var desc = cv && cv.name ? cv.name : '';
+        var defaultVal = cv && cv.default ? cv.default : '';
+        var savedVal = (agentData.presets && agentData.presets[key] !== undefined) ? agentData.presets[key] : defaultVal;
+        var isEmpty = !savedVal;
+        if (isEmpty) hasEmpty = true;
+        html += '<div class="preview-var-item">' +
+            '<span class="preview-var-key">' + esc(key) + '</span>' +
+            (desc ? '<span class="preview-var-desc">' + esc(desc) + '</span>' : '') +
+            '<input class="preview-var-input' + (isEmpty ? ' err' : '') + '" ' +
+                'data-key="' + esc(key) + '" ' +
+                'value="' + esc(savedVal) + '" ' +
+                'placeholder="请输入' + esc(key) + '的值">' +
+        '</div>';
+    });
+
+    listEl.innerHTML = html;
+
+    if (!html) {
+        varsEl.style.display = 'none';
+        sendBtn.disabled = false;
+        sendBtn.title = '';
+        return;
+    }
+
+    varsEl.style.display = 'block';
+
+    if (hasEmpty) {
+        sendBtn.disabled = true;
+        sendBtn.title = '请先填写所有自定义变量';
+    } else {
+        sendBtn.disabled = false;
+        sendBtn.title = '';
+    }
+
+    listEl.querySelectorAll('.preview-var-input').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+            var key = this.dataset.key;
+            if (!agentData.presets) agentData.presets = {};
+            agentData.presets[key] = this.value;
+            var empty = false;
+            listEl.querySelectorAll('.preview-var-input').forEach(function(i2) {
+                var v2 = i2.value.trim();
+                if (!v2) { empty = true; i2.classList.add('err'); } else { i2.classList.remove('err'); }
+            });
+            if (empty) {
+                sendBtn.disabled = true;
+                sendBtn.title = '请先填写所有自定义变量';
+            } else {
+                sendBtn.disabled = false;
+                sendBtn.title = '';
+            }
+            markDirty();
+        });
+    });
+}
+
+function _collectPreviewPresets() {
+    var presets = {};
+    var inputs = document.querySelectorAll('#pVarsList .preview-var-input');
+    inputs.forEach(function(inp) {
+        var v = inp.value.trim();
+        if (v) presets[inp.dataset.key] = v;
+    });
+    return presets;
+}
+
+function _replaceVarsInPrompt(prompt, presets) {
+    var result = prompt || '';
+    if (!presets) return result;
+    Object.keys(presets).forEach(function(key) {
+        var val = presets[key];
+        var re = new RegExp('\\{\\{\\s*' + key + '\\s*\\}\\}', 'g');
+        result = result.replace(re, val);
+        var re2 = new RegExp('\\{\\s*' + key + '\\s*\\}', 'g');
+        result = result.replace(re2, val);
+    });
+    return result;
+}
+
 async function sendP() {
     const input = document.getElementById('pInput');
     const text = input.value.trim();
     if (!text) return;
+
+    var inputs = document.querySelectorAll('#pVarsList .preview-var-input');
+    if (inputs.length > 0) {
+        var presets = _collectPreviewPresets();
+        for (var i = 0; i < inputs.length; i++) {
+            if (!inputs[i].value.trim()) {
+                inputs[i].focus();
+                inputs[i].classList.add('err');
+                return;
+            }
+        }
+    }
+
     if (!agentId) { await doSave(false); if (!agentId) return; }
 
     const msgs = document.getElementById('pMsgs');
-    if (!hasUserMsg) msgs.innerHTML = '';
     hasUserMsg = true;
 
     msgs.insertAdjacentHTML('beforeend',
         '<div class="msg user"><div class="msg-av">👤</div><div class="msg-bub">' + esc(text) + '</div></div>');
-    msgs.insertAdjacentHTML('beforeend',
-        '<div class="msg assistant">' +
-            '<div class="msg-av">' + agentData.avatar + '</div>' +
-            '<div class="msg-bub">' +
-                '<div class="msg-think">思考中 <span class="dots"><span></span><span></span><span></span></span></div>' +
-                '<span id="pStreamBub" style="opacity:0.5;">▌</span>' +
+
+    const assistantHtml = '<div class="msg assistant">' +
+        '<div class="msg-av">' + agentData.avatar + '</div>' +
+        '<div class="msg-bub">' +
+            '<div class="msg-think"><span class="dots"><span></span><span></span><span></span></span></div>' +
+            '<span class="p-stream-bub" style="display:none;"></span>' +
+            '<div class="msg-actions">' +
+                '<button class="msg-act-btn like" title="点赞" onclick="_actFeedback(this, \'like\')">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>' +
+                    '<span class="act-label">赞</span>' +
+                '</button>' +
+                '<button class="msg-act-btn dislike" title="踩" onclick="_actFeedback(this, \'dislike\')">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm5-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"/></svg>' +
+                    '<span class="act-label">踩</span>' +
+                '</button>' +
+                '<button class="msg-act-btn copy" title="复制" onclick="_actCopy(this)">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                    '<span class="act-label">复制</span>' +
+                '</button>' +
             '</div>' +
-        '</div>');
+        '</div>' +
+    '</div>';
+    const tmp = document.createElement('div');
+    tmp.innerHTML = assistantHtml;
+    const assistantNode = tmp.firstElementChild;
+    msgs.appendChild(assistantNode);
+
+    const think = assistantNode.querySelector('.msg-think');
+    const bub = assistantNode.querySelector('.p-stream-bub');
+    const actions = assistantNode.querySelector('.msg-actions');
 
     msgs.scrollTop = msgs.scrollHeight;
     input.value = ''; input.style.height = 'auto';
-    const sendBtn = document.getElementById('pSendBtn'); sendBtn.disabled = true;
+    const sendBtn = document.getElementById('pSendBtn');
+    sendBtn.classList.add('sending');
+    sendBtn.disabled = true;
 
     try {
-        const r = await fetch('/api/agents/' + agentId + '/chat', {
+        let chatUrl = '/api/agents/' + agentId + '/chat';
+        if (agentData.knowledge_base && agentData.knowledge_base.length > 0) {
+            chatUrl += '?kb_id=' + encodeURIComponent(agentData.knowledge_base[0]);
+        }
+        var bodyObj = { message: text };
+        var pre = _collectPreviewPresets();
+        if (Object.keys(pre).length > 0) {
+            bodyObj.variables = pre;
+            var originalPrompt = document.getElementById('sysPrompt').value || '';
+            bodyObj.system_prompt = _replaceVarsInPrompt(originalPrompt, pre);
+        }
+        const r = await fetch(chatUrl, {
             method: 'POST',
             headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-            body: JSON.stringify({ message: text })
+            body: JSON.stringify(bodyObj)
         });
         if (!r.ok) throw new Error('请求失败');
-
-        const think = document.querySelector('.msg-think');
-        const bub = document.getElementById('pStreamBub');
-        if (think) think.remove();
-        if (bub) { bub.style.opacity = '1'; bub.textContent = ''; }
 
         const reader = r.body.getReader();
         const dec = new TextDecoder();
         let buf = '', acc = '';
+        let firstChunk = false;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -780,21 +1628,80 @@ async function sendP() {
                 try {
                     const j = JSON.parse(data);
                     if (j.status === 'streaming' && j.text) {
+                        if (!firstChunk) {
+                            firstChunk = true;
+                            if (think) think.remove();
+                            if (bub) bub.style.display = 'inline';
+                        }
                         acc += j.text;
                         if (bub) bub.innerHTML = marked.parse(acc);
                     } else if (j.status === 'error') {
-                        if (bub) bub.innerHTML = '<span style="color:#ff4757;">❌ ' + esc(j.text) + '</span>';
+                        if (think) think.remove();
+                        if (bub) { bub.style.display = 'inline'; bub.innerHTML = '<span style="color:#ff4757;">❌ ' + esc(j.text) + '</span>'; }
                     }
                 } catch(e) {}
             }
             msgs.scrollTop = msgs.scrollHeight;
         }
+        assistantNode._rawText = acc;
+        if (actions) actions.classList.add('show');
     } catch (e) {
-        const think = document.querySelector('.msg-think');
-        const bub = document.getElementById('pStreamBub');
-        if (think) think.remove();
+        if (think && think.parentNode) think.remove();
         if (bub) bub.innerHTML = '<span style="color:#ff4757;">❌ ' + esc(e.message) + '</span>';
-    } finally { sendBtn.disabled = false; }
+        assistantNode._rawText = '';
+        if (actions) actions.classList.add('show');
+    } finally {
+        sendBtn.classList.remove('sending');
+        var needDisable = false;
+        document.querySelectorAll('#pVarsList .preview-var-input').forEach(function(i) {
+            if (!i.value.trim()) needDisable = true;
+        });
+        sendBtn.disabled = needDisable;
+    }
+}
+
+function _actFeedback(btn, type) {
+    var parent = btn.closest('.msg-actions');
+    if (!parent) return;
+    var likeBtn = parent.querySelector('.msg-act-btn.like');
+    var dislikeBtn = parent.querySelector('.msg-act-btn.dislike');
+
+    if (type === 'like') {
+        if (likeBtn.classList.contains('active')) {
+            likeBtn.classList.remove('active');
+        } else {
+            likeBtn.classList.add('active');
+            dislikeBtn.classList.remove('active');
+        }
+    } else if (type === 'dislike') {
+        if (dislikeBtn.classList.contains('active')) {
+            dislikeBtn.classList.remove('active');
+        } else {
+            dislikeBtn.classList.add('active');
+            likeBtn.classList.remove('active');
+        }
+    }
+}
+
+function _actCopy(btn) {
+    var assistantMsg = btn.closest('.msg.assistant');
+    if (!assistantMsg) return;
+    var rawText = assistantMsg._rawText || '';
+    if (!rawText) {
+        var bub = assistantMsg.querySelector('.msg-bub');
+        if (bub) rawText = bub.innerText || bub.textContent || '';
+    }
+    navigator.clipboard.writeText(rawText).then(function() {
+        showToast('已复制到剪贴板');
+    }).catch(function() {
+        var ta = document.createElement('textarea');
+        ta.value = rawText;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showToast('已复制到剪贴板'); }
+        catch(err) { showToast('复制失败', 'error'); }
+        document.body.removeChild(ta);
+    });
 }
 
 /* ===== Boot ===== */
@@ -803,19 +1710,176 @@ document.addEventListener('click', function(e) {
     if (!opt.contains(e.target) && e.target.id !== 'optBtn') { opt.style.display = 'none'; }
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+const undoStack = [];
+let undoPtr = -1;
+const MAX_HISTORY = 50;
+let suppressHistory = false;
+
+function pushHistory(val) {
+    if (suppressHistory) return;
+    undoStack.length = undoPtr + 1;
+    undoStack.push(val);
+    if (undoStack.length > MAX_HISTORY) { undoStack.shift(); } else { undoPtr++; }
+}
+
+function setupUndoRedo(textarea, onInput) {
+    pushHistory(textarea.value);
+    textarea.addEventListener('input', function() {
+        if (!suppressHistory) pushHistory(this.value);
+        onInput && onInput.call(this);
+    });
+    textarea.addEventListener('keydown', function(e) {
+        const mod = e.ctrlKey || e.metaKey;
+        if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+            e.preventDefault();
+            if (undoPtr > 0) {
+                undoPtr--;
+                suppressHistory = true;
+                this.value = undoStack[undoPtr];
+                document.getElementById('promptChars').textContent = this.value.length;
+                agentData.system_prompt = this.value;
+                markDirty();
+                requestAnimationFrame(() => suppressHistory = false);
+            }
+        } else if (mod && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+            e.preventDefault();
+            if (undoPtr < undoStack.length - 1) {
+                undoPtr++;
+                suppressHistory = true;
+                this.value = undoStack[undoPtr];
+                document.getElementById('promptChars').textContent = this.value.length;
+                agentData.system_prompt = this.value;
+                markDirty();
+                requestAnimationFrame(() => suppressHistory = false);
+            }
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
     if (!getToken()) { window.location.href = '/'; return; }
 
-    document.getElementById('sysPrompt').addEventListener('input', function() {
+    suppressHistory = true;
+    setupUndoRedo(document.getElementById('sysPrompt'), function() {
         document.getElementById('promptChars').textContent = this.value.length;
         agentData.system_prompt = this.value; markDirty();
+    });
+
+    var _sysPrompt = document.getElementById('sysPrompt');
+    _sysPrompt.addEventListener('paste', function() {
+        _pasting = true;
+        setTimeout(function() { _pasting = false; }, 50);
+    });
+    _sysPrompt.addEventListener('input', function() {
+        if (_pasting) { _vsHide(); _kbHide(); _refreshPreviewVars(); return; }
+        var val = this.value;
+        var pos = this.selectionStart;
+        var before = val.substring(0, pos);
+
+        _refreshPreviewVars();
+
+        var kbTrigger = before.lastIndexOf('`');
+        if (kbTrigger !== -1) {
+            var count = 0;
+            for (var ci = 0; ci <= kbTrigger; ci++) { if (before.charAt(ci) === '`') count++; }
+            if (count % 2 === 1) {
+                var kbBetween = before.substring(kbTrigger + 1);
+                if (kbBetween.length <= 30) {
+                    _vsHide();
+                    var caret = _getCaretCoords(this);
+                    _kbShow(kbBetween, caret);
+                    return;
+                }
+            }
+        }
+
+        var trigger = before.lastIndexOf('{{');
+        if (trigger !== -1) {
+            var between = before.substring(trigger + 2);
+            var closeIdx = before.indexOf('}}', trigger + 2);
+            if ((closeIdx === -1 || closeIdx >= pos) && between.length <= 30) {
+                _kbHide();
+                var caret2 = _getCaretCoords(this);
+                _vsShow(between, caret2);
+                return;
+            }
+        }
+        _vsHide();
+        _kbHide();
+    });
+    _sysPrompt.addEventListener('scroll', function() {
+        if (_vsIsVisible()) {
+            var caret = _getCaretCoords(this);
+            _vsShow(_vsFilter, caret);
+        }
+        if (_kbIsVisible()) {
+            var caret2 = _getCaretCoords(this);
+            _kbShow(_kbFilter, caret2);
+        }
+    });
+    _sysPrompt.addEventListener('keydown', function(e) {
+        if (_kbIsVisible()) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault(); _kbHighlight(_kbActive + 1);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault(); _kbHighlight(_kbActive - 1);
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                var box = document.getElementById('kbSuggest');
+                var items = box.querySelectorAll('.var-suggest-item');
+                var target = items[_kbActive] || items[0];
+                if (target) _kbPick(target.getAttribute('data-name'));
+            } else if (e.key === 'Escape') {
+                e.preventDefault(); _kbHide();
+            }
+            return;
+        }
+        if (!_vsIsVisible()) return;
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            _vsHighlight(_vsActive + 1);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            _vsHighlight(_vsActive - 1);
+        } else if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault();
+            var box = document.getElementById('varSuggest');
+            var items = box.querySelectorAll('.var-suggest-item');
+            if (items[_vsActive]) {
+                _vsPick(items[_vsActive].getAttribute('data-key'));
+            } else if (items.length > 0) {
+                _vsPick(items[0].getAttribute('data-key'));
+            }
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            _vsHide();
+        }
+    });
+    window.addEventListener('mousedown', function(e) {
+        var inBox = e.target.closest('#varSuggest') || e.target.closest('#kbSuggest');
+        var isTa = e.target.id === 'sysPrompt';
+        if (inBox || isTa) return;
+        if (_vsIsVisible()) _vsHide();
+        if (_kbIsVisible()) _kbHide();
+    });
+    document.getElementById('sysPrompt').addEventListener('blur', function() {
+        setTimeout(function() {
+            if (_vsIsVisible()) _vsHide();
+            if (_kbIsVisible()) _kbHide();
+        }, 150);
     });
     document.getElementById('openingText').addEventListener('input', function() {
         updateOpening(); markDirty();
     });
 
-    loadAgent();
+    await loadAgent();
+    undoStack.length = 0; undoPtr = -1;
+    pushHistory(document.getElementById('sysPrompt').value);
+    suppressHistory = false;
 });
 </script>
+
+<div class="var-suggest" id="varSuggest" style="display:none;"></div>
+<div class="var-suggest" id="kbSuggest" style="display:none;"></div>
 </body>
 </html>

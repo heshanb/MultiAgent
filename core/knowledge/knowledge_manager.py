@@ -43,6 +43,22 @@ MAX_RETRIES = 3
 RETRY_DELAY_BASE = 1
 
 
+def convert_vector_score(raw_score: float, vector_store, db_type: str = "chroma") -> float:
+    if db_type == "qdrant":
+        return raw_score
+    try:
+        meta = vector_store._collection.metadata or {}
+        metric = meta.get("hnsw:space", "l2")
+    except Exception:
+        metric = "l2"
+    if metric == "cosine":
+        return 1.0 - raw_score
+    elif metric == "ip":
+        return raw_score
+    else:
+        return 1.0 / (1.0 + raw_score)
+
+
 def _create_qdrant_client():
     return QdrantClient(url=QDRANT_URL, prefer_grpc=False)
 
@@ -213,6 +229,7 @@ def _build_chroma_vector_store(username: str):
         collection_name=f"knowledge_{username}",
         embedding_function=embeddings,
         persist_directory=persist_dir,
+        collection_metadata={"hnsw:space": "cosine"},
     )
 
 
@@ -784,11 +801,10 @@ async def search_knowledge(
         else:
             raw_results = vector_store.similarity_search_with_score(query, k=k)
 
-        is_chroma = EMBEDDING_DATABASE != "qdrant"
         documents = []
         for doc, raw in raw_results:
-            score = (1 - raw) if is_chroma else raw
-            if score < 0.3:
+            score = convert_vector_score(raw, vector_store, EMBEDDING_DATABASE)
+            if score < 0.2:
                 continue
             documents.append({
                 "content": doc.page_content,

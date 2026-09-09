@@ -164,6 +164,13 @@ def get_llm_by_model(model_id: str):
             base_url=Params.API_BASE,
             timeout=120
         )
+    elif model_id == "qwen_turbo":
+        return ChatOpenAI(
+            model=Params.DEFAULT_TEXT_TOOL_MODEL,
+            api_key=os.getenv("DASHSCOPE_API_KEY"),
+            base_url=Params.API_BASE,
+            timeout=120
+        )
     else:
         logger.warning(f"未知模型ID: {model_id}，使用默认模型 {Params.DEFAULT_CHAT_MODEL}")
         return ChatOpenAI(

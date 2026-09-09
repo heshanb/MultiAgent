@@ -104,6 +104,8 @@ class Agent(Base):
     opening = Column(Text, nullable=True)
     presets = Column(Text, nullable=True)
     is_published = Column(Boolean, default=False)
+    publish_version = Column(String(50), nullable=True)
+    publish_desc = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

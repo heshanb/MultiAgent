@@ -998,7 +998,6 @@
                         await uploadSingleKBFile(files[i], currentKbId);
                     } catch(e) { showToast('上传 ' + files[i].name + ' 失败', 'error'); }
                 }
-                renderKnowledgeDetail(currentKbId);
                 renderKnowledgeList();
             }
             input.value = '';
@@ -1254,6 +1253,13 @@
                 html += '</div>';
 
                 container.innerHTML = html;
+                if (currentKbId) {
+                    var g = document.querySelector('#kbListContainer .kb-grid');
+                    if (g) g.style.display = 'none';
+                    var guide = document.querySelector('#kbListContainer .kb-empty-guide');
+                    if (guide) guide.style.display = 'none';
+                    renderKnowledgeDetail(currentKbId);
+                }
             } catch(e) {
                 container.innerHTML = '<div style="text-align:center;padding:40px;color:#ff4757;">加载失败：' + e.message + '</div>';
             }
