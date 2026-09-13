@@ -2,12 +2,32 @@ import os
 import base64
 from io import BytesIO
 
-import cv2
-import numpy as np
-from PIL import Image
-from openai import OpenAI
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
+# 懒加载重型库
+_cv2 = None
+_np = None
+_Image = None
+_OpenAI = None
+_ChatOpenAI = None
+_HumanMessage = None
+
+def _get_heavy_libs():
+    """懒加载重型库"""
+    global _cv2, _np, _Image, _OpenAI, _ChatOpenAI, _HumanMessage
+    if _cv2 is None:
+        import cv2
+        import numpy as np
+        from PIL import Image
+        from openai import OpenAI
+        from langchain_openai import ChatOpenAI
+        from langchain_core.messages import HumanMessage
+        _cv2 = cv2
+        _np = np
+        _Image = Image
+        _OpenAI = OpenAI
+        _ChatOpenAI = ChatOpenAI
+        _HumanMessage = HumanMessage
+    return _cv2, _np, _Image, _OpenAI, _ChatOpenAI, _HumanMessage
+
 from settings.Define import Params
 from settings.logger_manager import get_logger
 
@@ -22,6 +42,7 @@ class IssueAnalyze:
 
     def _init_llm(self):
         """初始化分析模型（支持流式）"""
+        _, _, _, OpenAI, ChatOpenAI, _ = _get_heavy_libs()
         self.llm = ChatOpenAI(
             model=Params.DEFAULT_CHAT_MODEL,
             temperature=0.05,
@@ -46,22 +67,30 @@ class IssueAnalyze:
 
 
     @staticmethod
-    def preprocess_image(pil_img: Image.Image) -> Image.Image:
+    def preprocess_image(pil_img):
+        # PIL（Pillow）库读取的图片默认是 RGB 格式，而 OpenCV 默认使用 BGR 格式。需要将RGB通道转换为BGR通道，以便后续使用 OpenCV 函数处理时颜色不会错乱
+        cv2, np, Image, _, _, _ = _get_heavy_libs()
         img_cv = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+        # 转换为灰度图
         gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+        # 使用 3x3 的内核对灰度图进行高斯模糊，这通常用于去除噪声
         blur = cv2.GaussianBlur(gray, (3, 3), 0)
+        # 非锐化掩蔽（Unsharp Masking） 的一种变体，用于图像锐化（Sharpening），增强图像边缘细节，使图片看起来更清晰
+        # 公式: sharp = 1.5 * gray - 0.5 * blur
         sharp = cv2.addWeighted(gray, 1.5, blur, -0.5, 0)
+        # 将处理后的 numpy 数组转回 PIL Image 对象
         return Image.fromarray(sharp)
 
     @staticmethod
-    def base64_to_image(base64_data: str) -> Image.Image:
+    def base64_to_image(base64_data: str):
+        _, _, Image, _, _, _ = _get_heavy_libs()
         if base64_data.startswith('data:image/'):
             base64_data = base64_data.split(',')[1]
         image_bytes = base64.b64decode(base64_data)
         return Image.open(BytesIO(image_bytes))
 
     @staticmethod
-    def image_to_base64(pil_img: Image.Image) -> str:
+    def image_to_base64(pil_img) -> str:
         buf = BytesIO()
         pil_img.save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode("utf-8")
@@ -88,9 +117,9 @@ class IssueAnalyze:
         if has_images:
             vl_content = []
             if user_query.strip():
-                vl_content.append({"type": "text", "text": f"{user_query}\n\n请分析图片中的内容。"})
+                vl_content.append({"type": "text", "text": f"{user_query}\n\n请仔细分析图片中的所有内容，包括文字、图标、按钮、颜色标记（如红色框、高亮区域等）、界面布局等视觉元素。详细描述你看到的内容，并根据用户的问题给出专业的分析和解答。"})
             else:
-                vl_content.append({"type": "text", "text": "请分析图片中的内容。"})
+                vl_content.append({"type": "text", "text": "请仔细分析图片中的所有内容，包括文字、图标、按钮、颜色标记（如红色框、高亮区域等）、界面布局等视觉元素。详细描述你看到的内容。"})
 
             for img_data in images_data:
                 if img_data.get('data'):
@@ -105,6 +134,7 @@ class IssueAnalyze:
                     except Exception as e:
                         logger.error(f"图片处理失败: {str(e)}")
 
+            _, _, _, _, _, HumanMessage = _get_heavy_libs()
             for chunk in self.llm_vl.stream([HumanMessage(content=vl_content)]):
                 if chunk.content:
                     yield chunk.content

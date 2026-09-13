@@ -14,12 +14,16 @@ class PathConfig:
     TEMPLATES_DIR = BASE_DIR / "templates"
     UPLOADS_DIR = BASE_DIR / "uploads"
     OUTPUTS_DIR = BASE_DIR / "outputs"
+    CACHE_DIR = BASE_DIR / "cache"
     RESOURCE_DIR = BASE_DIR / "resource"
     DB_DIR = BASE_DIR / "chroma_db"
     KNOWLEDGE_DB_DIR = BASE_DIR / "drawing_knowledge_db"
     LOG_DIR = BASE_DIR / "logs"
     # 知识库目录
     COMMON_KNOWLEDGE_DIR = RESOURCE_DIR / "common_knowledge"
+    # 模型目录
+    MODEL_DIR = BASE_DIR / "models"
+
     # 验证目录是否存在（可选）
     @classmethod
     def ensure_directories(cls):
@@ -28,6 +32,7 @@ class PathConfig:
             cls.TEMPLATES_DIR, 
             cls.UPLOADS_DIR,
             cls.OUTPUTS_DIR,
+            cls.CACHE_DIR,
             cls.RESOURCE_DIR,
             cls.DB_DIR,
             cls.LOG_DIR,
@@ -37,14 +42,16 @@ class PathConfig:
             if not dir_path.exists():
                 dir_path.mkdir(parents=True, exist_ok=True)
                 logging.getLogger(__name__).info(f"创建目录: {dir_path}")
-                
 
 class Params:
-    DEFAULT_CHAT_MODEL="deepseek-v4-pro-0813"
+    DEFAULT_CHAT_MODEL="qwen3.8-max"
     DEFAULT_EMBEDDING_MODEL="text-embedding-v4"
-    DEFAULT_MULTIMODAL_MODEL="qwen-vl-max"
-    DEFAULT_TEXT_TOOL_MODEL="qwen-turbo"
+    DEFAULT_MULTIMODAL_MODEL="qwen3-vl-plus"
+    DEFAULT_TEXT_TOOL_MODEL="qwen-turbo" # 轻量级模型
     API_BASE="https://dashscope.aliyuncs.com/compatible-mode/v1"
+    DEFAULT_SCORE_THRESHOLD=0.2
+    DEFAULT_RRF_WEIGHT=0.7
+    DEFAULT_RRF_K=60
 
     SUPERVISOR_NODE = "supervisor_node"
     TRAVEL_NODE = "travel_node"
@@ -93,7 +100,7 @@ class Params:
 
     # ===================== 代码助手节点名称 =====================
     MAPPING_MODEL = {
-        "Qwen-Plus": "qwen3.8-max",
+        "Qwen3.8-Max": "qwen3.8-max",
         "DeepSeek-V4-Pro": "deepseek-v4-pro",
         "GLM-5.2-Fast-Preview": "glm-5.2-fast-preview",
     }

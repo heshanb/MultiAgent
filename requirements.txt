@@ -42,3 +42,9 @@ pymupdf
 langchain-qdrant
 qdrant-client
 fastembed
+FlagEmbedding
+onnxruntime
+onnxruntime-openvino
+slowapi
+pybreaker
+tenacity

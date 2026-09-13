@@ -1044,6 +1044,17 @@
         .diff-file-btn.accept { background: #28a745; color: white; }
         .diff-file-btn.reject { background: #dc3545; color: white; }
 
+        /* 采纳进度条模态框 */
+        .progress-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); display: none; align-items: center; justify-content: center; z-index: 10000; }
+        .progress-modal.visible { display: flex; }
+        .progress-modal-content { background: #ffffff; border-radius: 12px; padding: 24px; width: 400px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); }
+        .progress-modal-title { font-size: 1rem; font-weight: 600; color: #333; margin-bottom: 16px; text-align: center; }
+        .progress-bar-container { width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%); border-radius: 4px; transition: width 0.3s ease; width: 0%; }
+        .progress-text { font-size: 0.85rem; color: #666; text-align: center; margin-bottom: 8px; }
+        .progress-file-name { font-size: 0.8rem; color: #999; text-align: center; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+
         /* 差异对比编辑器 */
         .diff-editor-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; background: #f8f9fa; border-bottom: 1px solid #e0e0e0; font-size: 0.85rem; }
         .diff-editor-title { font-weight: 600; color: #333; }
@@ -1622,7 +1633,7 @@
                     <div class="model-dropdown" id="modelDropdown">
                         <div class="model-dropdown-trigger" onclick="toggleModelDropdown()">
                             <span class="model-icon">🐳</span>
-                            <span class="model-name">Qwen3.7-Plus</span>
+                            <span class="model-name">Qwen3.8-Max</span>
                             <span class="model-arrow">▼</span>
                         </div>
                         <div class="model-dropdown-menu">
@@ -1630,7 +1641,7 @@
                             <div class="model-option selected" onclick="selectModel('qwen')">
                                 <div class="model-option-icon" style="background: linear-gradient(135deg, #14b8a6, #0d9488);">🌊</div>
                                 <div class="model-option-info">
-                                    <div class="model-option-name">Qwen3.7-Plus</div>
+                                    <div class="model-option-name">Qwen3.8-Max</div>
                                     <div class="model-option-desc">阿里云通义千问</div>
                                 </div>
                                 <span class="model-option-check">✓</span>
@@ -1849,7 +1860,7 @@
             document.removeEventListener('click', closeMentionMenu);
         }
         let modelNames = {
-            'qwen': 'Qwen3.7-Plus',
+            'qwen': 'Qwen3.8-Max',
             'deepseek': 'DeepSeek-V4-Pro',
             'glm': 'GLM-5.2-Fast-Preview'
         };
@@ -2496,6 +2507,14 @@
 
                     console.log('[DEBUG] 开始更新UI');
                     addToRecentProjects(folderName);
+                    
+                    // 保存最后打开的项目路径
+                    localStorage.setItem('lastOpenedProject', JSON.stringify({
+                        name: folderName,
+                        path: fullProjectPath,
+                        timestamp: Date.now()
+                    }));
+                    
                     renderTree();
                     renderRecentProjects();
                     updateAiPanelState();
@@ -3665,7 +3684,8 @@
             // 执行语法检查
             const supportedExts = ['json', 'py', 'html', 'js', 'ts', 'c', 'cpp', 'h', 'hpp', 'java', 'css', 'xml', 'yml', 'yaml'];
             if (supportedExts.includes(ext) && content.trim()) {
-                currentErrors = checkSyntax(content, ext);
+                // currentErrors = checkSyntax(content, ext);  // 已禁用
+                currentErrors = [];  // 不显示错误
             } else {
                 currentErrors = [];
             }
@@ -3694,13 +3714,13 @@
                 if (warningCount > 0) {
                     statusHTML += `<span style="color:#ffc107;margin-left:8px;"> ${warningCount} 个警告</span>`;
                 }
-                statusRight.innerHTML = `${hasGit ? '<span>Git: master</span>' : ''}${statusHTML}`;
+                statusRight.innerHTML = `${hasGit ? '<span>Git: master</span>' : ''}<span>✓ 无错误</span>`;
             } else {
                 statusRight.innerHTML = `${hasGit ? '<span>Git: master</span>' : ''}<span>✓ 无错误</span>`;
             }
 
-            // 渲染错误标记
-            renderErrorMarkers();
+            // 渲染错误标记（已禁用）
+            // renderErrorMarkers();
         }
 
         // 新会话
@@ -4999,6 +5019,54 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                     }
                 }
 
+                // 🔴 严格校验：过滤LLM输出的垃圾内容
+                // 1. 文件名必须是有效的文件路径（不能包含中文）
+                if (/[\u4e00-\u9fff]/.test(fileName)) {
+                    console.log(`[过滤] 文件名包含中文，跳过: "${fileName}"`);
+                    continue;
+                }
+                // 2. 文件名必须符合文件路径格式（不能是"发现问题来源于xxx"）
+                const validFileName = /^[a-zA-Z0-9_\-\/\.]+\.(py|js|ts|html|css|java|cpp|go|rs|json|md|txt|yaml|yml|xml|sql|sh|bat|cfg|ini|toml|env)$/i;
+                if (!validFileName.test(fileName)) {
+                    console.log(`[过滤] 无效文件名格式，跳过: "${fileName}"`);
+                    continue;
+                }
+                // 3. 代码块不能是错误信息/堆栈跟踪
+                const isErrorBlock = /^(SyntaxError|TypeError|ReferenceError|Error|Traceback|Exception|Uncaught|Cannot read|is not defined|is not a function|Unexpected token|Failed to|404 |500 )/i.test(code);
+                if (isErrorBlock) {
+                    console.log(`[过滤] 代码块是错误信息，跳过: "${code.substring(0, 60)}..."`);
+                    continue;
+                }
+                // 4. 代码块不能是纯注释/解释/日志
+                const isCommentOnly = code.split('\n').every(l => !l.trim() || l.trim().startsWith('#') || l.trim().startsWith('//') || l.trim().startsWith('<!--') || l.trim().startsWith('*') || l.trim().startsWith('>'));
+                if (isCommentOnly) {
+                    console.log(`[过滤] 代码块只有注释，跳过: "${fileName}"`);
+                    continue;
+                }
+                // 5. 代码块不能是中文描述文本
+                const isChineseText = /^[\u4e00-\u9fff\s#\/\*\->]+$/.test(code) && code.split('\n').length < 10;
+                if (isChineseText) {
+                    console.log(`[过滤] 代码块是中文文本，跳过: "${code.substring(0, 60)}..."`);
+                    continue;
+                }
+                // 5.5 代码块开头不能是中文分析/描述文字（不是代码）
+                const firstLine = code.split('\n')[0].trim();
+                const isAnalysisText = /^[\u4e00-\u9fff，。：、]/.test(firstLine) ||
+                    /^(发现问题|从截图|可以看出|问题所在|错误原因|分析如下|问题出在|根据截图|控制台报错|前端在尝试|后端|API|接口|请求|响应)/.test(firstLine);
+                if (isAnalysisText) {
+                    console.log(`[过滤] 代码块是分析文字不是代码，跳过: "${firstLine.substring(0, 50)}..."`);
+                    continue;
+                }
+                // 6. 代码块必须有实际代码内容
+                const hasRealCode = code.split('\n').some(l => {
+                    const t = l.trim();
+                    return t && !t.startsWith('#') && !t.startsWith('//') && !t.startsWith('<!--') && !t.startsWith('*') && !t.startsWith('>') && !t.startsWith('-') && !t.startsWith('+') && !/^[\u4e00-\u9fff]+$/.test(t);
+                });
+                if (!hasRealCode) {
+                    console.log(`[过滤] 代码块没有实际代码，跳过: "${fileName}"`);
+                    continue;
+                }
+
                 // 判断变更类型
                 let changeType = 'modified';
                 const addedKeywords = ['新增文件', '新建文件', '新增目录', '创建文件', '创建新文件',
@@ -5020,6 +5088,66 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                 }
 
                 console.log(`[DEBUG] 文件 ${fileName} 类型判断: beforeText前100字="${beforeText.substring(0, 100)}", 类型=${changeType}`);
+
+                // 语法检查：对生成的代码进行基本语法校验
+                const syntaxErrors = [];
+                const langLower = lang.toLowerCase();
+
+                // Python 语法检查
+                if (langLower === 'python' || langLower === 'py') {
+                    // 检查缩进是否一致（混合空格和制表符）
+                    if (code.includes('	') && code.includes('    ')) {
+                        syntaxErrors.push('Python代码混用了制表符和空格缩进');
+                    }
+                    // 检查函数/类定义后是否有冒号
+                    const defLines = code.match(/^(def |class |if |else:|elif |for |while |try:|except |finally:)/gm);
+                    if (defLines) {
+                        defLines.forEach(line => {
+                            if (!line.trim().endsWith(':')) {
+                                syntaxErrors.push(`Python语句缺少冒号: ${line.trim()}`);
+                            }
+                        });
+                    }
+                }
+
+                // JavaScript 语法检查
+                if (langLower === 'javascript' || langLower === 'js') {
+                    // 检查括号配对
+                    const openBraces = (code.match(/{/g) || []).length;
+                    const closeBraces = (code.match(/}/g) || []).length;
+                    if (openBraces !== closeBraces) {
+                        syntaxErrors.push(`JavaScript括号不配对: { 有${openBraces}个, } 有${closeBraces}个`);
+                    }
+                    const openParens = (code.match(/\(/g) || []).length;
+                    const closeParens = (code.match(/\)/g) || []).length;
+                    if (openParens !== closeParens) {
+                        syntaxErrors.push(`JavaScript括号不配对: ( 有${openParens}个, ) 有${closeParens}个`);
+                    }
+                }
+
+                // HTML 语法检查
+                if (langLower === 'html') {
+                    // 检查标签是否闭合
+                    const openTags = code.match(/<([a-z][a-z0-9]*)[^>]*>/gi) || [];
+                    const selfClosing = ['br', 'hr', 'img', 'input', 'meta', 'link'];
+                    openTags.forEach(tag => {
+                        const tagName = tag.match(/<([a-z][a-z0-9]*)/i)[1].toLowerCase();
+                        if (!selfClosing.includes(tagName) && !tag.endsWith('/>')) {
+                            const closeTag = `</${tagName}>`;
+                            if (!code.includes(closeTag)) {
+                                syntaxErrors.push(`HTML标签未闭合: <${tagName}>`);
+                            }
+                        }
+                    });
+                }
+
+                if (syntaxErrors.length > 0) {
+                    console.warn(`[语法检查] ${fileName} 发现 ${syntaxErrors.length} 个语法问题:`, syntaxErrors);
+                    // 在代码块前添加警告
+                    code = `⚠️ 语法警告：${syntaxErrors.join('; ')}
+
+` + code;
+                }
 
                 // 清理代码块中的思考标记（即使出现在代码内部也需要处理）
                 if (code.includes('<!--THINKING_START-->') || code.includes('🤔') || code.includes('让我思考一下')) {
@@ -5130,7 +5258,8 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
 
                 // 关闭对应的差异对比标签页
                 const filePath = fileBlock.getAttribute('data-file-path');
-                const fullPath = projectRoot ? `${projectRoot}\\${filePath.replace(/\//g, '\\')}` : filePath;
+                // 使用与创建标签页时相同的路径格式（正斜杠）
+                const fullPath = projectRoot ? `${projectRoot}/${filePath}` : filePath;
                 const diffTabIndex = openTabs.findIndex(t => t.isDiff && t.path === fullPath);
                 if (diffTabIndex >= 0) {
                     openTabs.splice(diffTabIndex, 1);
@@ -5154,7 +5283,10 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             const filePath = fileBlock.getAttribute('data-file-path');
             console.log('[采纳] index:', index, 'filePath:', filePath);
 
-            let change = currentFileChanges.find(c => c.file === filePath);
+            // 清理文件名中的特殊标记（如 ** 表示新文件）
+            const cleanFilePath = filePath.replace(/\*\*/g, '');
+
+            let change = currentFileChanges.find(c => c.file === filePath || c.file === cleanFilePath);
             if (!change) {
                 // 降级匹配：尝试按文件名匹配（处理中文路径、路径前缀差异等特殊情况）
                 const baseName = filePath.split('/').pop().split('\\').pop();
@@ -5178,15 +5310,18 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             rejectBtn.disabled = true;
 
             try {
+                // 使用清理后的文件路径进行写入操作
+                const writeFilePath = change.file.replace(/\*\*/g, '');
+                
                 if (change.type === 'deleted') {
                     // 删除文件
-                    await deleteFileFromHandle(change.file);
+                    await deleteFileFromHandle(writeFilePath);
                     acceptBtn.textContent = '已删除';
                     // 刷新目录树
                     await refreshProjectTree();
                 } else {
                     // 修改或新增文件
-                    const success = await writeFileToHandle(change.file, change.content);
+                    const success = await writeFileToHandle(writeFilePath, change.content);
                     if (success) {
                         acceptBtn.textContent = '已采纳';
                         fileBlock.style.borderLeft = '3px solid #28a745';
@@ -5267,6 +5402,28 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             let successCount = 0;
             let failCount = 0;
             let needRefreshTree = false;
+            const totalCount = blocks.length;
+            let currentIndex = 0;
+
+            const progressModal = document.getElementById('acceptProgressModal');
+            const progressBar = document.getElementById('acceptProgressBar');
+            const progressText = document.getElementById('acceptProgressText');
+            const progressFileName = document.getElementById('acceptProgressFileName');
+            if (progressModal) progressModal.classList.add('visible');
+
+            const updateProgress = (fileName) => {
+                currentIndex++;
+                const percent = totalCount > 0 ? Math.round((currentIndex / totalCount) * 100) : 0;
+                if (progressBar) progressBar.style.width = percent + '%';
+                if (progressText) progressText.textContent = currentIndex + ' / ' + totalCount + ' (' + percent + '%)';
+                if (progressFileName) progressFileName.textContent = fileName || '';
+            };
+
+            const closeProgress = () => {
+                setTimeout(() => {
+                    if (progressModal) progressModal.classList.remove('visible');
+                }, 500);
+            };
 
             for (const block of blocks) {
                 const filePath = block.getAttribute('data-file-path');
@@ -5281,6 +5438,7 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                 }
                 if (!change) {
                     console.log('[全部采纳] 未找到匹配的 change:', filePath);
+                    updateProgress(filePath);
                     continue;
                 }
 
@@ -5290,13 +5448,16 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                 if (rejectBtn) rejectBtn.disabled = true;
 
                 try {
+                    // 清理文件名中的特殊标记
+                    const writeFilePath = change.file.replace(/\*\*/g, '');
+                    
                     if (change.type === 'deleted') {
-                        await deleteFileFromHandle(change.file);
+                        await deleteFileFromHandle(writeFilePath);
                         if (acceptBtn) acceptBtn.textContent = '已删除';
                         successCount++;
                         needRefreshTree = true;
                     } else {
-                        const success = await writeFileToHandle(change.file, change.content);
+                        const success = await writeFileToHandle(writeFilePath, change.content);
                         if (success) {
                             block.style.borderLeft = '3px solid #28a745';
                             if (acceptBtn) acceptBtn.textContent = '已采纳';
@@ -5332,7 +5493,10 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
                     if (acceptBtn) { acceptBtn.textContent = '失败'; acceptBtn.style.color = '#dc3545'; }
                     failCount++;
                 }
+                updateProgress(change.file);
             }
+
+            closeProgress();
 
             // 更新文件计数
             if (fileCountEl) {
@@ -5390,56 +5554,61 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             }
 
             try {
-                // 过滤掉思考标记和LLM自言自语（不应写入文件）
+                // 过滤掉思考标记和LLM自言自语
                 let cleanContent = content;
-                // 移除思考标记的HTML注释和内容
                 cleanContent = cleanContent.replace(/<!--THINKING_START-->[\s\S]*?<!--THINKING_END-->/g, '');
-                // 移除各种思考标记
-                cleanContent = cleanContent.replace(/>\s*🤔\s*让我思考一下[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/>\s*🤔\s*Let me think[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/>\s*📝\s*继续分析中[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/>\s*🔍\s*深入研究中[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/>\s*💡\s*发现关键点[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/>\s*⚡\s*正在处理[.。\s]*/g, '');
-                // 移除不带 > 前缀的思考标记
-                cleanContent = cleanContent.replace(/🤔\s*让我思考一下[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/🤔\s*Let me think[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/📝\s*继续分析中[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/🔍\s*深入研究中[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/💡\s*发现关键点[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/⚡\s*正在处理[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/让我思考一下[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/Let me think[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/继续分析中[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/深入研究中[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/发现关键点[.。\s]*/g, '');
-                cleanContent = cleanContent.replace(/正在处理[.。\s]*/g, '');
-                // 移除多余的空行
+                cleanContent = cleanContent.replace(/>\s*\s*让我思考一下[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/>\s*\s*Let me think[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/>\s*\s*继续分析中[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/>\s*\s*深入研究中[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/>\s*\s*发现关键点[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/>\s*\s*正在处理[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/\s*让我思考一下[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/\s*Let me think[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/\s*继续分析中[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/\s*深入研究中[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/\s*发现关键点[.。\s]*/g, '');
+                cleanContent = cleanContent.replace(/\s*正在处理[.。\s]*/g, '');
+                //  清理 diff 标记（LLM 输出代码块时可能带上的 diff 前缀）
+                cleanContent = cleanContent.replace(/^>\s*/gm, '');
+                cleanContent = cleanContent.replace(/^\+\s*/gm, '');
+                cleanContent = cleanContent.replace(/^-\s*/gm, '');
                 cleanContent = cleanContent.replace(/\n{3,}/g, '\n\n');
                 cleanContent = cleanContent.trim();
 
+                // 关键修复：先读取原文件内容
+                let originalContent = '';
+                try {
+                    originalContent = await readFileContent(filePath);
+                } catch (e) {
+                    console.log(`[写入文件] 文件不存在，将创建新文件: ${filePath}`);
+                }
+
+                // 智能合并：如果原文件存在且AI生成内容较短，说明是代码片段
+                let finalContent = cleanContent;
+                if (originalContent && originalContent !== cleanContent) {
+                    finalContent = smartMergeContent(originalContent, cleanContent, filePath);
+                    console.log(`[智能合并] ${filePath}: 原始=${originalContent.length}字, AI=${cleanContent.length}字, 合并后=${finalContent.length}字`);
+                }
+
                 const parts = filePath.replace(/\\/g, '/').split('/');
                 let currentHandle = dirHandle;
-
                 console.log(`[写入文件] ${filePath}, 目录层级: ${parts.length - 1}`);
 
-                // 导航到目标目录，必要时创建目录
                 for (let i = 0; i < parts.length - 1; i++) {
                     try {
                         currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
                     } catch (e) {
-                        // 目录不存在则创建
                         console.log(`[写入文件] 创建目录: ${parts[i]}`);
                         currentHandle = await currentHandle.getDirectoryHandle(parts[i], { create: true });
                     }
                 }
 
-                // 创建或获取文件句柄并写入内容
                 const fileName = parts[parts.length - 1];
-                console.log(`[写入文件] 写入文件: ${fileName}, 内容长度: ${cleanContent.length}`);
+                console.log(`[写入文件] 写入文件: ${fileName}, 内容长度: ${finalContent.length}`);
                 const fileHandle = await currentHandle.getFileHandle(fileName, { create: true });
                 const writable = await fileHandle.createWritable();
-                await writable.write(cleanContent);
+                await writable.write(finalContent);
                 await writable.close();
                 console.log(`[写入文件] 成功: ${filePath}`);
                 return true;
@@ -5449,7 +5618,123 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             }
         }
 
-        // 通过目录句柄删除文件
+        // 智能合并：将AI生成的代码片段合并到原文件中
+        function smartMergeContent(originalContent, newContent, filePath) {
+            // 如果AI内容比原文件长很多(>1.5倍)，说明是完整文件，直接替换
+            if (newContent.length > originalContent.length * 1.5) {
+                console.log(`[智能合并] 新内容更长，直接替换`);
+                return newContent;
+            }
+
+            // 如果AI内容比原文件短很多(<0.3倍)，说明是代码片段，需要合并
+            if (newContent.length < originalContent.length * 0.3) {
+                console.log(`[智能合并] 新内容较短，尝试函数级别合并`);
+                return mergeByFunction(originalContent, newContent);
+            }
+
+            // 中等长度，尝试行级别合并
+            console.log(`[智能合并] 中等长度，尝试行级别合并`);
+            return mergeByLines(originalContent, newContent);
+        }
+
+        // 按函数/类级别合并
+        function mergeByFunction(original, newContent) {
+            const newLines = newContent.split('\n');
+            const funcPattern = /^(function\s+\w+|const\s+\w+\s*=\s*(function|$.*?$\s*=>)|class\s+\w+|def\s+\w+|async\s+function\s+\w+)/;
+            const newFuncs = [];
+            let currentFunc = [];
+            let inFunc = false;
+            let braceCount = 0;
+
+            for (const line of newLines) {
+                if (funcPattern.test(line.trim()) || (inFunc && braceCount === 0 && line.trim().startsWith('function'))) {
+                    if (currentFunc.length > 0) newFuncs.push(currentFunc.join('\n'));
+                    currentFunc = [line];
+                    inFunc = true;
+                    braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+                } else if (inFunc) {
+                    currentFunc.push(line);
+                    braceCount += (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+                    if (braceCount <= 0 && line.includes('}')) {
+                        newFuncs.push(currentFunc.join('\n'));
+                        currentFunc = [];
+                        inFunc = false;
+                        braceCount = 0;
+                    }
+                }
+            }
+            if (currentFunc.length > 0) newFuncs.push(currentFunc.join('\n'));
+
+            if (newFuncs.length === 0) return mergeByLines(original, newContent);
+
+            let result = original;
+            for (const newFunc of newFuncs) {
+                const funcNameMatch = newFunc.match(/(?:function\s+|const\s+|def\s+|class\s+)(\w+)/);
+                if (funcNameMatch) {
+                    const funcName = funcNameMatch[1];
+                    const origFuncPattern = new RegExp(`(function\\s+${funcName}|const\\s+${funcName}\\s*=\\s*function|def\\s+${funcName}|class\\s+${funcName})[\\s\\S]*?\\n\\}`, 'g');
+                    const origMatch = origFuncPattern.exec(result);
+                    if (origMatch) {
+                        result = result.replace(origMatch[0], newFunc);
+                        console.log(`[智能合并] 替换函数: ${funcName}`);
+                    } else {
+                        result = result + '\n\n' + newFunc;
+                        console.log(`[智能合并] 追加新函数: ${funcName}`);
+                    }
+                }
+            }
+            return result;
+        }
+
+        // 按行级别合并
+        function mergeByLines(original, newContent) {
+            const origLines = original.split('\n');
+            const newLines = newContent.split('\n');
+
+            const newLinesInOriginal = newLines.filter(line =>
+                line.trim() && origLines.some(origLine => origLine.trim() === line.trim())
+            );
+
+            if (newLinesInOriginal.length > newLines.length * 0.7) {
+                console.log(`[智能合并] 大部分行匹配，直接替换`);
+                return newContent;
+            }
+
+            let result = [...origLines];
+            let newLineIdx = 0;
+            for (let i = 0; i < result.length && newLineIdx < newLines.length; i++) {
+                if (result[i].trim() && newLines[newLineIdx].trim()) {
+                    const similarity = calculateSimilarity(result[i], newLines[newLineIdx]);
+                    if (similarity > 0.6) {
+                        result[i] = newLines[newLineIdx];
+                        newLineIdx++;
+                    }
+                }
+            }
+            while (newLineIdx < newLines.length) {
+                result.push(newLines[newLineIdx]);
+                newLineIdx++;
+            }
+            return result.join('\n');
+        }
+
+        // 计算字符串相似度
+        function calculateSimilarity(str1, str2) {
+            const s1 = str1.trim();
+            const s2 = str2.trim();
+            if (s1 === s2) return 1.0;
+            if (s1.length === 0 || s2.length === 0) return 0.0;
+            if (s1.includes(s2) || s2.includes(s1)) return 0.8;
+            const words1 = new Set(s1.split(/\s+/));
+            const words2 = new Set(s2.split(/\s+/));
+            let common = 0;
+            for (const w of words1) {
+                if (words2.has(w)) common++;
+            }
+            return common / Math.max(words1.size, words2.size);
+        }
+
+        // 通过目录句柄删除文件        // 通过目录句柄删除文件
         async function deleteFileFromHandle(filePath, isDir = false) {
             if (!dirHandle) return false;
 
@@ -6148,6 +6433,9 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             // 为代码块添加复制按钮
             addCopyButtonsToCodeBlocks();
 
+            // 自动加载上次打开的项目
+            autoLoadLastProject();
+
             // 初始化AI面板状态
             updateAiPanelState();
 
@@ -6368,6 +6656,90 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             if (!btn.contains(e.target) && !menu.contains(e.target)) {
                 btn.classList.remove('open');
                 document.removeEventListener('click', closeRecentProjectsMenu);
+            }
+        }
+
+                // 自动加载上次打开的项目
+        async function autoLoadLastProject() {
+            try {
+                const lastProjectStr = localStorage.getItem('lastOpenedProject');
+                if (!lastProjectStr) {
+                    console.log('[AutoLoad] 没有上次打开的项目记录');
+                    return;
+                }
+                const lastProject = JSON.parse(lastProjectStr);
+                console.log('[AutoLoad] 检测到上次打开的项目:', lastProject.name);
+                const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                if (lastProject.timestamp < sevenDaysAgo) {
+                    console.log('[AutoLoad] 项目打开时间超过7天，跳过自动加载');
+                    localStorage.removeItem('lastOpenedProject');
+                    return;
+                }
+                console.log('[AutoLoad] 显示加载提示，等待用户点击');
+                const editorArea = document.getElementById('editorArea');
+                if (welcomeArea) {
+                    const promptDiv = document.createElement('div');
+                    promptDiv.className = 'auto-load-prompt';
+                    promptDiv.style.cssText = 'text-align:center; padding:40px 20px;';
+                    promptDiv.innerHTML = '<div style="font-size:3rem; margin-bottom:16px;"></div>' +
+                        '<div style="font-size:1.1rem; color:#333; margin-bottom:8px;">检测到上次打开的项目</div>' +
+                        '<div style="font-size:0.95rem; color:#666; margin-bottom:20px;">' + lastProject.name + '</div>' +
+                        '<button onclick="loadLastProject()" style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;border:none;padding:10px 24px;border-radius:8px;font-size:0.95rem;cursor:pointer;margin-right:8px;">加载上次项目</button>' +
+                        '<button onclick="this.parentElement.remove()" style="background:#f0f0f0;color:#666;border:none;padding:10px 24px;border-radius:8px;font-size:0.95rem;cursor:pointer;">取消</button>';
+                    // 清除空编辑器提示
+                    const emptyEditor = editorArea.querySelector('.empty-editor');
+                    if (emptyEditor) emptyEditor.style.display = 'none';
+                    editorArea.appendChild(promptDiv);
+                }
+            } catch (err) {
+                console.log('[AutoLoad] 检测上次项目失败:', err.message);
+            }
+        }
+
+        // 用户点击加载上次项目
+        async function loadLastProject() {
+            try {
+                const lastProjectStr = localStorage.getItem('lastOpenedProject');
+                if (!lastProjectStr) return;
+                const lastProject = JSON.parse(lastProjectStr);
+                console.log('[LoadLast] 开始加载项目:', lastProject.name);
+                const loadingOverlay = document.createElement('div');
+                loadingOverlay.className = 'loading-overlay';
+                loadingOverlay.innerHTML = '<div class="loading-content"><div class="loading-spinner"></div><div>正在加载项目 "' + lastProject.name + '"...</div></div>';
+                document.body.appendChild(loadingOverlay);
+                try {
+                    const handle = await window.showDirectoryPicker({
+                        mode: 'readwrite',
+                        id: 'last-project-' + lastProject.name
+                    });
+                    if (handle) {
+                        const treeData = await scanDirectoryHandle(handle, '');
+                        dirHandle = handle;
+                        projectRoot = lastProject.name;
+                        window._projectFullPath = lastProject.path;
+                        projectTreeData = [{
+                            name: lastProject.name,
+                            path: '',
+                            type: 'folder',
+                            children: treeData,
+                            expanded: true
+                        }];
+                        addToRecentProjects(lastProject.name);
+                        renderTree();
+                        renderRecentProjects();
+                        updateAiPanelState();
+                        const prompt = document.querySelector('.auto-load-prompt');
+                        if (prompt) prompt.remove();
+                        console.log('[LoadLast] 项目加载成功');
+                    }
+                } finally {
+                    loadingOverlay.remove();
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.log('[LoadLast] 加载失败:', err.message);
+                    alert('加载项目失败: ' + err.message);
+                }
             }
         }
 
@@ -7583,5 +7955,18 @@ ${currentCode ? `代码行数：${currentCode.split('\n').length} 行` : '未打
             </div>
         </div>
     </div>
+
+<!-- 采纳进度条模态框 -->
+<div class="progress-modal" id="acceptProgressModal">
+    <div class="progress-modal-content">
+        <div class="progress-modal-title">正在采纳文件...</div>
+        <div class="progress-bar-container">
+            <div class="progress-bar" id="acceptProgressBar"></div>
+        </div>
+        <div class="progress-text" id="acceptProgressText">0 / 0 (0%)</div>
+        <div class="progress-file-name" id="acceptProgressFileName"></div>
+    </div>
+</div>
+
 </body>
 </html>

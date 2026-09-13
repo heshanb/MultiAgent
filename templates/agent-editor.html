@@ -132,6 +132,29 @@
         .model-desc { font-size: 0.75rem; color: #999; padding: 0 16px; max-height: 0; overflow: hidden; transition: max-height 0.25s ease, padding 0.25s ease; }
         .model-desc.show { max-height: 40px; padding: 0 16px 10px; }
 
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: background 0.15s; gap: 12px; }
+        .toggle-row:hover { background: #f5f3ff; }
+        .toggle-row-left { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #333; }
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #d1d5db; transition: 0.3s; border-radius: 24px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
+        .toggle-switch input:checked + .toggle-slider { background-color: #667eea; }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+        .toggle-tip { font-size: 0.72rem; color: #999; padding: 0 16px 6px; }
+
+        /* Temperature */
+        .temperature-wrap { padding: 12px; }
+        .temperature-slider-row { margin-bottom: 8px; }
+        .temperature-slider { width: 100%; height: 6px; -webkit-appearance: none; appearance: none; background: linear-gradient(to right, #667eea 0%, #667eea 70%, #e5e7eb 70%, #e5e7eb 100%); border-radius: 3px; outline: none; cursor: pointer; }
+        .temperature-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: white; border: 2px solid #667eea; box-shadow: 0 2px 6px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.15s; }
+        .temperature-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        .temperature-slider::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: white; border: 2px solid #667eea; box-shadow: 0 2px 6px rgba(0,0,0,0.1); cursor: pointer; }
+        .temperature-labels { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .temperature-label { font-size: 0.72rem; color: #999; }
+        .temperature-tip { display: flex; align-items: flex-start; gap: 6px; padding: 8px 10px; background: #f8f9fc; border-radius: 6px; font-size: 0.75rem; color: #666; line-height: 1.5; }
+        .temperature-tip svg { color: #667eea; margin-top: 1px; flex-shrink: 0; }
+
         .entry-count { font-size: 0.78rem; color: #999; }
         .sub-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
         .sub-body.show { max-height: 800px; padding: 6px 10px 12px; }
@@ -145,6 +168,68 @@
         .opening-chars { font-size: 0.72rem; color: #bbb; }
         .opening-clear { font-size: 0.75rem; color: #ff4757; background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 4px; }
         .opening-clear:hover { background: #fff0f0; }
+
+        .struct-output-wrap { padding: 0 12px; }
+        .struct-output-tip { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; background: #f5f3ff; border-radius: 8px; font-size: 0.8rem; color: #666; line-height: 1.5; }
+        .struct-output-tip svg { color: #667eea; margin-top: 2px; }
+        .struct-output-tip code { background: #e8e5ff; padding: 1px 5px; border-radius: 3px; font-size: 0.75rem; color: #667eea; font-family: 'SF Mono', Consolas, monospace; }
+        
+        /* Schema Editor */
+        .struct-output-schema-area { margin-top: 12px; background: #f8f9fc; border-radius: 10px; border: 1px solid #eef0f5; padding: 14px; }
+        .struct-output-schema-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .struct-output-schema-title { font-size: 0.85rem; font-weight: 600; color: #333; font-family: 'SF Mono', Consolas, monospace; }
+        .struct-output-schema-type { font-size: 0.72rem; color: #999; background: #eef0f5; padding: 2px 8px; border-radius: 4px; }
+        
+        /* Fields List */
+        .struct-output-fields-list { min-height: 40px; }
+        .struct-output-field-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: white; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 6px; }
+        .struct-output-field-item .field-name { flex: 1; font-size: 0.82rem; color: #333; font-family: 'SF Mono', Consolas, monospace; }
+        .struct-output-field-item .field-type { font-size: 0.72rem; color: #667eea; background: #f0eeff; padding: 2px 8px; border-radius: 4px; }
+        .struct-output-field-item .field-desc { font-size: 0.72rem; color: #999; flex: 2; }
+        .struct-output-field-item .field-remove { cursor: pointer; color: #ccc; transition: color 0.15s; padding: 4px; }
+        .struct-output-field-item .field-remove:hover { color: #ff4757; }
+        
+        /* Add Field Button */
+        .struct-output-add-field { display: flex; align-items: center; gap: 6px; width: 100%; padding: 8px 12px; background: white; border: 1px dashed #d0d5e0; border-radius: 8px; color: #667eea; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; margin-top: 4px; }
+        .struct-output-add-field:hover { border-color: #667eea; background: #f8f7ff; }
+        .struct-output-add-field svg { color: #667eea; }
+        
+        /* Import from JSON */
+        .struct-output-import-row { margin-top: 10px; }
+        .struct-output-import-btn { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: none; border: 1px solid #e5e7eb; border-radius: 6px; color: #667eea; font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+        .struct-output-import-btn:hover { border-color: #667eea; background: #f8f7ff; }
+        .struct-output-import-btn svg { color: #667eea; }
+        
+        /* Actions */
+        .struct-output-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+        .struct-output-btn { padding: 6px 16px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.15s; border: none; }
+        .struct-output-btn-secondary { background: white; border: 1px solid #e5e7eb; color: #666; }
+        .struct-output-btn-secondary:hover { border-color: #ccc; }
+        .struct-output-btn-primary { background: #667eea; color: white; }
+        .struct-output-btn-primary:hover { background: #5a6fd6; }
+        
+        /* Field Edit Modal */
+        .struct-output-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+        .struct-output-modal.show { display: flex; }
+        .struct-output-modal-content { background: white; border-radius: 12px; width: 480px; max-width: 90vw; max-height: 80vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+        .struct-output-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #eef0f5; }
+        .struct-output-modal-title { font-size: 1rem; font-weight: 600; color: #333; }
+        .struct-output-modal-close { cursor: pointer; color: #999; padding: 4px; transition: color 0.15s; }
+        .struct-output-modal-close:hover { color: #333; }
+        .struct-output-modal-body { padding: 20px; }
+        .struct-output-modal-field { margin-bottom: 14px; }
+        .struct-output-modal-label { display: block; font-size: 0.82rem; color: #555; margin-bottom: 6px; font-weight: 500; }
+        .struct-output-modal-input { width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.85rem; outline: none; transition: border-color 0.15s; box-sizing: border-box; }
+        .struct-output-modal-input:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.08); }
+        .struct-output-modal-select { width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.85rem; outline: none; background: white; }
+        .struct-output-modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 20px; border-top: 1px solid #eef0f5; }
+        
+        /* JSON Import Modal */
+        .struct-output-json-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+        .struct-output-json-modal.show { display: flex; }
+        .struct-output-json-modal-content { background: white; border-radius: 12px; width: 560px; max-width: 90vw; max-height: 80vh; overflow: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+        .struct-output-json-textarea { width: 100%; min-height: 200px; padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 0.82rem; font-family: 'SF Mono', Consolas, monospace; outline: none; resize: vertical; box-sizing: border-box; }
+        .struct-output-json-textarea:focus { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.08); }
 
         .var-empty { text-align: center; padding: 24px; color: #bbb; font-size: 0.82rem; border: 1px dashed #e5e7eb; border-radius: 8px; }
         .var-row { display: grid; grid-template-columns: 1fr 1fr 80px 1fr 24px; gap: 6px; align-items: center; margin-bottom: 10px; }
@@ -199,8 +284,6 @@
         .preview-head { padding: 14px 18px; border-bottom: 1px solid #eef0f5; display: flex; justify-content: space-between; align-items: center; }
         .preview-head-title { font-size: 0.92rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 8px; }
         .preview-dot { width: 7px; height: 7px; border-radius: 50%; background: #38ef7d; box-shadow: 0 0 6px #38ef7d; }
-        .preview-clear { font-size: 0.78rem; color: #bbb; background: none; border: none; cursor: pointer; }
-        .preview-clear:hover { color: #ff4757; }
         .preview-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: none; }
         .preview-msgs::-webkit-scrollbar { display: none; }
         .preview-welcome { text-align: center; padding: 30px 20px; color: #bbb; }
@@ -246,10 +329,25 @@
         .preview-var-input:focus { border-color: #667eea; }
         .preview-var-input.err { border-color: #ff4757; background: #fff5f5; }
         .preview-input { padding: 10px; border-top: 1px solid #eef0f5; margin-bottom: 16px; }
-        .preview-input-row { position: relative; }
+        .preview-input-row { display: flex; align-items: flex-end; gap: 6px; }
+        .preview-clear-icon {
+            width: 36px; height: 36px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+            padding: 0;
+        }
+        .preview-clear-icon img { width: 18px; height: 18px; object-fit: contain; }
+        .preview-clear-icon:hover { border-color: #ff4757; background: #fff5f5; }
         .preview-input textarea { 
-            width: 100%; 
-            padding: 10px 96px 10px 12px; 
+            flex: 1; 
+            padding: 10px 12px; 
             border: 1px solid #e5e7eb; 
             border-radius: 10px; 
             font-size: 0.85rem; 
@@ -264,9 +362,7 @@
         .preview-input textarea::-webkit-scrollbar { display: none; }
         .preview-input textarea:focus { outline: none; border-color: #667eea; }
         .preview-attach { 
-            position: absolute; 
-            right: 54px; 
-            bottom: 6px; 
+            position: relative;
             width: 36px; height: 36px; 
             border: none; 
             background: transparent; 
@@ -277,15 +373,13 @@
             justify-content: center; 
             color: #aaa; 
             transition: all 0.15s; 
+            flex-shrink: 0;
         }
         .preview-attach:hover { color: #667eea; background: #f0eeff; }
         .preview-attach svg { width: 22px; height: 22px; }
         .preview-attach .attach-tooltip { position: absolute; bottom: 40px; right: 0; background: #333; color: white; font-size: 0.72rem; padding: 8px 12px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 100; line-height: 1.6; text-align: right; }
         .preview-attach:hover .attach-tooltip { opacity: 1; }
         .preview-send { 
-            position: absolute; 
-            right: 8px; 
-            bottom: 6px; 
             width: 34px; height: 34px; 
             border: none; 
             background: #3b82f6; 
@@ -295,6 +389,7 @@
             display: flex; align-items: center; justify-content: center; 
             transition: all 0.2s ease; 
             box-shadow: 0 2px 6px rgba(59,130,246,0.3); 
+            flex-shrink: 0;
         }
         .preview-send:hover { 
             background: #2563eb; 
@@ -336,6 +431,208 @@
         .toast.error { background: linear-gradient(135deg, #f12711, #f5af19); }
         @keyframes tin { from { opacity: 0; transform: translateX(-50%) translateY(-15px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center; }
+        .modal-box { background: white; border-radius: 14px; width: 600px; max-width: 92vw; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .modal-title { padding: 20px 24px; border-bottom: 1px solid #eef0f5; font-size: 1.1rem; font-weight: 600; }
+        .modal-body { padding: 20px 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #eef0f5; display: flex; justify-content: flex-end; gap: 10px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; color: #333; }
+        .form-row { display: flex; gap: 16px; }
+        .btn-cancel { padding: 8px 20px; border: 1px solid #ddd; background: white; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+        .btn-cancel:hover { background: #f5f5f5; }
+        .btn-save { padding: 8px 20px; border: none; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+        .btn-save:hover { opacity: 0.9; }
+
+        /* 工具卡片样式 */
+        .tool-card {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .tool-card:hover {
+            border-color: #d0d7de;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .tool-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .tool-card-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        .tool-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tool-method-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 0.5px;
+            flex-shrink: 0;
+        }
+        .tool-card-del {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: transparent;
+            color: #999;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+        }
+        .tool-card-del:hover {
+            background: #fff1f0;
+            color: #ff4d4f;
+        }
+        .tool-card-desc {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .tool-card-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+        .tool-meta-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: #999;
+            background: #f7f8fa;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        /* 工具选择弹窗卡片样式 */
+        .tool-select-card {
+            background: #fff;
+            border: 1.5px solid #e8e8e8;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .tool-select-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 16px rgba(102,126,234,0.15);
+            transform: translateY(-2px);
+        }
+        .tool-select-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+        .tool-select-card-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tool-select-card-category-row {
+            margin-top: 2px;
+        }
+        .tool-select-card-category {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #667eea;
+            background: #f5f3ff;
+            border: 1px solid #e8e5ff;
+        }
+        .tool-select-card-desc {
+            font-size: 0.82rem;
+            color: #666;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .tool-select-card-url {
+            font-size: 0.75rem;
+            color: #999;
+            font-family: 'SF Mono', Consolas, monospace;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .tool-select-card-footer {
+            display: flex;
+            justify-content: flex-end;
+            padding-top: 4px;
+        }
+        .tool-select-card-add {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tool-select-card:hover .tool-select-card-add {
+            box-shadow: 0 2px 8px rgba(102,126,234,0.3);
+        }
+        .tool-select-card-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #f9f9f9;
+        }
+        .tool-select-card-disabled:hover {
+            border-color: #e8e8e8;
+            box-shadow: none;
+            transform: none;
+        }
+        .tool-select-card-added {
+            background: #e8e8e8;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .tool-select-card:hover .tool-select-card-added {
+            box-shadow: none;
+        }
+
         .optimizing-indicator { display: flex; gap: 5px; align-items: center; color: white; font-size: 0.78rem; }
         .optimizing-indicator .dots span { background: white; }
 
@@ -361,6 +658,7 @@
     <div class="header-right">
         <span class="header-save-status" id="hdrSave">自动保存已就绪</span>
         <button class="btn btn-ghost" id="saveBtn" onclick="saveAgent()">💾 保存</button>
+        <button class="btn btn-ghost" id="historyBtn" onclick="showPublishHistory()" style="display:none;">📋 发布记录</button>
         <button class="btn btn-primary" id="pubBtn" onclick="togglePublish()">🚀 发布</button>
     </div>
 </div>
@@ -374,7 +672,7 @@
         </div>
         <div class="prompt-editor-wrap" style="position:relative;">
             <div class="prompt-toolbar">
-                <div class="prompt-chars"><span id="promptChars">0</span> / 4000</div>
+                <div class="prompt-chars"><span id="promptChars">0</span> / 8000</div>
                 <button class="optimize-btn" id="optBtn" onclick="toggleOptPopup()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5L18.2 21 12 16.5 5.8 21l2.4-7.1L2 9.4h7.6z"/></svg>
                     自动优化
@@ -415,6 +713,42 @@
                 </select>
             </div>
             <div class="model-desc" id="modelDesc">选择合适的模型来驱动智能体</div>
+        </div>
+
+        <!-- Deep Think -->
+        <div class="toggle-row" onclick="toggleDeepThink()">
+            <span class="toggle-row-left">🧠 深度思考</span>
+            <label class="toggle-switch" onclick="event.stopPropagation();">
+                <input type="checkbox" id="deepThinkToggle" onchange="onDeepThinkChange(this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="toggle-tip">开启后将使用深度思考模型，推理更全面但响应稍慢</div>
+
+        <!-- Temperature -->
+        <div class="section section-plain">
+            <div class="model-row" onclick="this.classList.toggle('open'); document.getElementById('temperatureBody').classList.toggle('show');">
+                <span class="model-row-left">
+                    <svg class="model-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                    温度参数
+                </span>
+                <span class="entry-count" id="temperatureValue">0.7</span>
+            </div>
+            <div class="sub-body" id="temperatureBody">
+                <div class="temperature-wrap">
+                    <div class="temperature-slider-row">
+                        <input type="range" class="temperature-slider" id="temperatureSlider" min="0" max="1" step="0.1" value="0.7" oninput="onTemperatureChange(this.value)">
+                    </div>
+                    <div class="temperature-labels">
+                        <span class="temperature-label">0.0（精确）</span>
+                        <span class="temperature-label">1.0（创意）</span>
+                    </div>
+                    <div class="temperature-tip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                        <span>较低值使输出更确定和一致，较高值使输出更随机和多样化</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="group-label">记忆</div>
@@ -462,6 +796,22 @@
             </div>
         </div>
 
+        <div class="group-label">工具</div>
+        <!-- Tools -->
+        <div class="section section-plain">
+            <div class="model-row" onclick="this.classList.toggle('open'); document.getElementById('toolBody').classList.toggle('show');">
+                <span class="model-row-left">
+                    <svg class="model-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                    导入工具
+                </span>
+                <span class="entry-count" id="toolCount">0 个</span>
+            </div>
+            <div class="sub-body" id="toolBody">
+                <div id="toolList"><div class="var-empty">还没有添加工具</div></div>
+                <button class="var-add" onclick="openToolSelectModal()">+ 添加工具</button>
+            </div>
+        </div>
+
         <div class="group-label">对话体验</div>
         <!-- Opening -->
         <div class="section section-plain">
@@ -483,13 +833,63 @@
             </div>
         </div>
 
+        <!-- Structured Output -->
+        <div class="section section-plain">
+            <div class="model-row" onclick="this.classList.toggle('open'); document.getElementById('structOutputBody').classList.toggle('show');">
+                <span class="model-row-left">
+                    <svg class="model-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                    结构化输出
+                </span>
+                <label class="toggle-switch" onclick="event.stopPropagation();" style="margin-left: auto;">
+                    <input type="checkbox" id="structOutputToggle" onchange="onStructOutputChange(this.checked)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="sub-body" id="structOutputBody">
+                <div class="struct-output-wrap">
+                    <div class="struct-output-tip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                        <span>开启后，LLM 将按定义的 JSON Schema 格式输出，预览区域仅显示指定字段内容</span>
+                    </div>
+                    
+                    <!-- Schema Editor -->
+                    <div class="struct-output-schema-area">
+                        <div class="struct-output-schema-header">
+                            <span class="struct-output-schema-title">structured_output</span>
+                            <span class="struct-output-schema-type">object</span>
+                        </div>
+                        <div class="struct-output-fields-list" id="structOutputFieldsList">
+                            <!-- Fields will be rendered here -->
+                        </div>
+                        <button class="struct-output-add-field" onclick="addStructOutputField()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                            添加字段
+                        </button>
+                    </div>
+                    
+                    <!-- Import from JSON -->
+                    <div class="struct-output-import-row">
+                        <button class="struct-output-import-btn" onclick="importFromJSON()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                            从 JSON 导入
+                        </button>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="struct-output-actions">
+                        <button class="struct-output-btn struct-output-btn-secondary" onclick="clearStructOutputFields()">清空配置</button>
+                        <button class="struct-output-btn struct-output-btn-primary" onclick="saveStructOutputFields()">保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- ============== RIGHT COLUMN: Preview ============== -->
     <div class="col col-right">
         <div class="preview-head">
-            <div class="preview-head-title"><span class="preview-dot"></span>预览 & 调试</div>
-            <button class="preview-clear" onclick="clearPreview()">清空对话</button>
+            <div class="preview-head-title"><span class="preview-dot"></span>预览与调试</div>
         </div>
         <div class="preview-msgs" id="pMsgs">
             <div class="preview-welcome">
@@ -506,6 +906,9 @@
         </div>
         <div class="preview-input">
             <div class="preview-input-row">
+                <button type="button" class="preview-clear-icon" onclick="clearPreview()" title="清空对话">
+                    <img src="/static/icons/clear.png" alt="清空">
+                </button>
                 <textarea id="pInput" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行" onkeydown="onPKey(event)"></textarea>
                 <button type="button" class="preview-attach" onclick="document.getElementById('pFileInput').click()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -536,10 +939,12 @@ let _vsActive = -1;
 let _vsFilter = '';
 let agentId = null;
 let agentData = {
-    name: '', description: '', avatar: '🤖',
+    name: '', description: '', avatar: '',
     system_prompt: '', model: 'default',
-    variables: [], knowledge_base: [],
-    opening: ''
+    variables: [], knowledge_base: [], tools: [],
+    opening: '', deep_think: false,
+    struct_output: { enable: false, fields: [] },
+    temperature: 0.7
 };
 let saveTimer = null;
 let saving = false;
@@ -576,12 +981,7 @@ function getToken() { return localStorage.getItem('authToken'); }
 })();
 
 function goBack() {
-    var ref = document.referrer;
-    if (ref) {
-        history.back();
-    } else {
-        window.location.href = '/';
-    }
+    window.location.href = '/?panel=agentList';
 }
 
 function toggleSection(el) { el.closest('.section').classList.toggle('collapsed'); }
@@ -591,6 +991,203 @@ function onModelChange(val) {
     const desc = document.querySelector('#modelSel option:checked').getAttribute('data-desc') || '';
     document.getElementById('modelDesc').textContent = desc;
     markDirty();
+}
+
+function toggleDeepThink() {
+    var chk = document.getElementById('deepThinkToggle');
+    chk.checked = !chk.checked;
+    onDeepThinkChange(chk.checked);
+}
+
+function onDeepThinkChange(checked) {
+    agentData.deep_think = checked;
+    markDirty();
+}
+
+function onTemperatureChange(val) {
+    agentData.temperature = parseFloat(val);
+    document.getElementById('temperatureValue').textContent = val;
+    var pct = (val * 100) + '%';
+    document.getElementById('temperatureSlider').style.background = 'linear-gradient(to right, #667eea 0%, #667eea ' + pct + ', #e5e7eb ' + pct + ', #e5e7eb 100%)';
+    markDirty();
+}
+
+function onStructOutputChange(checked) {
+    agentData.struct_output.enable = checked;
+    if (checked) {
+        renderStructOutputFields();
+    }
+    markDirty();
+}
+
+// ===== Struct Output Fields Management =====
+function renderStructOutputFields() {
+    var list = document.getElementById('structOutputFieldsList');
+    var fields = agentData.struct_output.fields || [];
+    
+    if (fields.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:16px;color:#ccc;font-size:0.8rem;">暂无字段，点击"添加字段"开始配置</div>';
+        return;
+    }
+    
+    list.innerHTML = fields.map(function(field, idx) {
+        return '<div class="struct-output-field-item">' +
+            '<span class="field-name">' + esc(field.name) + '</span>' +
+            '<span class="field-type">' + esc(field.type) + '</span>' +
+            '<span class="field-desc">' + esc(field.description || '') + '</span>' +
+            '<span class="field-remove" onclick="removeStructOutputField(' + idx + ')">&times;</span>' +
+            '</div>';
+    }).join('');
+}
+
+function addStructOutputField() {
+    document.getElementById('modalFieldName').value = '';
+    document.getElementById('modalFieldType').value = 'string';
+    document.getElementById('modalFieldDesc').value = '';
+    document.getElementById('structOutputModal').classList.add('show');
+    document.getElementById('modalFieldName').focus();
+}
+
+function closeFieldModal() {
+    document.getElementById('structOutputModal').classList.remove('show');
+}
+
+function confirmAddField() {
+    var name = document.getElementById('modalFieldName').value.trim();
+    var type = document.getElementById('modalFieldType').value;
+    var desc = document.getElementById('modalFieldDesc').value.trim();
+    
+    if (!name) {
+        alert('请输入字段名');
+        return;
+    }
+    
+    if (!agentData.struct_output.fields) {
+        agentData.struct_output.fields = [];
+    }
+    
+    // Check for duplicate
+    if (agentData.struct_output.fields.some(function(f) { return f.name === name; })) {
+        alert('字段名已存在');
+        return;
+    }
+    
+    agentData.struct_output.fields.push({ name: name, type: type, description: desc });
+    renderStructOutputFields();
+    closeFieldModal();
+    markDirty();
+}
+
+function removeStructOutputField(idx) {
+    if (agentData.struct_output.fields) {
+        agentData.struct_output.fields.splice(idx, 1);
+        renderStructOutputFields();
+        markDirty();
+    }
+}
+
+function clearStructOutputFields() {
+    if (confirm('确定要清空所有字段配置吗？')) {
+        agentData.struct_output.fields = [];
+        renderStructOutputFields();
+        markDirty();
+    }
+}
+
+function saveStructOutputFields() {
+    // Fields are already saved in agentData, just mark as dirty
+    markDirty();
+    // Show success feedback
+    var btn = event.target;
+    var origText = btn.textContent;
+    btn.textContent = '已保存';
+    btn.style.background = '#22c55e';
+    setTimeout(function() {
+        btn.textContent = origText;
+        btn.style.background = '';
+    }, 1500);
+}
+
+// ===== JSON Import =====
+function importFromJSON() {
+    document.getElementById('jsonImportTextarea').value = '';
+    document.getElementById('structOutputJsonModal').classList.add('show');
+    document.getElementById('jsonImportTextarea').focus();
+}
+
+function closeJsonModal() {
+    document.getElementById('structOutputJsonModal').classList.remove('show');
+}
+
+function confirmJsonImport() {
+    var jsonText = document.getElementById('jsonImportTextarea').value.trim();
+    if (!jsonText) {
+        alert('请输入 JSON 内容');
+        return;
+    }
+    
+    try {
+        var parsed = JSON.parse(jsonText);
+        var fields = [];
+        
+        for (var key in parsed) {
+            if (parsed.hasOwnProperty(key)) {
+                var val = parsed[key];
+                var type = 'string';
+                if (typeof val === 'number') type = 'number';
+                else if (typeof val === 'boolean') type = 'boolean';
+                else if (Array.isArray(val)) type = 'array';
+                else if (typeof val === 'object' && val !== null) type = 'object';
+                
+                fields.push({ name: key, type: type, description: '' });
+            }
+        }
+        
+        agentData.struct_output.fields = fields;
+        renderStructOutputFields();
+        closeJsonModal();
+        markDirty();
+    } catch(e) {
+        alert('JSON 格式错误：' + e.message);
+    }
+}
+
+// ===== Extract Field from Stream Text =====
+function extractReplyFromStreamText(text) {
+    if (!agentData.struct_output || !agentData.struct_output.enable || !text) return text;
+    
+    var fields = agentData.struct_output.fields || [];
+    if (fields.length === 0) return text;
+    
+    // Use the first field as the display field
+    var fieldName = fields[0].name;
+    
+    // Try to parse as JSON and extract the specified field
+    try {
+        var cleaned = text.trim();
+        cleaned = cleaned.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+        
+        var parsed = JSON.parse(cleaned);
+        if (parsed && parsed[fieldName] !== undefined) {
+            return parsed[fieldName];
+        }
+    } catch(e) {
+        // If JSON parsing fails, try regex extraction
+        var escapedField = fieldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var replyMatch = text.match(new RegExp('["\']' + escapedField + '["\']\\s*[:：]\\s*["\']([^"\']*)["\']'));
+        if (replyMatch && replyMatch[1]) {
+            return replyMatch[1];
+        }
+    }
+    
+    return text;
+}
+
+// ===== Extract Field from Prompt (for preview) =====
+function extractReplyFromPrompt() {
+    // This function is called during prompt editing to extract
+    // the reply field from structured output config.
+    // Currently a no-op as the prompt itself is not JSON.
 }
 
 /* ===== Avatar ===== */
@@ -660,6 +1257,418 @@ function updVar(i, f, v) {
 }
 function addVariable() { agentData.variables.push({ key: '', name: '', type: 'string', default: '' }); renderVars(); markDirty(); }
 function delVar(i) { agentData.variables.splice(i, 1); renderVars(); markDirty(); }
+
+/* ===== Tools ===== */
+let _toolEditIdx = -1;
+let _toolParamIdx = 0;
+let _availableTools = [];  // 从数据库加载的可用工具列表
+
+// 加载可用工具列表
+async function loadAvailableTools() {
+    try {
+        const resp = await fetch('/api/agents/tools', { headers: { 'Authorization': 'Bearer ' + getToken() } });
+        if (resp.ok) {
+            const data = await resp.json();
+            _availableTools = data.tools || [];
+        }
+    } catch(e) {
+        console.error('加载工具列表失败:', e);
+    }
+}
+
+function renderTools() {
+    const list = document.getElementById('toolList');
+    const count = document.getElementById('toolCount');
+    if (!agentData.tools || agentData.tools.length === 0) {
+        list.innerHTML = '<div class="var-empty">还没有添加工具</div>';
+        count.textContent = '0 个';
+        return;
+    }
+    count.textContent = agentData.tools.length + ' 个';
+    
+    const methodColors = { GET: '#52c41a', POST: '#1890ff', PUT: '#faad14', DELETE: '#ff4d4f' };
+    
+    list.innerHTML = agentData.tools.map(function(t, i) {
+        var methodColor = methodColors[t.method] || '#999';
+        var authIcon = t.auth_type === 'api_key' ? '🔑' : t.auth_type === 'bearer' ? '🔒' : '';
+        var paramCount = (t.parameters || []).length;
+        var paramText = paramCount > 0 ? paramCount + ' 个参数' : '无参数';
+        
+        return '<div class="tool-card">' +
+            '<div class="tool-card-header">' +
+                '<span class="tool-card-icon">🔧</span>' +
+                '<div class="tool-card-title">' + esc(t.name) + '</div>' +
+                '<span class="tool-method-badge" style="background:' + methodColor + '">' + t.method + '</span>' +
+                '<button class="tool-card-del" onclick="delTool(' + i + ')" title="删除">✕</button>' +
+            '</div>' +
+            '<div class="tool-card-desc">' + esc(t.description) + '</div>' +
+            '<div class="tool-card-meta">' +
+                '<span class="tool-meta-item"> ' + esc(t.url.length > 50 ? t.url.substring(0, 50) + '...' : t.url) + '</span>' +
+                (authIcon ? '<span class="tool-meta-item">' + authIcon + ' ' + (t.auth_type === 'api_key' ? 'API Key' : 'Bearer') + '</span>' : '') +
+                '<span class="tool-meta-item"> ' + paramText + '</span>' +
+            '</div>' +
+        '</div>';
+    }).join('');
+}
+
+function closeToolModal() {
+    document.getElementById('toolModalOverlay').style.display = 'none';
+    _toolEditIdx = -1;
+}
+
+function toggleToolAuth() {
+    var type = document.getElementById('toolAuthType').value;
+    var config = document.getElementById('toolAuthConfig');
+    var label = document.getElementById('toolAuthLabel');
+    if (type === 'none') {
+        config.style.display = 'none';
+    } else {
+        config.style.display = 'block';
+        label.textContent = type === 'api_key' ? 'API Key' : 'Bearer Token';
+    }
+}
+
+function addToolParamRow(name, type, desc, required) {
+    var idx = _toolParamIdx++;
+    var div = document.createElement('div');
+    div.className = 'var-row';
+    div.id = 'tool-param-' + idx;
+    div.innerHTML = '<div class="var-row-left" style="flex:1;gap:8px;">' +
+        '<input type="text" placeholder="参数名" value="' + (name || '') + '" class="tp-name" style="flex:1;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;">' +
+        '<select class="tp-type" style="width:80px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;">' +
+            '<option value="string"' + (type === 'string' ? ' selected' : '') + '>string</option>' +
+            '<option value="number"' + (type === 'number' ? ' selected' : '') + '>number</option>' +
+            '<option value="boolean"' + (type === 'boolean' ? ' selected' : '') + '>boolean</option>' +
+        '</select>' +
+        '<input type="text" placeholder="描述" value="' + (desc || '') + '" class="tp-desc" style="flex:2;padding:6px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;">' +
+        '<label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;"><input type="checkbox" class="tp-req"' + (required ? ' checked' : '') + '> 必填</label>' +
+    '</div>' +
+    '<button class="var-del" onclick="this.parentElement.remove()" style="margin-left:4px;">×</button>';
+    document.getElementById('toolParamList').appendChild(div);
+}
+
+function saveToolFromModal() {
+    var name = document.getElementById('toolName').value.trim();
+    var desc = document.getElementById('toolDesc').value.trim();
+    var url = document.getElementById('toolUrl').value.trim();
+    if (!name || !desc || !url) {
+        showToast('请填写工具名称、描述和 API 地址', 'error');
+        return;
+    }
+    // 收集参数
+    var params = [];
+    document.querySelectorAll('#toolParamList .var-row').forEach(function(row) {
+        var pName = row.querySelector('.tp-name').value.trim();
+        var pType = row.querySelector('.tp-type').value;
+        var pDesc = row.querySelector('.tp-desc').value.trim();
+        var pReq = row.querySelector('.tp-req').checked;
+        if (pName) {
+            params.push({ name: pName, type: pType, description: pDesc, required: pReq });
+        }
+    });
+    // 解析 headers
+    var headers = {};
+    var headersStr = document.getElementById('toolHeaders').value.trim();
+    if (headersStr) {
+        try { headers = JSON.parse(headersStr); } catch(e) { showToast('请求头 JSON 格式错误', 'error'); return; }
+    }
+    var tool = {
+        name: name,
+        description: desc,
+        url: url,
+        method: document.getElementById('toolMethod').value,
+        timeout: parseInt(document.getElementById('toolTimeout').value) || 10,
+        headers: headers,
+        parameters: params,
+        auth_type: document.getElementById('toolAuthType').value,
+        auth_value: document.getElementById('toolAuthValue').value
+    };
+    if (_toolEditIdx >= 0) {
+        agentData.tools[_toolEditIdx] = tool;
+    } else {
+        agentData.tools.push(tool);
+    }
+    renderTools();
+    markDirty();
+    closeToolModal();
+    showToast('工具已保存');
+}
+
+function delTool(i) {
+    if (confirm('确定移除工具 "' + agentData.tools[i].name + '" 吗？')) {
+        agentData.tools.splice(i, 1);
+        renderTools();
+        markDirty();
+    }
+}
+
+// 打开工具选择弹窗
+function openToolSelectModal() {
+    var usedIds = {};
+    agentData.tools.forEach(function(t) { if (t.id) usedIds[t.id] = true; });
+    
+    window._toolSelectAll = _availableTools;
+    window._toolSelectUsedIds = usedIds;
+    window._toolSelectActiveCategory = null;
+    
+    renderToolSelectCategories();
+    document.getElementById('toolSelectSearch').value = '';
+    document.getElementById('toolSelectModalOverlay').style.display = 'flex';
+}
+
+// 防止拖拽选中文本时误触关闭弹窗
+(function() {
+    var isSelecting = false;
+    var overlay = document.getElementById('toolSelectModalOverlay');
+    if (!overlay) return;
+    
+    overlay.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeToolSelectModal();
+        }
+    });
+    
+    overlay.addEventListener('mousedown', function(e) {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            isSelecting = true;
+        }
+    });
+    
+    overlay.addEventListener('mouseup', function() {
+        isSelecting = false;
+    });
+    
+    overlay.addEventListener('mouseleave', function() {
+        isSelecting = false;
+    });
+    
+    var originalClose = closeToolSelectModal;
+    window.closeToolSelectModal = function() {
+        if (isSelecting) {
+            isSelecting = false;
+            return;
+        }
+        originalClose();
+    };
+})();
+
+function renderToolSelectCategories() {
+    var tools = window._toolSelectAll || [];
+    var usedIds = window._toolSelectUsedIds || {};
+    var categories = {};
+    tools.forEach(function(t) {
+        var cat = t.category || '未分类';
+        if (!categories[cat]) categories[cat] = [];
+        categories[cat].push(t);
+    });
+    var categoryOrder = ['翻译', '天气', '金融', '搜索', '通讯', '办公', '生活', '娱乐', '教育', '开发', '数据查询', '图像处理', '语音', '其他', '未分类'];
+    var sortedCats = Object.keys(categories).sort(function(a, b) {
+        var ia = categoryOrder.indexOf(a);
+        var ib = categoryOrder.indexOf(b);
+        if (ia === -1 && ib === -1) return a.localeCompare(b, 'zh');
+        if (ia === -1) return 1;
+        if (ib === -1) return -1;
+        return ia - ib;
+    });
+    var categoryIcons = {
+        '翻译': '🌐', '天气': '🌤️', '金融': '💰', '搜索': '🔍', '通讯': '📞',
+        '办公': '', '生活': '🏠', '娱乐': '🎮', '教育': '', '开发': '💻',
+        '数据查询': '📊', '图像处理': '🖼️', '语音': '🎙️', '其他': '📦', '未分类': '🔧'
+    };
+    var categoryColors = {
+        '翻译': '#667eea', '天气': '#11998e', '金融': '#f5af19', '搜索': '#667eea',
+        '通讯': '#38ef7d', '办公': '#667eea', '生活': '#f093fb', '娱乐': '#f5576c',
+        '教育': '#4facfe', '开发': '#43e97b', '数据查询': '#fa709a', '图像处理': '#a18cd1',
+        '语音': '#fbc2eb', '其他': '#999', '未分类': '#999'
+    };
+    var html = '';
+    sortedCats.forEach(function(cat) {
+        var icon = categoryIcons[cat] || '';
+        var count = categories[cat].length;
+        var isActive = window._toolSelectActiveCategory === cat;
+        var activeStyle = isActive 
+            ? 'background:#f5f3ff;border-color:#667eea;color:#667eea;' 
+            : 'background:transparent;border-color:transparent;color:#555;';
+        html += '<div class="tool-select-cat-item" data-category="' + esc(cat) + '" onclick="selectToolCategory(\'' + esc(cat) + '\')" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1.5px solid transparent;transition:all 0.15s;' + activeStyle + '" onmouseover="if(!' + isActive + ')this.style.background=\'#f9f9f9\'" onmouseout="if(!' + isActive + ')this.style.background=\'transparent\'">' +
+            '<span style="font-size:1rem;">' + icon + '</span>' +
+            '<span style="font-size:0.82rem;font-weight:' + (isActive ? '600' : '500') + ';flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(cat) + '</span>' +
+            '<span style="font-size:0.7rem;color:#999;background:#f0f0f0;padding:1px 6px;border-radius:8px;min-width:18px;text-align:center;">' + count + '</span>' +
+        '</div>';
+    });
+    document.getElementById('toolSelectCategoryList').innerHTML = html;
+    if (!window._toolSelectActiveCategory && sortedCats.length > 0) {
+        window._toolSelectActiveCategory = sortedCats[0];
+        renderToolSelectCategories();
+    }
+    renderToolSelectRightPanel(tools, usedIds);
+}
+
+function selectToolCategory(cat) {
+    window._toolSelectActiveCategory = cat;
+    renderToolSelectCategories();
+}
+
+function renderToolSelectRightPanel(tools, usedIds) {
+    var activeCat = window._toolSelectActiveCategory;
+    var catTools = tools.filter(function(t) { return (t.category || '未分类') === activeCat; });
+    var listHtml = '';
+    if (!catTools || catTools.length === 0) {
+        listHtml = '<div style="text-align:center;padding:60px 20px;color:#bbb;">' +
+            '<div style="font-size:2.5rem;margin-bottom:12px;">🔧</div>' +
+            '<div style="font-size:0.9rem;">该分类下暂无工具</div>' +
+        '</div>';
+    } else {
+        var categoryColors = {
+            '翻译': '#667eea', '天气': '#11998e', '金融': '#f5af19', '搜索': '#667eea',
+            '通讯': '#38ef7d', '办公': '#667eea', '生活': '#f093fb', '娱乐': '#f5576c',
+            '教育': '#4facfe', '开发': '#43e97b', '数据查询': '#fa709a', '图像处理': '#a18cd1',
+            '语音': '#fbc2eb', '其他': '#999', '未分类': '#999'
+        };
+        var color = categoryColors[activeCat] || '#999';
+        listHtml += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid ' + color + ';">';
+        listHtml += '<span style="font-size:0.92rem;font-weight:600;color:#1a1a1a;">' + esc(activeCat) + '</span>';
+        listHtml += '<span style="font-size:0.72rem;color:#999;background:#f7f8fa;padding:1px 8px;border-radius:10px;">' + catTools.length + ' 个工具</span>';
+        listHtml += '</div>';
+        listHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">';
+        catTools.forEach(function(t) {
+            var mc = { GET: '#52c41a', POST: '#1890ff', PUT: '#faad14', DELETE: '#ff4d4f' }[t.method] || '#999';
+            var isAdded = !!usedIds[t.id];
+            var disabledClass = isAdded ? ' tool-select-card-disabled' : '';
+            var onclickAttr = isAdded ? '' : ' onclick="addToolFromSelect(' + t.id + ')"';
+            var addBtnHtml = isAdded 
+                ? '<span class="tool-select-card-add tool-select-card-added">已添加</span>'
+                : '<span class="tool-select-card-add">+ 添加</span>';
+            listHtml += '<div class="tool-select-card' + disabledClass + '"' + onclickAttr + '>' +
+                '<div class="tool-select-card-header">' +
+                    '<span class="tool-select-card-name">' + esc(t.name) + '</span>' +
+                    '<span class="tool-method-badge" style="background:' + mc + ';">' + t.method + '</span>' +
+                '</div>' +
+                '<div class="tool-select-card-desc">' + esc(t.description || '') + '</div>' +
+                '<div class="tool-select-card-url">' + esc(t.url || '') + '</div>' +
+                '<div class="tool-select-card-footer">' +
+                    addBtnHtml +
+                '</div>' +
+            '</div>';
+        });
+        listHtml += '</div>';
+    }
+    document.getElementById('toolSelectList').innerHTML = listHtml;
+}
+
+function filterToolSelectList() {
+    var keyword = document.getElementById('toolSelectSearch').value.trim().toLowerCase();
+    var tools = window._toolSelectAll || [];
+    var usedIds = window._toolSelectUsedIds || {};
+    if (keyword) {
+        var filtered = tools.filter(function(t) {
+            return (t.name || '').toLowerCase().indexOf(keyword) !== -1 ||
+                   (t.description || '').toLowerCase().indexOf(keyword) !== -1;
+        });
+        var categories = {};
+        filtered.forEach(function(t) {
+            var cat = t.category || '未分类';
+            if (!categories[cat]) categories[cat] = [];
+            categories[cat].push(t);
+        });
+        var categoryOrder = ['翻译', '天气', '金融', '搜索', '通讯', '办公', '生活', '娱乐', '教育', '开发', '数据查询', '图像处理', '语音', '其他', '未分类'];
+        var sortedCats = Object.keys(categories).sort(function(a, b) {
+            var ia = categoryOrder.indexOf(a);
+            var ib = categoryOrder.indexOf(b);
+            if (ia === -1 && ib === -1) return a.localeCompare(b, 'zh');
+            if (ia === -1) return 1;
+            if (ib === -1) return -1;
+            return ia - ib;
+        });
+        var listHtml = '';
+        if (filtered.length === 0) {
+            listHtml = '<div style="text-align:center;padding:60px 20px;color:#bbb;">' +
+                '<div style="font-size:2.5rem;margin-bottom:12px;"></div>' +
+                '<div style="font-size:0.9rem;">未找到匹配的工具</div>' +
+            '</div>';
+        } else {
+            sortedCats.forEach(function(cat) {
+                var catTools = categories[cat];
+                listHtml += '<div style="margin-bottom:16px;">';
+                listHtml += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;padding-bottom:6px;border-bottom:1.5px solid #eef0f5;">';
+                listHtml += '<span style="font-size:0.85rem;font-weight:600;color:#1a1a1a;">' + esc(cat) + '</span>';
+                listHtml += '<span style="font-size:0.7rem;color:#999;background:#f7f8fa;padding:1px 6px;border-radius:8px;">' + catTools.length + ' 个</span>';
+                listHtml += '</div>';
+                listHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">';
+                catTools.forEach(function(t) {
+                    var mc = { GET: '#52c41a', POST: '#1890ff', PUT: '#faad14', DELETE: '#ff4d4f' }[t.method] || '#999';
+                    var isAdded = !!usedIds[t.id];
+                    var disabledClass = isAdded ? ' tool-select-card-disabled' : '';
+                    var onclickAttr = isAdded ? '' : ' onclick="addToolFromSelect(' + t.id + ')"';
+                    var addBtnHtml = isAdded 
+                        ? '<span class="tool-select-card-add tool-select-card-added">已添加</span>'
+                        : '<span class="tool-select-card-add">+ 添加</span>';
+                    listHtml += '<div class="tool-select-card' + disabledClass + '"' + onclickAttr + '>' +
+                        '<div class="tool-select-card-header">' +
+                            '<span class="tool-select-card-name">' + esc(t.name) + '</span>' +
+                            '<span class="tool-method-badge" style="background:' + mc + ';">' + t.method + '</span>' +
+                        '</div>' +
+                        '<div class="tool-select-card-desc">' + esc(t.description || '') + '</div>' +
+                        '<div class="tool-select-card-url">' + esc(t.url || '') + '</div>' +
+                        '<div class="tool-select-card-footer">' +
+                            addBtnHtml +
+                        '</div>' +
+                    '</div>';
+                });
+                listHtml += '</div></div>';
+            });
+        }
+        document.getElementById('toolSelectList').innerHTML = listHtml;
+        var catItems = document.querySelectorAll('.tool-select-cat-item');
+        catItems.forEach(function(item) {
+            var cat = item.getAttribute('data-category');
+            if (categories[cat]) {
+                item.style.background = '#f5f3ff';
+                item.style.borderColor = '#667eea';
+                item.style.color = '#667eea';
+            } else {
+                item.style.background = 'transparent';
+                item.style.borderColor = 'transparent';
+                item.style.color = '#ccc';
+            }
+        });
+    } else {
+        window._toolSelectActiveCategory = null;
+        renderToolSelectCategories();
+    }
+}
+
+function closeToolSelectModal() {
+    document.getElementById('toolSelectModalOverlay').style.display = 'none';
+}
+
+function addToolFromSelect(toolId) {
+    var t = _availableTools.find(function(x) { return x.id === toolId; });
+    if (!t) return;
+    
+    // 检查是否已添加
+    if (agentData.tools.some(function(x) { return x.id === toolId; })) {
+        showToast('该工具已添加', 'error');
+        return;
+    }
+    
+    agentData.tools.push({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        category: t.category,
+        url: t.url,
+        method: t.method,
+        timeout: t.timeout,
+        headers: t.headers,
+        parameters: t.parameters,
+        auth_type: t.auth_type,
+        auth_value: t.auth_value
+    });
+    renderTools();
+    markDirty();
+    closeToolSelectModal();
+    showToast('已添加工具: ' + t.name);
+}
 
 /* ===== Opening ===== */
 function showInitialPreview() {
@@ -783,10 +1792,10 @@ function updateKBCount() { document.getElementById('kbCount').textContent = '已
 
 /* ===== Models ===== */
 const DEFAULT_MODELS = [
-    { id: 'deepseek', name: 'DeepSeek V4 Pro', desc: '深度思考，能力最强' },
-    { id: 'glm', name: 'GLM-5.2 Fast Preview', desc: '智谱开源，速度快' },
-    { id: 'qwen_vl', name: 'Qwen VL Max', desc: '阿里百炼，多模态' },
-    { id: 'default', name: '通义千问 (默认)', desc: '稳定通用，均衡表现' },
+    {id: "glm", name: "GLM-5.2 Fast Preview", desc: "智谱开源，速度快"},
+    {id: "qwen-vl-max", name: "Qwen VL Max", desc: "阿里百炼，多模态"},
+    {id: "qwen-turbo", name: "Qwen turbo", desc: "稳定通用，均衡表现"},
+    {id: "default", name: "Qwen3.8-Max", desc: "深度思考，能力最强"},
 ];
 function fetchTimeout(url, opts, ms) {
     opts = opts || {};
@@ -858,8 +1867,12 @@ async function doSave(isAuto) {
             name: agentData.name.trim(), description: agentData.description,
             avatar: agentData.avatar, system_prompt: agentData.system_prompt,
             model: agentData.model, variables: agentData.variables,
-            knowledge_base: agentData.knowledge_base, is_published: !!agentData.is_published,
-            opening: agentData.opening
+            knowledge_base: agentData.knowledge_base, tools: agentData.tools,
+            is_published: !!agentData.is_published,
+            opening: agentData.opening,
+            deep_think: agentData.deep_think,
+            struct_output: agentData.struct_output,
+            temperature: agentData.temperature
         };
         const r = await fetch(url, {
             method: method, headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
@@ -886,6 +1899,7 @@ function saveAgent() { doSave(false); }
 function syncUI() {
     agentData.system_prompt = document.getElementById('sysPrompt').value;
     agentData.opening = document.getElementById('openingText').value;
+    agentData.struct_output.enable = document.getElementById('structOutputToggle').checked;
     const sel = document.getElementById('modelSel');
     if (sel.value) agentData.model = sel.value;
 }
@@ -1168,15 +2182,27 @@ async function loadAgent() {
             name: d.name || '', description: d.description || '', avatar: d.avatar || '🤖',
             system_prompt: d.system_prompt || '', model: d.model || 'default',
             variables: safeParse(d.variables, []), knowledge_base: safeParse(d.knowledge_base, []),
+            tools: safeParse(d.tools, []),
             is_published: !!d.is_published,
-            opening: d.opening || ''
+            opening: d.opening || '',
+            deep_think: !!d.deep_think,
+            struct_output: safeParse(d.struct_output, { enable: false, fields: [] }),
+            temperature: d.temperature !== undefined && d.temperature !== null ? d.temperature : 0.7
         };
         document.getElementById('sysPrompt').value = agentData.system_prompt;
         document.getElementById('promptChars').textContent = agentData.system_prompt.length;
         document.getElementById('openingText').value = agentData.opening;
         document.getElementById('openingChars').textContent = agentData.opening.length;
-        updateOpening();
-        initAvatars(); renderBuiltinVars(); renderVars(); _refreshPreviewVars(); refreshHeader(); updatePubBtn();
+        document.getElementById('openingStatus').textContent = agentData.opening ? '已设置' : '未设置';
+        document.getElementById('deepThinkToggle').checked = agentData.deep_think;
+        document.getElementById('structOutputToggle').checked = agentData.struct_output.enable;
+        document.getElementById('temperatureSlider').value = agentData.temperature;
+        document.getElementById('temperatureValue').textContent = agentData.temperature;
+        var pct = (agentData.temperature * 100) + '%';
+        document.getElementById('temperatureSlider').style.background = 'linear-gradient(to right, #667eea 0%, #667eea ' + pct + ', #e5e7eb ' + pct + ', #e5e7eb 100%)';
+        renderStructOutputFields();
+        initAvatars(); renderBuiltinVars(); renderVars(); renderTools(); _refreshPreviewVars(); refreshHeader(); updatePubBtn(); updateHistoryBtn();
+        showInitialPreview();
         await loadModels(); await loadKB();
     } catch (e) {
         initNew();
@@ -1190,13 +2216,14 @@ function initNew() {
 function safeParse(s, fb) {
     if (!s) return fb;
     if (Array.isArray(s)) return s;
+    if (typeof s === 'object') return s;
     try { return JSON.parse(s); } catch(e) { return fb; }
 }
 
 function updatePubBtn() {
     const b = document.getElementById('pubBtn');
-    if (agentData.is_published) { b.textContent = '📕 取消发布'; b.classList.add('unpublish'); }
-    else { b.textContent = '🚀 发布'; b.classList.remove('unpublish'); }
+    b.textContent = '🚀 发布';
+    b.classList.remove('unpublish');
 }
 function _showPublishDialog() {
     var existing = document.getElementById('publishDialog');
@@ -1260,7 +2287,7 @@ function _showPublishDialog() {
             agentData.is_published = true;
             agentData.publish_version = res.publish_version || version;
             dlg.remove();
-            refreshHeader(); updatePubBtn();
+            refreshHeader(); updatePubBtn(); updateHistoryBtn();
             showToast('发布成功 🎉', 'success');
         } catch (e) {
             btn.disabled = false; btn.style.opacity = '1'; btn.textContent = '✅ 确认发布';
@@ -1270,19 +2297,82 @@ function _showPublishDialog() {
 }
 async function togglePublish() {
     if (!agentId) { await doSave(false); if (!agentId) return; }
+    await doSave(false);
+    if (!agentId) return;
+    window.location.href = '/publish?id=' + agentId;
+}
 
-    if (agentData.is_published) {
-        try {
-            const r = await fetch('/api/agents/' + agentId + '/unpublish', {
-                method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }
-            });
-            if (!r.ok) throw new Error('操作失败');
-            agentData.is_published = false;
-            refreshHeader(); updatePubBtn();
-            showToast('已取消发布');
-        } catch (e) { showToast(e.message || '操作失败', 'error'); }
+/* ===== Publish History ===== */
+function updateHistoryBtn() {
+    const btn = document.getElementById('historyBtn');
+    if (agentData && agentData.is_published) {
+        btn.style.display = 'inline-flex';
     } else {
-        _showPublishDialog();
+        btn.style.display = 'none';
+    }
+}
+
+async function showPublishHistory() {
+    if (!agentId) return;
+    
+    var existing = document.getElementById('historyDialog');
+    if (existing) existing.remove();
+
+    var dlg = document.createElement('div');
+    dlg.id = 'historyDialog';
+    dlg.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;';
+    dlg.onclick = function(e) { if (e.target === dlg) dlg.remove(); };
+    dlg.innerHTML =
+        '<div style="background:white;border-radius:14px;width:560px;max-width:92vw;max-height:80vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);display:flex;flex-direction:column;">' +
+            '<div style="padding:20px 24px;border-bottom:1px solid #eef0f5;flex-shrink:0;">' +
+                '<div style="display:flex;align-items:center;gap:10px;">' +
+                    '<div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:white;font-size:18px;">📋</div>' +
+                    '<div>' +
+                        '<div style="font-size:1rem;font-weight:600;color:#1a1a1a;">发布记录</div>' +
+                        '<div style="font-size:0.8rem;color:#888;">查看此智能体的所有发布版本</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+            '<div style="padding:20px 24px;overflow-y:auto;flex:1;" id="historyList">' +
+                '<div style="text-align:center;padding:40px;color:#999;">加载中...</div>' +
+            '</div>' +
+            '<div style="padding:14px 24px;border-top:1px solid #eef0f5;display:flex;justify-content:flex-end;background:#fafbfc;flex-shrink:0;">' +
+                '<button onclick="document.getElementById(\'historyDialog\').remove()" style="padding:9px 22px;border:1px solid #e5e7eb;background:white;color:#555;border-radius:8px;cursor:pointer;font-size:0.88rem;transition:all .2s;">关闭</button>' +
+            '</div>' +
+        '</div>';
+
+    document.body.appendChild(dlg);
+
+    try {
+        var r = await fetch('/api/agents/' + agentId + '/publish-history', {
+            headers: { 'Authorization': 'Bearer ' + getToken() }
+        });
+        if (!r.ok) throw new Error('获取发布记录失败');
+        var res = await r.json();
+        
+        var listEl = document.getElementById('historyList');
+        if (!res.history || res.history.length === 0) {
+            listEl.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">暂无发布记录</div>';
+        } else {
+            var html = '<div style="display:flex;flex-direction:column;gap:12px;">';
+            res.history.forEach(function(h, idx) {
+                html +=
+                    '<div style="border:1px solid #eef0f5;border-radius:10px;padding:14px 16px;background:#fafbfc;">' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+                            '<div style="display:flex;align-items:center;gap:8px;">' +
+                                '<span style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:2px 10px;border-radius:12px;font-size:0.78rem;font-weight:600;">' + esc(h.version) + '</span>' +
+                                '<span style="font-size:0.75rem;color:#999;">' + esc(h.published_at || '') + '</span>' +
+                            '</div>' +
+                            '<span style="font-size:0.75rem;color:#667eea;background:#f5f3ff;padding:2px 8px;border-radius:4px;">' + esc(h.channels || '小智官方') + '</span>' +
+                        '</div>' +
+                        '<div style="font-size:0.82rem;color:#666;line-height:1.5;margin-top:4px;">' + (h.description ? esc(h.description) : '<span style="color:#bbb;">（暂无发布描述）</span>') + '</div>' +
+                    '</div>';
+            });
+            html += '</div>';
+            listEl.innerHTML = html;
+        }
+    } catch (e) {
+        document.getElementById('historyList').innerHTML = '<div style="text-align:center;padding:40px;color:#ff4757;">' + esc(e.message) + '</div>';
     }
 }
 
@@ -1573,6 +2663,10 @@ async function sendP() {
                     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
                     '<span class="act-label">复制</span>' +
                 '</button>' +
+                '<button class="msg-act-btn retry" title="重试" onclick="_actRetry(this)">' +
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>' +
+                    '<span class="act-label">重试</span>' +
+                '</button>' +
             '</div>' +
         '</div>' +
     '</div>';
@@ -1596,7 +2690,7 @@ async function sendP() {
         if (agentData.knowledge_base && agentData.knowledge_base.length > 0) {
             chatUrl += '?kb_id=' + encodeURIComponent(agentData.knowledge_base[0]);
         }
-        var bodyObj = { message: text };
+        var bodyObj = { message: text, deep_think: agentData.deep_think, model: agentData.model || 'qwen3.8-max' };
         var pre = _collectPreviewPresets();
         if (Object.keys(pre).length > 0) {
             bodyObj.variables = pre;
@@ -1633,8 +2727,9 @@ async function sendP() {
                             if (think) think.remove();
                             if (bub) bub.style.display = 'inline';
                         }
-                        acc += j.text;
-                        if (bub) bub.innerHTML = marked.parse(acc);
+                        acc = j.text;
+                        var displayText = extractReplyFromStreamText(acc);
+                        if (bub) bub.innerHTML = marked.parse(displayText);
                     } else if (j.status === 'error') {
                         if (think) think.remove();
                         if (bub) { bub.style.display = 'inline'; bub.innerHTML = '<span style="color:#ff4757;">❌ ' + esc(j.text) + '</span>'; }
@@ -1644,11 +2739,13 @@ async function sendP() {
             msgs.scrollTop = msgs.scrollHeight;
         }
         assistantNode._rawText = acc;
+        assistantNode._userMessage = text;
         if (actions) actions.classList.add('show');
     } catch (e) {
         if (think && think.parentNode) think.remove();
         if (bub) bub.innerHTML = '<span style="color:#ff4757;">❌ ' + esc(e.message) + '</span>';
         assistantNode._rawText = '';
+        assistantNode._userMessage = text;
         if (actions) actions.classList.add('show');
     } finally {
         sendBtn.classList.remove('sending');
@@ -1702,6 +2799,30 @@ function _actCopy(btn) {
         catch(err) { showToast('复制失败', 'error'); }
         document.body.removeChild(ta);
     });
+}
+
+async function _actRetry(btn) {
+    var assistantMsg = btn.closest('.msg.assistant');
+    if (!assistantMsg) return;
+    var userMessage = assistantMsg._userMessage;
+    if (!userMessage) {
+        showToast('找不到原始问题，无法重试', 'error');
+        return;
+    }
+    
+    // 找到并移除对应的用户消息（assistant 消息的前一个兄弟元素）
+    var userMsgEl = assistantMsg.previousElementSibling;
+    if (userMsgEl && userMsgEl.classList.contains('user')) {
+        userMsgEl.remove();
+    }
+    
+    // 移除当前 assistant 消息
+    assistantMsg.remove();
+    
+    // 重新发送消息
+    var input = document.getElementById('pInput');
+    input.value = userMessage;
+    await sendP();
 }
 
 /* ===== Boot ===== */
@@ -1759,6 +2880,9 @@ function setupUndoRedo(textarea, onInput) {
 document.addEventListener('DOMContentLoaded', async function() {
     if (!getToken()) { window.location.href = '/'; return; }
 
+    // 加载可用工具列表
+    await loadAvailableTools();
+
     suppressHistory = true;
     setupUndoRedo(document.getElementById('sysPrompt'), function() {
         document.getElementById('promptChars').textContent = this.value.length;
@@ -1777,6 +2901,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         var before = val.substring(0, pos);
 
         _refreshPreviewVars();
+        if (agentData.struct_output) extractReplyFromPrompt();
 
         var kbTrigger = before.lastIndexOf('`');
         if (kbTrigger !== -1) {
@@ -1881,5 +3006,144 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 <div class="var-suggest" id="varSuggest" style="display:none;"></div>
 <div class="var-suggest" id="kbSuggest" style="display:none;"></div>
+
+<!-- 工具配置弹窗 -->
+<div class="modal-overlay" id="toolModalOverlay" style="display:none;" onclick="closeToolModal()">
+    <div class="modal-box" onclick="event.stopPropagation();" style="max-width:600px;">
+        <div class="modal-title">配置 API 工具</div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>工具名称 <span style="color:red">*</span></label>
+                <input type="text" id="toolName" placeholder="如：查询天气" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+            </div>
+            <div class="form-group">
+                <label>工具描述（LLM 根据此判断何时调用）<span style="color:red">*</span></label>
+                <textarea id="toolDesc" rows="3" placeholder="详细描述工具功能，越具体越好。例如：查询指定城市的实时天气，包括温度、天气状况、风力等信息" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;resize:vertical;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>API 地址 <span style="color:red">*</span></label>
+                <input type="text" id="toolUrl" placeholder="https://wttr.in/{city}?format=j1&lang=zh" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+                <div style="font-size:12px;color:#999;margin-top:4px;">使用 {参数名} 作为占位符，如 {city}、{order_id}</div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label>请求方法</label>
+                    <select id="toolMethod" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>超时（秒）</label>
+                    <input type="number" id="toolTimeout" value="10" min="1" max="60" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>请求头（JSON 格式）</label>
+                <textarea id="toolHeaders" rows="2" placeholder='{"Content-Type": "application/json"}' style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-family:monospace;resize:vertical;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>参数定义</label>
+                <div id="toolParamList"></div>
+                <button type="button" class="var-add" onclick="addToolParamRow()" style="margin-top:8px;">+ 添加参数</button>
+            </div>
+            <div class="form-group">
+                <label>认证方式</label>
+                <select id="toolAuthType" onchange="toggleToolAuth()" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+                    <option value="none">无</option>
+                    <option value="api_key">API Key</option>
+                    <option value="bearer">Bearer Token</option>
+                </select>
+            </div>
+            <div class="form-group" id="toolAuthConfig" style="display:none;">
+                <label id="toolAuthLabel">密钥</label>
+                <input type="password" id="toolAuthValue" placeholder="输入密钥" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:14px;">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeToolModal()">取消</button>
+            <button type="button" class="btn-save" onclick="saveToolFromModal()">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 工具选择弹窗 -->
+<div class="modal-overlay" id="toolSelectModalOverlay" style="display:none;">
+    <div class="modal-box" style="max-width:1000px;width:92vw;max-height:85vh;display:flex;flex-direction:column;">
+        <div class="modal-title" style="flex-shrink:0;">
+            <span>选择工具</span>
+        </div>
+        <div style="display:flex;flex:1;overflow:hidden;min-height:0;">
+            <!-- 左侧分类列表 -->
+            <div style="width:200px;flex-shrink:0;border-right:1px solid #eef0f5;display:flex;flex-direction:column;overflow:hidden;">
+                <div style="padding:12px 14px;flex-shrink:0;">
+                    <input type="text" id="toolSelectSearch" placeholder="搜索工具名称..." oninput="filterToolSelectList()" style="width:100%;padding:7px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:0.82rem;outline:none;">
+                </div>
+                <div id="toolSelectCategoryList" style="flex:1;overflow-y:auto;padding:4px 8px 12px;"></div>
+            </div>
+            <!-- 右侧工具列表 -->
+            <div style="flex:1;overflow-y:auto;padding:16px 20px;">
+                <div id="toolSelectList"></div>
+            </div>
+        </div>
+        <div class="modal-footer" style="flex-shrink:0;">
+            <button type="button" class="btn-cancel" onclick="closeToolSelectModal()">关闭</button>
+        </div>
+    </div>
+</div>
+
+<!-- Struct Output Field Modal -->
+<div class="struct-output-modal" id="structOutputModal">
+    <div class="struct-output-modal-content">
+        <div class="struct-output-modal-header">
+            <span class="struct-output-modal-title">添加字段</span>
+            <span class="struct-output-modal-close" onclick="closeFieldModal()">&times;</span>
+        </div>
+        <div class="struct-output-modal-body">
+            <div class="struct-output-modal-field">
+                <label class="struct-output-modal-label">字段名</label>
+                <input type="text" class="struct-output-modal-input" id="modalFieldName" placeholder="例如：reply">
+            </div>
+            <div class="struct-output-modal-field">
+                <label class="struct-output-modal-label">类型</label>
+                <select class="struct-output-modal-select" id="modalFieldType">
+                    <option value="string">string</option>
+                    <option value="number">number</option>
+                    <option value="boolean">boolean</option>
+                    <option value="array">array</option>
+                    <option value="object">object</option>
+                </select>
+            </div>
+            <div class="struct-output-modal-field">
+                <label class="struct-output-modal-label">描述</label>
+                <input type="text" class="struct-output-modal-input" id="modalFieldDesc" placeholder="字段描述（可选）">
+            </div>
+        </div>
+        <div class="struct-output-modal-footer">
+            <button class="struct-output-btn struct-output-btn-secondary" onclick="closeFieldModal()">取消</button>
+            <button class="struct-output-btn struct-output-btn-primary" onclick="confirmAddField()">确定</button>
+        </div>
+    </div>
+</div>
+
+<!-- JSON Import Modal -->
+<div class="struct-output-json-modal" id="structOutputJsonModal">
+    <div class="struct-output-json-modal-content">
+        <div class="struct-output-modal-header">
+            <span class="struct-output-modal-title">从 JSON 导入</span>
+            <span class="struct-output-modal-close" onclick="closeJsonModal()">&times;</span>
+        </div>
+        <div class="struct-output-modal-body">
+            <textarea class="struct-output-json-textarea" id="jsonImportTextarea" placeholder='粘贴 JSON 示例，例如：&#10;{&#10;  "reply": "回复内容",&#10;  "action": "continue",&#10;  "customer_tag": ["配合"]&#10;}'></textarea>
+        </div>
+        <div class="struct-output-modal-footer">
+            <button class="struct-output-btn struct-output-btn-secondary" onclick="closeJsonModal()">取消</button>
+            <button class="struct-output-btn struct-output-btn-primary" onclick="confirmJsonImport()">导入</button>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

@@ -10,10 +10,13 @@ drawing_knowledge_db/
 test_*
 *.db
 users.db.bak
-test.py
+抠图保存成透明png.py
 doc/*
 resource/common_knowledge/
 fix_*
 *bak
 templates/untitled-1.html
 templates/bak.html
+
+# 模型权重
+models/

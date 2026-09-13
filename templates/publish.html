@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发布智能体 - 小智</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f5f6f8;
+            min-height: 100vh;
+            color: #1a1a2e;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            height: 72px;
+            background: #fff;
+            border-bottom: 1px solid #eef0f5;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .top-bar .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: none;
+            font-size: 1.05rem;
+            color: #555;
+            cursor: pointer;
+            padding: 10px 14px;
+            border-radius: 10px;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .top-bar .back-btn:hover { background: #f2f3f5; color: #333; }
+        .top-bar .back-btn svg { width: 24px; height: 24px; }
+        .top-bar .title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #1a1a2e;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .top-bar .publish-top-btn {
+            padding: 7px 40px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            box-shadow: 0 4px 12px rgba(102,126,234,0.35);
+        }
+        .top-bar .publish-top-btn:hover { opacity: 0.92; transform: translateY(-1px); }
+        .top-bar .publish-top-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .content {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 24px 20px 40px;
+        }
+
+        .section {
+            background: #fff;
+            border-radius: 14px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .section-header .sec-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+        .section-header .sec-required {
+            color: #ff4d4f;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .form-row:last-child { margin-bottom: 0; }
+        .form-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-item label {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #555;
+        }
+        .form-item label .required {
+            color: #ff4d4f;
+        }
+        .form-item input,
+        .form-item textarea,
+        .form-item select {
+            padding: 10px 14px;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.88rem;
+            color: #333;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fafbfc;
+            width: 100%;
+        }
+        .form-item input:focus,
+        .form-item textarea:focus,
+        .form-item select:focus {
+            border-color: #667eea;
+            background: #fff;
+        }
+        .form-item input::placeholder,
+        .form-item textarea::placeholder { color: #c0c4cc; }
+        .form-item textarea {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.6;
+        }
+        .form-item select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px;
+            cursor: pointer;
+        }
+        .form-item .error-msg {
+            color: #ff4d4f;
+            font-size: 0.74rem;
+            display: none;
+        }
+
+        .disclaimer {
+            padding: 0;
+            font-size: 0.82rem;
+            color: #888;
+            line-height: 1.7;
+            margin-bottom: 18px;
+        }
+        .disclaimer svg {
+            display: none;
+        }
+
+        .channel-list {
+            border: 1px solid #eef0f5;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .channel-list-header {
+            padding: 14px 18px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 1px solid #f0f0f5;
+            background: #fafbfc;
+        }
+
+        .channel-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-bottom: 1px solid #f0f0f5;
+            background: #fff;
+            transition: background 0.15s;
+            cursor: pointer;
+        }
+        .channel-item:last-child { border-bottom: none; }
+        .channel-item:hover { background: #faf9ff; }
+        .channel-item.selected { background: #f5f3ff; }
+
+        .channel-item .cc-check {
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            border: 1.5px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .channel-item .cc-check svg {
+            width: 13px;
+            height: 13px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            color: #fff;
+        }
+        .channel-item.selected .cc-check {
+            background: #667eea;
+            border-color: #667eea;
+        }
+        .channel-item.selected .cc-check svg {
+            opacity: 1;
+        }
+
+        .channel-item .ch-category {
+            margin-left: auto;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .channel-item .ch-category .ch-cat-label {
+            font-size: 0.82rem;
+            color: #888;
+            flex-shrink: 0;
+        }
+        .channel-item .ch-category select {
+            padding: 5px 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            color: #c0c0c0;
+            font-family: inherit;
+            outline: none;
+            background: transparent;
+            cursor: not-allowed;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        .channel-item.selected .ch-category select {
+            border-color: #667eea;
+            background: #fff;
+            color: #333;
+            cursor: pointer;
+            pointer-events: auto;
+            opacity: 1;
+        }
+
+        .channel-item .ch-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .ch-icon-store { background: #fef3e2; }
+        .ch-icon-wechat { background: #e8fce8; }
+
+        .channel-item .ch-info { flex: none; }
+        .channel-item .ch-name {
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: #1a1a2e;
+        }
+
+        .channel-item .ch-status {
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .ch-status.authorized {
+            background: #f0f9eb;
+            color: #52c41a;
+            border: 1px solid #d4edda;
+        }
+        .ch-status.unauthorized {
+            background: #f5f5f5;
+            color: #bbb;
+            border: 1px solid #e8e8e8;
+        }
+
+        .channel-item .ch-config-btn {
+            margin-left: auto;
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: none;
+            background: transparent;
+            color: #667eea;
+            font-size: 0.78rem;
+            cursor: not-allowed;
+            font-family: inherit;
+            flex-shrink: 0;
+        }
+
+        .channel-item .ch-expand {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .channel-item .ch-expand svg {
+            width: 14px;
+            height: 14px;
+            color: #999;
+            transition: transform 0.2s;
+        }
+        .channel-item.expanded .ch-expand svg {
+            transform: rotate(90deg);
+        }
+
+        .channel-subs {
+            display: none;
+            background: #fafbfc;
+        }
+        .channel-subs.show { display: block; }
+
+        .channel-sub-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 18px 12px 52px;
+            border-bottom: 1px solid #f0f0f5;
+            transition: background 0.15s;
+        }
+        .channel-sub-item:last-child { border-bottom: none; }
+        .channel-sub-item.disabled { opacity: 0.6; }
+        .channel-sub-item .cc-check {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 1.5px solid #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .channel-sub-item .cc-check svg {
+            width: 11px;
+            height: 11px;
+            opacity: 0;
+            color: #fff;
+        }
+        .channel-sub-item.selected .cc-check {
+            background: #667eea;
+            border-color: #667eea;
+        }
+        .channel-sub-item.selected .cc-check svg { opacity: 1; }
+        .channel-sub-item .ch-sub-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+            background: #f0f0f5;
+        }
+        .channel-sub-item .ch-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1a1a2e;
+        }
+        .channel-sub-item .ch-status {
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .channel-sub-item .ch-config-btn {
+            margin-left: auto;
+            padding: 4px 12px;
+            border-radius: 4px;
+            border: none;
+            background: transparent;
+            color: #667eea;
+            font-size: 0.78rem;
+            cursor: not-allowed;
+            font-family: inherit;
+            flex-shrink: 0;
+        }
+
+        .toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a2e;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            z-index: 9999;
+            animation: toastIn 0.3s ease;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+
+        .terms-link {
+            color: #667eea;
+            text-decoration: none;
+            border-bottom: 1px dashed #667eea;
+            cursor: pointer;
+        }
+        .terms-link:hover {
+            color: #5568d3;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            animation: modalFade 0.2s;
+        }
+        .modal-overlay.show { display: flex; }
+
+        @keyframes modalFade {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 14px;
+            width: 460px;
+            max-width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            animation: modalSlide 0.25s ease;
+            overflow: hidden;
+        }
+        @keyframes modalSlide {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px;
+            border-bottom: 1px solid #f0f0f5;
+        }
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .modal-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            transition: all 0.15s;
+        }
+        .modal-close:hover {
+            background: #f5f5f5;
+            color: #333;
+        }
+        .modal-close svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .modal-body {
+            padding: 8px 0;
+        }
+        .terms-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 22px;
+            border-bottom: 1px solid #f5f5f8;
+        }
+        .terms-row:last-child { border-bottom: none; }
+        .terms-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .terms-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f0f9eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+        .terms-name {
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: #1a1a2e;
+        }
+        .terms-link-item {
+            font-size: 0.82rem;
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .terms-link-item:hover {
+            text-decoration: underline;
+        }
+
+        .modal-footer {
+            padding: 14px 22px 20px;
+            display: flex;
+            justify-content: flex-end;
+        }
+        .modal-confirm-btn {
+            padding: 9px 28px;
+            border: none;
+            border-radius: 8px;
+            background: #667eea;
+            color: #fff;
+            font-size: 0.88rem;
+            font-weight: 500;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .modal-confirm-btn:hover {
+            background: #5568d3;
+        }
+
+        .success-result {
+            max-width: 720px;
+            margin: 48px auto;
+            padding: 0 24px;
+        }
+        .success-card {
+            background: #f0f3ff;
+            border: 1px solid #d4daff;
+            border-radius: 10px;
+            padding: 24px 28px;
+            margin-bottom: 24px;
+        }
+        .success-icon { font-size: 20px; }
+        .success-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+        .success-title { font-size: 17px; font-weight: 600; color: #222; }
+        .success-desc { font-size: 13px; color: #888; }
+
+        .result-table {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .result-table-header {
+            display: flex;
+            padding: 14px 20px;
+            background: #fafbfc;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+        }
+        .result-col-channel { width: 45%; }
+        .result-row {
+            display: flex;
+            padding: 18px 20px;
+            align-items: center;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .result-row:last-child { border-bottom: none; }
+        .result-ch-icon {
+            width: 32px; height: 32px;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 8px;
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        .result-ch-store { background: #eef0ff; }
+        .result-ch-name { font-size: 14px; font-weight: 500; color: #222; }
+        .result-col-status { display: flex; align-items: center; gap: 16px; }
+        .result-success-badge {
+            background: #e6f7ed;
+            color: #12b76a;
+            border: 1px solid #b7ebc6;
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .result-action {
+            color: #5b6cdf;
+            font-size: 13px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .result-action:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            返回
+        </button>
+        <span class="title"></span>
+        <button class="publish-top-btn" id="publishTopBtn" onclick="doPublish()">发布</button>
+        <button class="publish-top-btn" id="doneTopBtn" onclick="goEditor()" style="display:none">完成</button>
+    </div>
+
+    <div class="content">
+        <div class="section">
+            <div class="section-header">
+                <span class="sec-title">发布记录</span>
+            </div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>发布版本 <span class="required">*</span></label>
+                    <input type="text" id="versionInput" placeholder="请输入版本号，如 1.0.0" maxlength="50">
+                    <div class="error-msg" id="versionError">请输入发布版本号</div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-item">
+                    <label>发布描述</label>
+                    <textarea id="descInput" placeholder="简要描述本次发布的内容或更新说明..." maxlength="500"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <span class="sec-title">选择发布渠道</span>
+                <span class="sec-required">*</span>
+            </div>
+
+            <div class="disclaimer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                在以下平台发布你的智能体，即表示你已充分理解并同意遵循<a href="javascript:void(0)" onclick="showTermsModal()" class="terms-link">各发布渠道服务条款</a>（包括但不限于任何隐私政策、社区指南、数据处理协议等）。
+            </div>
+
+            <div class="channel-list">
+                <div class="channel-list-header">发布渠道</div>
+                <div class="channel-item authorized selected" data-channel="store" onclick="toggleChannel(this)">
+                    <div class="cc-check">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="ch-icon ch-icon-store">🏪</div>
+                    <div class="ch-info">
+                        <div class="ch-name-row">
+                            <span class="ch-name">小智商店</span>
+                            <span class="ch-status authorized">
+                                <span class="status-dot green"></span> 已授权
+                            </span>
+                        </div>
+                    </div>
+                    <div class="ch-category">
+                        <span class="ch-cat-label">分类</span>
+                        <select id="categorySelect" onclick="event.stopPropagation()">
+                            <option value="效率工具">效率工具</option>
+                            <option value="商业服务">商业服务</option>
+                            <option value="文本创作">文本创作</option>
+                            <option value="学习教育">学习教育</option>
+                            <option value="代码助手">代码助手</option>
+                            <option value="生活方式">生活方式</option>
+                            <option value="游戏">游戏</option>
+                            <option value="娱乐创意">娱乐创意</option>
+                            <option value="实用工具">实用工具</option>
+                            <option value="医疗客服">医疗客服</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="channel-item channel-parent" data-channel="wechat">
+                    <div class="ch-expand" onclick="toggleWechatExpand(event)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </div>
+                    <div class="ch-icon ch-icon-wechat">💬</div>
+                    <div class="ch-info">
+                        <div class="ch-name-row">
+                            <span class="ch-name">微信</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="channel-subs" id="wechatSubs">
+                    <div class="channel-sub-item disabled" data-channel="wechat_miniapp" onclick="toggleChannel(this)">
+                        <div class="cc-check">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                        </div>
+                        <div class="ch-sub-icon">📱</div>
+                        <div class="ch-info">
+                            <span class="ch-name">微信小程序</span>
+                        </div>
+                        <div class="ch-status unauthorized">
+                            <span class="status-dot gray"></span> 未授权
+                        </div>
+                        <button class="ch-config-btn" disabled>配置</button>
+                    </div>
+                    <div class="channel-sub-item disabled" data-channel="wechat_service" onclick="toggleChannel(this)">
+                        <div class="cc-check">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+                        </div>
+                        <div class="ch-sub-icon">💼</div>
+                        <div class="ch-info">
+                            <span class="ch-name">微信客服</span>
+                        </div>
+                        <div class="ch-status unauthorized">
+                            <span class="status-dot gray"></span> 未授权
+                        </div>
+                        <button class="ch-config-btn" disabled>配置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="success-result" id="successResult" style="display:none">
+        <div class="success-card">
+            <div class="success-title-row">
+                <span class="success-icon">🎉</span>
+                <span class="success-title">已成功提交发布！</span>
+            </div>
+            <div class="success-desc">首次发布成功后可以在发布管理查看详情。</div>
+        </div>
+        <div class="result-table">
+            <div class="result-table-header">
+                <div class="result-col-channel">发布渠道</div>
+                <div class="result-col-status">发布结果</div>
+            </div>
+            <div class="result-row">
+                <div class="result-col-channel">
+                    <span class="result-ch-icon result-ch-store">🏪</span>
+                    <span class="result-ch-name">小智商店</span>
+                </div>
+                <div class="result-col-status">
+                    <span class="result-success-badge">成功</span>
+                    <a href="javascript:void(0)" class="result-action" onclick="goUsePage()">立即对话</a>
+                    <a href="javascript:void(0)" class="result-action" onclick="copyAgentLink()">复制智能体链接</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var agentId = null;
+        var agentData = null;
+
+        function getQueryParam(name) {
+            var m = location.search.match(new RegExp('[?&]' + name + '=([^&]*)'));
+            return m ? decodeURIComponent(m[1]) : '';
+        }
+
+        function goBack() {
+            if (agentId) {
+                window.location.href = '/agent-editor?id=' + agentId;
+            } else {
+                window.location.href = '/';
+            }
+        }
+
+        function showTermsModal() {
+            document.getElementById('termsModal').classList.add('show');
+        }
+        function hideTermsModal(e) {
+            if (e && e.target.id !== 'termsModal' && e.type !== 'click') return;
+            document.getElementById('termsModal').classList.remove('show');
+        }
+
+        function showToast(msg) {
+            var existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            var toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(function() { toast.remove(); }, 2500);
+        }
+
+        function toggleChannel(el) {
+            if (el.classList.contains('disabled')) return;
+            el.classList.toggle('selected');
+            updatePublishBtn();
+        }
+
+        function toggleWechatExpand(e) {
+            e.stopPropagation();
+            var parent = document.querySelector('.channel-parent');
+            var subs = document.getElementById('wechatSubs');
+            parent.classList.toggle('expanded');
+            subs.classList.toggle('show');
+        }
+
+        function getSelectedChannels() {
+            var channels = [];
+            document.querySelectorAll('.channel-item.selected:not(.disabled)').forEach(function(el) {
+                channels.push(el.dataset.channel);
+            });
+            return channels;
+        }
+
+        function updatePublishBtn() {
+            var version = document.getElementById('versionInput').value.trim();
+            var channels = getSelectedChannels();
+            var disabled = !version || channels.length === 0;
+            document.getElementById('publishTopBtn').disabled = disabled;
+        }
+
+        async function loadAgent() {
+            agentId = getQueryParam('id');
+            if (!agentId) {
+                showToast('未找到智能体');
+                return;
+            }
+            var token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+            try {
+                var resp = await fetch('/api/agents/' + agentId, {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!resp.ok) throw new Error('加载失败');
+                agentData = await resp.json();
+
+                if (agentData.publish_version) {
+                    document.getElementById('versionInput').value = agentData.publish_version;
+                }
+                if (agentData.publish_desc) {
+                    document.getElementById('descInput').value = agentData.publish_desc;
+                }
+                if (agentData.publish_channels) {
+                    var channels = [];
+                    try { channels = JSON.parse(agentData.publish_channels); } catch(e) { channels = []; }
+                    if (channels.indexOf('store') >= 0) {
+                        var storeItem = document.querySelector('.channel-item:nth-child(1)');
+                        if (storeItem) storeItem.classList.add('authorized');
+                    }
+                }
+                if (agentData.category) {
+                    var sel = document.getElementById('categorySelect');
+                    if (sel) sel.value = agentData.category;
+                }
+                updatePublishBtn();
+            } catch(e) {
+                showToast('加载失败: ' + e.message);
+            }
+        }
+
+        async function doPublish() {
+            var version = document.getElementById('versionInput').value.trim();
+            var desc = document.getElementById('descInput').value.trim();
+            var category = document.getElementById('categorySelect').value;
+            var channels = getSelectedChannels();
+
+            if (!version) {
+                document.getElementById('versionError').style.display = 'block';
+                return;
+            }
+            if (channels.length === 0) {
+                showToast('请至少选择一个发布渠道');
+                return;
+            }
+
+            var btn = document.getElementById('publishTopBtn');
+            btn.disabled = true;
+            btn.textContent = '发布中...';
+
+            try {
+                var token = localStorage.getItem('authToken');
+                var resp = await fetch('/api/agents/' + agentId + '/publish', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: JSON.stringify({
+                        version: version,
+                        publish_desc: desc,
+                        category: category,
+                        channels: channels
+                    })
+                });
+                if (!resp.ok) {
+                    var err = await resp.json();
+                    throw new Error(err.detail || '发布失败');
+                }
+                showPublishResult();
+            } catch(e) {
+                showToast(e.message || '发布失败');
+                btn.disabled = false;
+                btn.textContent = '发布';
+            }
+        }
+
+        function showPublishResult() {
+            document.querySelector('.content').style.display = 'none';
+            document.getElementById('publishTopBtn').style.display = 'none';
+            document.getElementById('doneTopBtn').style.display = '';
+            document.getElementById('successResult').style.display = '';
+        }
+
+        function goEditor() {
+            window.location.href = '/agent-editor?id=' + agentId;
+        }
+
+        function goUsePage() {
+            window.open('/agent-use?id=' + agentId, '_blank');
+        }
+
+        function copyAgentLink() {
+            var link = location.origin + '/agent-use?id=' + agentId;
+            navigator.clipboard.writeText(link).then(function() {
+                showToast('链接已复制到剪贴板');
+            }).catch(function() {
+                showToast('复制失败');
+            });
+        }
+
+        document.getElementById('versionInput').addEventListener('input', function() {
+            document.getElementById('versionError').style.display = 'none';
+            updatePublishBtn();
+        });
+
+        updatePublishBtn();
+        loadAgent();
+    </script>
+
+    <div class="modal-overlay" id="termsModal" onclick="hideTermsModal(event)">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <span class="modal-title">各发布渠道服务条款</span>
+                <button class="modal-close" onclick="hideTermsModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="terms-row">
+                    <div class="terms-left">
+                        <span class="terms-icon">📱</span>
+                        <span class="terms-name">微信小程序</span>
+                    </div>
+                    <a href="https://developers.weixin.qq.com/miniprogram/product/service/" target="_blank" class="terms-link-item">使用协议</a>
+                </div>
+                <div class="terms-row">
+                    <div class="terms-left">
+                        <span class="terms-icon">💼</span>
+                        <span class="terms-name">微信客服</span>
+                    </div>
+                    <a href="https://kf.weixin.qq.com/kf/eula" target="_blank" class="terms-link-item">使用协议</a>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-confirm-btn" onclick="hideTermsModal()">我知道了</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

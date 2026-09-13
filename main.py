@@ -3,42 +3,82 @@ import json
 import random
 import os
 import re
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+_t0 = time.time()
+
+# 设置 HuggingFace 镜像，解决国内网络访问问题（必须在所有 import 之前）
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+os.environ['HF_HUB_ENDPOINT'] = 'https://hf-mirror.com'
+# 显式清除离线模式，确保 fastembed 可以下载 BM25 模型
+os.environ.pop('HF_HUB_OFFLINE', None)
+
+print(f"[启动耗时] 环境变量设置: {time.time() - _t0:.2f}s")
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from langchain_community.tools import sleep
-from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
+print(f"[启动耗时] fastapi/uvicorn/pydantic: {time.time() - _t0:.2f}s")
 
-# 导入 llm 和 get_llm_by_model
-from core.agent import get_llm_by_model, SessionMemoryManager
+# 懒加载 LangGraph 智能体框架（首次使用时才 import，避免阻塞启动）
+SessionMemoryManager = None
+create_agent_graph = None
+AgentState = None
+
+def _ensure_agent_langgraph():
+    global SessionMemoryManager, create_agent_graph, AgentState
+    if create_agent_graph is None:
+        from core.agent_langgraph import SessionMemoryManager as _SMM, create_agent_graph as _CAG, AgentState as _AS
+        SessionMemoryManager = _SMM
+        create_agent_graph = _CAG
+        AgentState = _AS
+        print(f"[启动耗时] agent_langgraph (懒加载): {time.time() - _t0:.2f}s")
+
 from typing import Optional
-from core.skills.DocProcess.document_process import doc_processor
-from settings.Define import PathConfig, Params
+from datetime import datetime
+from core.auth.database import SessionLocal, SessionMemory
+print(f"[启动耗时] auth.database: {time.time() - _t0:.2f}s")
+
+from settings.Define import PathConfig
+print(f"[启动耗时] settings.Define: {time.time() - _t0:.2f}s")
+
 from core.auth import init_db, get_current_user_optional, User
+print(f"[启动耗时] core.auth: {time.time() - _t0:.2f}s")
+
 from core.security import SecurityMiddleware, file_validator, get_audit_logger
+print(f"[启动耗时] core.security: {time.time() - _t0:.2f}s")
+
 from settings.logger_manager import get_logger
+print(f"[启动耗时] logger_manager: {time.time() - _t0:.2f}s")
+
+# 懒加载 doc_processor
+_doc_processor = None
+
+def get_doc_processor():
+    global _doc_processor
+    if _doc_processor is None:
+        from core.skills.DocProcess.document_process import DocumentProcessor
+        _doc_processor = DocumentProcessor()
+    return _doc_processor
 
 logger = get_logger(__name__)
 
-THREAD_POOL_SIZE = int(os.getenv("THREAD_POOL_SIZE", 8))
-EXECUTOR = ThreadPoolExecutor(max_workers=THREAD_POOL_SIZE, thread_name_prefix="agent-worker-")
-
 _running_procs = {}
 _proc_lock = None
+
+agent_graph_dict = {}
 
 class ChatRequest(BaseModel):
     message: str
     thread_id: int | None = None
     file_content: str | None = None
     file_name: str | None = None
+    file_paths: list[str] | None = None
     original_file_ext: str | None = None
     history: list | None = None
     skill: str | None = None
@@ -49,12 +89,31 @@ class ChatRequest(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("lifespan - 初始化数据库")
+    logger.info("lifespan - 开始初始化")
+    print("🔄 正在初始化数据库...")
     init_db()
+    print("✅ 数据库初始化完成")
+    logger.info("lifespan - 数据库初始化完成")
+
+    # 后台异步预加载 Reranker 模型（避免阻塞启动）
+    logger.info("后台预加载 Reranker 模型...")
+    from core.agents.routes import load_reranker
+    load_reranker()
+
+    # 预加载知识库组件（Qdrant客户端、Embeddings），避免首次请求长延迟
+    logger.info("后台预加载知识库组件...")
+    from core.knowledge.knowledge_manager import preload_knowledge_components
+    preload_knowledge_components()
+
+    # 后台异步创建智能体图（避免阻塞启动）
+    logger.info("后台创建智能体图...")
+    _ensure_agent_langgraph()
+    agent_graph_dict["default"] = create_agent_graph()
+    logger.info("✅ 智能体图创建完成")
+
     yield
 
-
-app = FastAPI(title="MultiAgent Chat API")
+app = FastAPI(title="MultiAgent Chat API", lifespan=lifespan)
 
 # 静态文件服务
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -121,6 +180,22 @@ async def agent_editor_page():
     """智能体编辑页面"""
     editor_file = os.path.join(PathConfig.TEMPLATES_DIR, "agent-editor.html")
     with open(editor_file, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/publish", response_class=HTMLResponse)
+async def publish_page():
+    """智能体发布页面"""
+    publish_file = os.path.join(PathConfig.TEMPLATES_DIR, "publish.html")
+    with open(publish_file, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+@app.get("/agent-use", response_class=HTMLResponse)
+async def agent_use_page():
+    """智能体使用页面"""
+    use_file = os.path.join(PathConfig.TEMPLATES_DIR, "agent-use.html")
+    with open(use_file, "r", encoding="utf-8") as f:
         return f.read()
 
 
@@ -375,7 +450,7 @@ async def upload_file(
         raise HTTPException(status_code=400, detail=error_msg)
 
     content = await file.read()
-    file_path, saved_filename = doc_processor.save_uploaded_file(content, file.filename)
+    file_path, saved_filename = get_doc_processor().save_uploaded_file(content, file.filename)
     
     # 审计日志
     audit_logger.log_file_upload(
@@ -391,7 +466,7 @@ async def upload_file(
     return {"file_id": saved_filename, "file_path": file_path, "filename": saved_filename}
 
 
-@app.get("/download/{filename}")
+@app.api_route("/download/{filename}", methods=["GET", "HEAD"])
 async def download_file(filename: str):
     """提供文件下载"""
     file_path = os.path.join(PathConfig.OUTPUTS_DIR, filename)
@@ -400,6 +475,44 @@ async def download_file(filename: str):
         raise HTTPException(status_code=404, detail="File not found")
 
     return FileResponse(file_path, filename=filename)
+
+
+@app.post("/api/clear_chat")
+async def clear_chat_msg(request: Request):
+    """清空聊天记录，并删除缓存文件"""
+    try:
+        _ensure_agent_langgraph()
+        body = await request.json()
+        filename = body.get("filename", "")
+        thread_id = body.get("thread_id", "")
+
+        if not thread_id:
+            return {"success": False, "message": "会话ID不能为空"}
+
+        logger.info(f"开始清空对话记录: {thread_id}")
+
+        # 清空session_memories表当前会话ID的chat_msg字段内容
+        db = SessionLocal()
+        try:
+            db.query(SessionMemory).filter(SessionMemory.thread_id == thread_id).update({SessionMemory.chat_msg: [], SessionMemory.context: {},
+                                                                                         SessionMemory.update_at: datetime.now()})
+            db.commit()
+        finally:
+            db.close()
+
+        # 删除缓存文件（如果有）
+        if filename and os.path.exists(os.path.join(PathConfig.CACHE_DIR, filename)):
+            cache_dir = PathConfig.CACHE_DIR
+            file_path = cache_dir / filename
+
+            if str(file_path.resolve()).startswith(str(cache_dir.resolve())) and file_path.exists():
+                file_path.unlink()
+                logger.info(f"[CACHE] 已删除缓存文件: {filename}")
+
+        return {"success": True, "message": "对话已清空"}
+    except Exception as e:
+        logger.error(f"[Memory] 清空对话失败: {e}")
+        return {"success": False, "message": str(e)}
 
 
 @app.post("/chat")
@@ -431,6 +544,11 @@ async def chat(
         raise HTTPException(status_code=400, detail="Message cannot be empty")
     thread_id = request.thread_id or random.randint(1, 100000)
 
+    _ensure_agent_langgraph()
+
+    # 记录请求开始时间（用于计算后端总处理耗时）
+    request_start_time = time.time()
+
     async def generate():
         async def _check_disconnected():
             if await http_request.is_disconnected():
@@ -439,11 +557,71 @@ async def chat(
 
         try:
             file_path_for_state = None
+            all_file_paths_for_state = []
             message_content = request.message
 
-            if request.file_name:
+            # 处理多文件上传
+            if request.file_paths and len(request.file_paths) > 0:
+                logger.info(f"检测到 {len(request.file_paths)} 个文件: {request.file_name}，正在处理...")
+                
+                # 收集所有文件路径
+                all_file_paths = []
+                all_file_contents = []
+                all_images_data = []
+                
+                DRAWING_EXTS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif', '.pdf', '.dxf'}
+                is_drawing_file = request.skill == 'drawing'
+                
+                for idx, fpath in enumerate(request.file_paths):
+                    file_path = Path(fpath)
+                    file_ext = file_path.suffix.lower()
+                    
+                    if not file_path.exists():
+                        logger.warning(f"文件不存在: {file_path}")
+                        continue
+                    
+                    all_file_paths.append(str(file_path))
+                    all_file_paths_for_state.append(str(file_path))
+                    
+                    # 如果是图纸文件，不读取文本内容
+                    if file_ext in DRAWING_EXTS:
+                        is_drawing_file = True
+                        continue
+                    
+                    # 读取文档内容
+                    try:
+                        file_content = ""
+                        async for chunk_text in get_doc_processor().read_document(str(file_path)):
+                            file_content += chunk_text
+                        all_file_contents.append({
+                            'name': request.file_name.split(', ')[idx] if request.file_name else f'file_{idx}',
+                            'ext': file_ext,
+                            'content': file_content
+                        })
+                        logger.info(f"文档内容读取成功: {file_path.name}, 长度: {len(file_content)}")
+                    except Exception as e:
+                        logger.error(f"读取文档失败 {file_path}: {str(e)}")
+                
+                # 构建消息内容
+                if is_drawing_file:
+                    # 图纸文件：不读取文本内容
+                    message_content = request.message
+                    logger.info("图纸文件，跳过文本读取")
+                elif all_file_contents:
+                    # 组合所有文档内容
+                    content_parts = []
+                    for fc in all_file_contents:
+                        content_parts.append(f"--- {fc['name']} ---\n{fc['content']}")
+                    
+                    combined_content = "\n\n".join(content_parts)
+                    message_content = f"[文档内容]\n{combined_content}\n\n[用户要求]\n{request.message}"
+                    logger.info(f"多文档内容组合成功，总长度: {len(combined_content)}")
+                else:
+                    message_content = request.message
+            
+            elif request.file_name:
                 logger.info(f"检测到文件: {request.file_name}，正在处理...")
-                file_path = doc_processor.UPLOAD_DIR / request.file_name
+                file_path = get_doc_processor().UPLOAD_DIR / request.file_name
                 file_ext = Path(request.file_name).suffix.lower()
                 # 图纸类文件：图片、DXF、PDF，不读取文本内容，只传路径
                 DRAWING_EXTS = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif', '.pdf', '.dxf'}
@@ -451,13 +629,17 @@ async def chat(
 
                 if file_path.exists():
                     file_path_for_state = str(file_path)
+                    all_file_paths_for_state = [str(file_path)]
                     # 存进会话记忆的 context，后续追问可自动恢复
                     SessionMemoryManager.set_context(
                         thread_id,
-                        file_path=file_path_for_state,
-                        file_name=request.file_name,
-                        ext=file_ext,
+                        upload_files=[{
+                            "file_path": file_path_for_state,
+                            "file_name": request.file_name,
+                            "ext": file_ext,
+                        }],
                     )
+
                     logger.info(f"[Memory] 保存文件上下文: file_path={file_path_for_state}")
 
                     if is_drawing_file:
@@ -467,7 +649,7 @@ async def chat(
                     elif not request.file_content:
                         try:
                             file_content = ""
-                            async for chunk_text in doc_processor.read_document(str(file_path)):
+                            async for chunk_text in get_doc_processor().read_document(str(file_path)):
                                 file_content += chunk_text
 
                             original_ext = Path(request.file_name).suffix.lower()
@@ -497,6 +679,7 @@ async def chat(
                     logger.info(f"[Memory] 从会话记忆恢复文件路径: {_mem_file_path}")
 
             # Build messages list with history
+            from langchain_core.messages import HumanMessage
             messages_list = []
             if request.history:
                 for msg in request.history:
@@ -513,6 +696,8 @@ async def chat(
             state_input = {"messages": messages_list, "thread_id": thread_id}
             if file_path_for_state:
                 state_input["file_path"] = file_path_for_state
+            if all_file_paths_for_state:
+                state_input["file_paths"] = all_file_paths_for_state
             if request.skill:
                 state_input["skill"] = request.skill
             if current_user:
@@ -536,77 +721,81 @@ async def chat(
             file_changes = []
             sources = []
             
+            # 记录后端处理开始时间
+            backend_start_time = time.time()
+            
             try:
-                # 如果是项目编程技能，直接使用流式响应
-                if request.skill == "project_code":
-                    from core.skills.AICode.project_programming import Project_Programming
-                    
-                    # 根据用户选择的模型创建LLM实例
-                    selected_model = request.model or "qwen"
-                    # 如果有图片，强制使用多模态模型
-                    if request.images and len(request.images) > 0:
-                        selected_model = Params.DEFAULT_MULTIMODAL_MODEL
-                        logger.info(f"检测到图片输入，自动切换为多模态模型: {selected_model}")
-                    logger.info(f"选择的模型: {selected_model}")
-                    model_llm = get_llm_by_model(selected_model)
-                    
-                    logger.info("正在创建 Project_Programming 实例")
-                    project_programming = Project_Programming(
-                        file_path_for_state,
-                        messages_list,
-                        request.project_context,
-                        images=request.images if request.images else None
-                    )
-                    logger.info("Project_Programming 实例创建成功")
-                    
-                    message = messages_list[-1]
-                    logger.info("开始流式获取模型响应")
-                    
-                    # 直接流式响应
-                    full_response = ""
-                    chunk_count = 0
-                    for chunk in project_programming.get_model_response_stream(message, model_llm):
-                        if chunk:
-                            full_response += chunk
+                from langchain_core.messages import HumanMessage
+
+                # 构建状态输入
+                state_input = {
+                    "messages": messages_list,
+                    "type": "",  # 空字符串，让 supervisor_node 自动分类
+                    "file_path": file_path_for_state or "",
+                    "file_paths": all_file_paths_for_state or [],
+                    "previous_node": "",
+                    "skill": request.skill or "",
+                    "sources": "",
+                    "user": current_user.username if current_user else "",
+                    "images": request.images or [],
+                    "project_context": request.project_context or {},
+                    "thread_id": thread_id or "",
+                    "model_name": request.model or ""
+                }
+
+                logger.info(f"开始执行 LangGraph 智能体图，skill={request.skill}")
+
+                # 创建智能体图
+                agent_graph = agent_graph_dict.get(thread_id or "default", create_agent_graph())
+                if thread_id:
+                    agent_graph_dict[str(thread_id)] = agent_graph
+
+                # 配置（用于 checkpointer 的 thread_id）
+                config = {"configurable": {"thread_id": thread_id or "default"}}
+
+                full_response = ""
+                chunk_count = 0
+                last_sources = []
+
+                # 使用 astream 实现真正的流式输出
+                async for event in agent_graph.astream(state_input, config=config, stream_mode="custom"):
+                    print(f"event: {event}")
+                    await _check_disconnected()
+
+                    # event 格式: (node_name, custom_data)
+                    if isinstance(event, tuple) and len(event) == 2:
+                        node_name, custom_data = event
+                    else:
+                        # 兼容旧格式
+                        node_name = "unknown"
+                        custom_data = event
+
+                    logger.info(f"节点 {node_name} 流式输出")
+
+                    # 从自定义数据中提取内容，保留原始事件的完整字段（status/step/step_detail）
+                    if isinstance(custom_data, dict):
+                        event_status = custom_data.get("status", "streaming")
+
+                        # 只有 streaming 状态的文本才累积到完整响应
+                        if "text" in custom_data and event_status == "streaming":
+                            full_response += custom_data["text"]
                             chunk_count += 1
-                            logger.info(f"发送第 {chunk_count} 个 chunk，长度: {len(chunk)}")
-                            await _check_disconnected()
-                            yield f"data: {json.dumps({'text': chunk, 'sources': sources, 'status': 'streaming'})}\n\n"
-                            await asyncio.sleep(0.05)
-                    
-                    response = full_response
-                    logger.info(f"流式响应完成，内容长度: {len(response)}, chunk数量: {chunk_count}")
-                else:
-                    from core.agent import classify_skill, stream_skill
 
-                    skill_type = await classify_skill(messages_list, request.skill, thread_id=thread_id)
-                    logger.info(f"路由结果: {skill_type}")
+                        # 提取 sources
+                        if "sources" in custom_data:
+                            last_sources = custom_data["sources"]
 
-                    full_response = ""
-                    chunk_count = 0
-                    last_sources = []
+                        # 转发完整事件数据到前端，保留 status/step/step_detail 等字段
+                        event_payload = dict(custom_data)
+                        if "sources" not in event_payload:
+                            event_payload["sources"] = last_sources
 
-                    async for item in stream_skill(skill_type, state_input):
-                        await _check_disconnected()
-                        if item.get("step"):
-                            yield f"data: {json.dumps({'step': item['step'], 'status': 'step'})}\n\n"
-                        elif item.get("step_detail"):
-                            yield f"data: {json.dumps({'step_detail': item['step_detail'], 'status': 'step_detail'})}\n\n"
-                        else:
-                            chunk = item.get("chunk", "")
-                            chunk_sources = item.get("sources", [])
-                            if chunk:
-                                full_response += chunk
-                                chunk_count += 1
-                                if chunk_sources:
-                                    last_sources = chunk_sources
-                                yield f"data: {json.dumps({'text': chunk, 'sources': last_sources, 'status': 'streaming'})}\n\n"
-                                await asyncio.sleep(0.01)
+                        yield f"data: {json.dumps(event_payload, ensure_ascii=False)}\n\n"
+                        await asyncio.sleep(0.01)
 
-                    response = full_response
-                    sources = last_sources
-                    logger.info(f"流式响应完成，skill={skill_type}，内容长度={len(response)}，chunk数量={chunk_count}")
-                
+                response = full_response
+                sources = last_sources
+                logger.info(f"LangGraph 流式响应完成，内容长度={len(response)}，chunk数量={chunk_count}")
                 # 提取文件变更信息（project_code 技能时都提取，包括多模态识图）
                 if request.skill == "project_code":
                     # 获取项目根路径和文件列表，优先使用完整路径
@@ -615,9 +804,9 @@ async def chat(
                     if request.project_context:
                         project_root = request.project_context.get("project_path", "") or request.project_context.get("project_name", "")
                         project_files = request.project_context.get("files", [])
-                    print(f"[DEBUG] extract_file_changes 调用参数: project_root={project_root}, project_files={len(project_files)}")
+                    logger.debug(f"extract_file_changes 调用参数: project_root={project_root}, project_files={len(project_files)}")
                     file_changes = extract_file_changes(response, request.file_name, project_root)
-                
+                    logger.debug(f"extract_file_changes 返回结果: {file_changes}")
             except asyncio.TimeoutError:
                 logger.error("Agent graph execution timeout")
                 response = "请求超时，请稍后重试或简化您的问题"
@@ -644,7 +833,9 @@ async def chat(
                 logger.warning(f"[Memory] 保存失败: {str(_mem_err)[:80]}")
 
             # 所有分支都通过 streaming 逐块发送过了，done 只做结束信号，text 为空
-            yield f"data: {json.dumps({'text': '', 'sources': sources, 'file_changes': file_changes, 'status': 'done'})}\n\n"
+            backend_elapsed = round(time.time() - request_start_time, 3)
+            logger.info(f"[耗时统计] 后端处理总耗时: {backend_elapsed}s")
+            yield f"data: {json.dumps({'text': '', 'sources': sources, 'file_changes': file_changes, 'status': 'done', 'response_time_s': backend_elapsed})}\n\n"
         except asyncio.CancelledError:
             partial = ""
             try:
@@ -652,10 +843,6 @@ async def chat(
             except UnboundLocalError:
                 partial = ""
             logger.info(f"[STOP] 生成被中止，保存已生成内容，长度={len(partial)}")
-            try:
-                SessionMemoryManager.save(thread_id, message_content, partial or "(已中止)")
-            except Exception:
-                pass
             try:
                 yield f"data: {json.dumps({'text': '', 'status': 'stop'})}\n\n"
             except Exception:
@@ -665,6 +852,21 @@ async def chat(
             yield f"data: {json.dumps({'text': f'服务错误: {str(e)}', 'status': 'error'})}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.delete("/api/memory/clear/{thread_id}")
+async def delete_memory(thread_id: str):
+    # 删除指定会话记忆中的所有数据
+    if not thread_id:
+        return {"message": "会话ID不能为空"}
+
+    try:
+        _ensure_agent_langgraph()
+        SessionMemoryManager.clear(thread_id)
+        return {"message": f"会话 {thread_id} 已删除"}
+    except Exception as e:
+        logger.error(f"删除会话 {thread_id} 失败: {str(e)}")
+        return {"message": f"删除会话 {thread_id} 失败: {str(e)}"}
 
 
 def _filter_file_changes(changes: list, project_root: str) -> list:

@@ -3,10 +3,8 @@
 """
 
 import os
-
-from langchain_classic import text_splitter
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_text_splitters.character import RecursiveCharacterTextSplitter
 from langchain_chroma  import Chroma
 from langchain_community.embeddings import DashScopeEmbeddings
 from settings.Define import Params, PathConfig

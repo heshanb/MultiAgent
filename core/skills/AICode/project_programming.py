@@ -7,8 +7,20 @@ from logging import getLogger
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from core.memory.memory_manager import MemoryManager
-from langchain_openai import ChatOpenAI
-from langchain_core.chat_history import InMemoryChatMessageHistory
+
+# 懒加载重型库
+_ChatOpenAI = None
+_InMemoryChatMessageHistory = None
+
+def _get_langchain_models():
+    """懒加载 LangChain 模型"""
+    global _ChatOpenAI, _InMemoryChatMessageHistory
+    if _ChatOpenAI is None:
+        from langchain_openai import ChatOpenAI
+        from langchain_core.chat_history import InMemoryChatMessageHistory
+        _ChatOpenAI = ChatOpenAI
+        _InMemoryChatMessageHistory = InMemoryChatMessageHistory
+    return _ChatOpenAI, _InMemoryChatMessageHistory
 
 
 logger = getLogger(__name__)
@@ -20,8 +32,11 @@ class Project_Programming:
         self.state_list = state_list
         self.project_context = project_context
         self.images = images  # 存储图片数据
+
+        # 懒加载 InMemoryChatMessageHistory
+        _, InMemoryChatMessageHistory = _get_langchain_models()
         self.history = InMemoryChatMessageHistory()
-        
+
         # 提取项目根路径
         self.project_root = ""
         if project_context:
@@ -33,11 +48,11 @@ class Project_Programming:
         logger.info(f"file_path: {file_path}")
         logger.info(f"project_context keys: {project_context.keys() if project_context else None}")
         logger.info(f"接收到图片数量: {len(images) if images else 0}")
-        
+
         # 检测项目编程语言
         self.programming_language = self._detect_programming_language(project_context)
         logger.info(f"检测到项目编程语言: {self.programming_language}")
-        
+
         # 初始化记忆系统
         # 使用项目路径而不是项目名称来存储记忆文件
         memory_file = None
@@ -48,7 +63,7 @@ class Project_Programming:
             memory_file = str(Path(self.project_root) / '.trae_memory.json')
             logger.info(f"记忆文件路径(使用项目名称): {memory_file}")
         self.memory = MemoryManager(state_list, memory_file)
-        
+
         self.system_prompt = self.generate_prompt(file_path, project_context)
         # 缓存已分析的代码信息
         self.analyzed_files = {}
@@ -57,11 +72,11 @@ class Project_Programming:
         "检测项目使用的编程语言"
         if not project_context:
             return "unknown"
-        
+
         files = project_context.get("files", [])
         if not files:
             return "unknown"
-        
+
         # 语言特征映射
         language_signatures = {
             'python': ['.py', 'requirements.txt', 'pyproject.toml', 'setup.py', 'Pipfile'],
@@ -75,21 +90,21 @@ class Project_Programming:
             'vue': ['.vue', 'package.json', 'vite.config.js'],
             'react': ['.jsx', '.tsx', 'package.json', 'webpack.config.js'],
         }
-        
+
         language_counts = {}
-        
+
         for f in files:
             file_name = f.get('name', '').lower()
             file_path = f.get('path', '').lower()
-            
+
             for lang, signatures in language_signatures.items():
                 for sig in signatures:
                     if sig.lower() in file_name or sig.lower() in file_path:
                         language_counts[lang] = language_counts.get(lang, 0) + 1
-        
+
         if not language_counts:
             return "unknown"
-        
+
         # 返回计数最多的语言
         return max(language_counts, key=language_counts.get)
 
@@ -234,7 +249,7 @@ class Project_Programming:
 - 注意props和state的正确使用
 '''
         }
-        
+
         return language_prompts.get(language, '')
 
     def generate_prompt(self, file_path: str, project_context: dict = None) -> str:
@@ -247,40 +262,40 @@ class Project_Programming:
         if project_context:
             project_name = project_context.get("project_name", "未知项目")
             files = project_context.get("files", [])
-            
+
             logger.info(f"项目名称: {project_name}")
             logger.info(f"文件列表长度: {len(files)}")
             if files:
                 logger.info(f"前5个文件: {files[:5]}")
-            
+
             # 读取关键配置文件内容
             config_contents = self._read_config_files(files)
             logger.info(f"配置文件内容: {list(config_contents.keys())}")
-            
+
             project_info = f"\n\n**项目信息：**\n- 项目名称: {project_name}\n"
             project_info += f"- 主要编程语言: {self.programming_language}\n"
-            
+
             # 添加配置文件内容
             if config_contents:
                 project_info += "- 配置文件内容:\n"
                 for config_name, content in config_contents.items():
                     project_info += f"\n```\n# {config_name}\n{content}\n```\n"
-            
+
             # 读取源代码文件内容
             source_files_content = self._read_source_files(files)
-            
+
             # 添加源代码文件内容
             if source_files_content:
                 project_info += "- 源代码文件内容:\n"
                 for file_name, content in source_files_content.items():
                     file_ext = file_name.split('.')[-1].lower() if '.' in file_name else 'text'
                     project_info += f"\n```\n# {file_name}\n{content}\n```\n"
-            
+
             # 添加语法预检查报告
             syntax_report = self._check_all_source_files_syntax(files)
             project_info += syntax_report
             logger.info(f"语法预检查报告: {syntax_report[:500]}")
-            
+
             # 添加文件结构
             project_info += "- 项目文件结构:\n"
             for f in files[:50]:  # 最多显示50个文件
@@ -296,7 +311,7 @@ class Project_Programming:
 
         # 获取语言特定提示
         language_prompt = self._get_language_specific_prompt(self.programming_language)
-        
+
         # 构建语言无关的重要提示
         language_extensions = {
             'python': ['.py'],
@@ -311,13 +326,13 @@ class Project_Programming:
             'react': ['.jsx', '.tsx', '.js', '.ts'],
             'unknown': ['.py', '.js', '.ts', '.html', '.css', '.java', '.cpp', '.go', '.rs']
         }
-        
+
         extensions = language_extensions.get(self.programming_language, language_extensions['unknown'])
         ext_list = ', '.join(f'`.{ext[1:]}`' for ext in extensions)
 
         # 获取长期记忆摘要
         long_term_memory_summary = self.memory.long_term.get_memory_summary()
-        
+
         # 检查是否有源代码文件
         has_source_files = False
         if project_context:
@@ -329,7 +344,7 @@ class Project_Programming:
                 if file_ext in source_extensions:
                     has_source_files = True
                     break
-        
+
         system_prompt = f"""你是一个专业的全栈项目编程专家和AI助手，熟悉各种编程语言和框架，比如Python、JavaScript、Java、Go、C++、HTML/CSS等。
 专门帮助用户进行代码开发和项目管理。
 
@@ -374,11 +389,16 @@ class Project_Programming:
 {language_prompt}
 
 ## 代码检查清单
-1. 语法检查：检查括号、引号、分号、缩进等是否正确
+1. 🔴 语法检查：检查括号、引号、分号、缩进等是否正确 - **这是最高优先级！**
 2. 拼写检查：检查变量名、函数名、关键字是否拼写正确
 3. 类型检查：检查变量类型是否匹配
 4. 逻辑检查：检查代码逻辑是否合理
 5. 导入检查：检查import语句是否正确，模块是否存在
+6. 🔴 语言特定检查：
+   - Python：缩进4空格、冒号、括号配对、字符串引号匹配
+   - JavaScript：分号、括号配对、变量声明、箭头函数语法
+   - HTML：标签闭合、属性引号、结构合法
+   - CSS：选择器正确、属性名拼写、分号、括号配对
 
 {"警告：项目中已检测到源代码文件，请务必进行详细的语法检查！" if has_source_files else ""}
 
@@ -424,39 +444,48 @@ class Project_Programming:
 - **只提供一个最优版本**：不要分多个版本展示
 
 ### 场景B：用户要求审查/修改已有代码
-- 仔细检查代码中的语法问题、逻辑问题、BUG问题等
-- 考虑项目上下文，检查代码与其他模块的兼容性
-- **⚠️ 只能分析项目文件结构中实际存在的文件，严禁凭空捏造文件名**
-- **🔴 修改代码时，必须使用原文件路径，在原文件上输出修改后的完整代码**
-- **🔴 严禁创建新文件来替代修改，除非用户明确说"新建文件"**
-- 如果没有发现任何问题，回复："{filename}代码文件不需要修改，没有发现任何明显性错误"
-- 如果发现问题，**严格按照以下格式回复，不要添加任何额外内容（包括复杂度分析、详细解释等）**：
 
-发现{{n}}处问题，涉及{{m}}个文件：
+#### 第一步：分析问题（必须执行）
+- 仔细阅读用户的错误信息、截图或描述
+- 定位问题所在的**具体文件**和**具体行号**
+- 理解错误的**根本原因**（不是表面现象）
+- **关键判断**：这是前端问题还是后端问题？是JS问题还是Python问题？
 
----
+#### 第二步：确定修改范围（极其重要）
+- **只修改与问题直接相关的文件** - 前端报错只改前端文件，后端报错只改后端文件
+- **绝对不要跨层修改** - 前端JS报错不要改Python后端，Python报错不要改JS前端
+- **绝对不要添加用户没要求的功能** - 用户问bug修复，不要加新路由、新接口、新功能
+- **改动范围最小化** - 能改1行不改3行，能改3行不改整个函数
 
-### 文件：{{文件路径}}
-- **第1处**：{{问题描述}}
-- **第2处**：{{问题描述}}
+#### 第三步：输出修改（严格遵守）
+- **只输出需要修改的那几行代码** - 不要输出整个文件！不要输出常量定义！不要输出配置！
+- **输出必须是可执行的代码** - 不要输出错误信息、不要输出日志、不要输出解释文字
+- **代码必须语法正确** - 括号配对、缩进正确、引号匹配
+- **使用原文件路径** - 不要创建新文件，不要改其他文件
 
-修改后的完整代码：
-```{{language}}
-{{修改后的完整代码}}
-```
+#### 🔴 铁律（违反任何一条都是严重错误）
+1. **前端报错只改前端文件** - JS/HTML/CSS 报错只改 .js/.html/.css 文件，绝对不要改 .py 文件
+2. **后端报错只改后端文件** - Python 报错只改 .py 文件，绝对不要改 .js/.html 文件
+3. **不要输出错误信息当代码** - 浏览器控制台的错误信息不是代码修改！不要把它放到代码块里！
+4. **不要凭空捏造功能** - 用户没要求的功能，绝对不要添加！不要加新路由、新接口、新页面！
+5. **只改问题相关的行** - 如果只需要改1行，就只输出那1行！不要输出整个函数！
+6. **不要跨文件修改** - 用户问 game.js 的问题，就只改 game.js！不要碰 app.py、index.html！
+7. **输出必须是代码** - 代码块里必须是可执行的代码，不能是错误信息、日志、解释文字！
 
----
+#### 示例：正确 vs 错误
 
-### 文件：{{文件路径}}
-- **第1处**：{{问题描述}}
-- **第2处**：{{问题描述}}
+**错误示例1（跨层修改）**：
+用户问：game.js 第73行报错 `Cannot read properties of null`
+错误做法：在 app.py 里添加 `/api/high_scores` 路由 ← 完全无关！
+正确做法：在 game.js 第73行加 null 检查 ← 只改相关的1行
 
-修改后的完整代码：
-```{{language}}
-{{修改后的完整代码}}
-```
+**错误示例2（输出错误信息）**：
+错误做法：代码块里输出 `SyntaxError: Unexpected token '<'...` ← 这是错误信息，不是代码！
+正确做法：代码块里输出修复后的 JS 代码 ← 必须是可执行的代码
 
----
+**错误示例3（输出整个文件）**：
+错误做法：输出整个 468 行的 game.js 文件 ← 只需要改1行！
+正确做法：只输出需要修改的那3-5行代码 ← 最小化改动
 
 ### 场景C：用户要求对多个文件每个文件都要审查
 - 如果多个文件都有问题，**每个文件单独输出一个代码块**，格式同上
@@ -510,6 +539,7 @@ class Project_Programming:
 - **这是最常见的情况，也是默认行为！**
 - **只进行分析、解释、建议，绝对不要生成任何代码修改块**
 - **绝对不要创建新文件或修改文件**
+- ** 即使用户明确要求修改代码，也只能修改与问题直接相关的文件和代码行，绝对不要碰其他文件！**
 - 当用户发送截图/图片时，他们通常是在展示问题或讨论，不是在要求修改代码
 - 用自然语言回复用户的问题，给出分析意见或建议
 - 如果用户确实需要修改代码，他们会在后续对话中明确说出"修改"、"改一下"、"帮我改"等
@@ -549,21 +579,21 @@ class Project_Programming:
 
     def _read_config_files(self, files: list) -> dict:
         """读取项目中的关键配置文件内容"""
-        config_files = ['requirements.txt', 'package.json', 'pom.xml', 'go.mod', 'Cargo.toml', 
+        config_files = ['requirements.txt', 'package.json', 'pom.xml', 'go.mod', 'Cargo.toml',
                        'setup.py', 'pyproject.toml', 'README.md', 'appsettings.json',
                        'application.yml', 'application.yaml', 'docker-compose.yml']
-        
+
         contents = {}
         for f in files:
             file_path = f.get('path', '')
             file_name = f.get('name', '')
-            
+
             if file_name in config_files:
                 if 'content' in f and f['content']:
                     contents[file_name] = f['content'][:2000]
                     logger.info(f"从项目上下文读取配置文件: {file_name}")
                     continue
-                
+
                 try:
                     # 优先使用项目路径，其次使用项目名称
                     base_path = ""
@@ -571,42 +601,42 @@ class Project_Programming:
                         base_path = self.project_path
                     elif hasattr(self, 'project_root') and self.project_root:
                         base_path = self.project_root
-                    
+
                     if base_path:
                         full_path = Path(base_path) / file_path
                     else:
                         full_path = Path(file_path)
-                    
+
                     if full_path.exists() and full_path.is_file():
                         content = full_path.read_text(encoding='utf-8', errors='ignore')
                         contents[file_name] = content[:2000]
                 except Exception as e:
                     logger.debug(f"读取配置文件失败 {file_path}: {str(e)}")
-        
+
         return contents
 
     def _read_source_files(self, files: list) -> dict:
         """读取项目中的源代码文件内容"""
-        source_extensions = {'.py', '.js', '.ts', '.jsx', '.tsx', '.html', '.css', 
+        source_extensions = {'.py', '.js', '.ts', '.jsx', '.tsx', '.html', '.css',
                            '.java', '.cpp', '.go', '.rs', '.php', '.vue', '.json'}
-        
+
         contents = {}
         logger.info(f"_read_source_files 开始 - project_root: {self.project_root}")
         logger.info(f"文件列表长度: {len(files)}")
-        
+
         for f in files:
             file_path = f.get('path', '')
             file_name = f.get('name', '')
             file_ext = Path(file_name).suffix.lower()
-            
+
             logger.debug(f"处理文件: {file_name}, path: {file_path}, ext: {file_ext}")
-            
+
             if file_ext in source_extensions:
                 if 'content' in f and f['content']:
                     contents[file_name] = f['content'][:3000]
                     logger.info(f"从项目上下文读取源代码文件: {file_name}")
                     continue
-                
+
                 try:
                     # 优先使用项目路径，其次使用项目名称
                     base_path = ""
@@ -614,14 +644,14 @@ class Project_Programming:
                         base_path = self.project_path
                     elif hasattr(self, 'project_root') and self.project_root:
                         base_path = self.project_root
-                    
+
                     if base_path:
                         full_path = Path(base_path) / file_path
                     else:
                         full_path = Path(file_path)
-                    
+
                     logger.debug(f"尝试读取文件 - base_path: {base_path}, file_path: {file_path}, full_path: {full_path}")
-                    
+
                     if full_path.exists() and full_path.is_file():
                         content = full_path.read_text(encoding='utf-8', errors='ignore')
                         contents[file_name] = content[:3000]
@@ -630,7 +660,7 @@ class Project_Programming:
                         logger.warning(f"文件不存在或不是文件: {full_path}")
                 except Exception as e:
                     logger.error(f"读取源代码文件失败 {file_path}: {str(e)}")
-        
+
         logger.info(f"_read_source_files 完成 - 成功读取 {len(contents)} 个文件")
         return contents
 
@@ -644,10 +674,10 @@ class Project_Programming:
             'complexity': 0,
             'issues': []
         }
-        
+
         try:
             tree = ast.parse(code)
-            
+
             for node in ast.walk(tree):
                 if isinstance(node, ast.FunctionDef):
                     complexity = self._calculate_cyclomatic_complexity(node)
@@ -667,62 +697,62 @@ class Project_Programming:
                         analysis['imports'].append(alias.name)
                 elif isinstance(node, ast.ImportFrom):
                     analysis['imports'].append(f"{node.module}.{node.names[0].name}")
-            
+
             # 检查常见问题
             analysis['issues'] = self._detect_code_issues(tree, code)
-            
+
         except SyntaxError as e:
             analysis['issues'].append(f"语法错误: {e.msg} 第 {e.lineno} 行")
-        
+
         return analysis
 
     def _calculate_cyclomatic_complexity(self, node: ast.FunctionDef) -> int:
         """计算函数的圈复杂度"""
         complexity = 1  # 基础复杂度
-        
+
         for child in ast.walk(node):
-            if isinstance(child, (ast.If, ast.For, ast.While, ast.And, ast.Or, 
+            if isinstance(child, (ast.If, ast.For, ast.While, ast.And, ast.Or,
                                ast.Try, ast.IfExp)):
                 complexity += 1
-        
+
         return complexity
 
     def _detect_code_issues(self, tree: ast.AST, code: str) -> List[str]:
         """检测代码中的常见问题"""
         issues = []
         lines = code.split('\n')
-        
+
         for node in ast.walk(tree):
             # 检查未使用的变量
             if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
                 # 简单检查：赋值但可能未使用
                 pass
-            
+
             # 检查print语句（应该使用logging）
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == 'print':
                 issues.append(f"第 {node.lineno} 行: 使用了 print 语句，建议使用 logging 模块")
-            
+
             # 检查魔法数字
             if isinstance(node, ast.Constant) and isinstance(node.value, int):
                 if node.value not in (0, 1, -1):
                     issues.append(f"第 {node.lineno} 行: 使用了魔法数字 {node.value}")
-        
+
         return issues
-    
+
     def _check_all_source_files_syntax(self, files: list) -> str:
         """检查所有源代码文件的语法，并返回检查报告"""
         report = "\n**代码语法预检查报告：**\n"
         issues_found = []
         source_extensions = {'.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.go', '.rs'}
-        
+
         for f in files:
             file_name = f.get('name', '')
             file_path = f.get('path', '')
             file_ext = Path(file_name).suffix.lower()
-            
+
             if file_ext not in source_extensions:
                 continue
-            
+
             # 获取文件内容
             content = ""
             if 'content' in f and f['content']:
@@ -735,14 +765,14 @@ class Project_Programming:
                         base_path = self.project_path
                     elif hasattr(self, 'project_root') and self.project_root:
                         base_path = self.project_root
-                    
+
                     if base_path:
                         full_path = Path(base_path) / file_path
                     else:
                         full_path = Path(file_path)
-                    
+
                     logger.debug(f"语法检查读取文件 - base_path: {base_path}, file_path: {file_path}, full_path: {full_path}")
-                    
+
                     if full_path.exists() and full_path.is_file():
                         content = full_path.read_text(encoding='utf-8', errors='ignore')
                     else:
@@ -750,11 +780,11 @@ class Project_Programming:
                 except Exception as e:
                     logger.error(f"语法检查 - 读取文件失败 {file_path}: {str(e)}")
                     continue
-            
+
             if not content.strip():
                 issues_found.append(f"- **{file_name}**: 文件为空")
                 continue
-            
+
             # Python语法检查
             if file_ext == '.py':
                 try:
@@ -763,23 +793,23 @@ class Project_Programming:
                     issues_found.append(f"- **{file_name}**: 语法错误 - {e.msg} (第 {e.lineno} 行)")
                 except Exception as e:
                     issues_found.append(f"- **{file_name}**: 解析错误 - {str(e)[:50]}")
-            
+
             # 检查内容是否包含乱码或非代码内容
             if self._contains_garbage_content(content):
                 issues_found.append(f"- **{file_name}**: 检测到可能的乱码或非代码内容")
-            
+
             # 检查文件大小是否合理
             if len(content) < 10:
                 issues_found.append(f"- **{file_name}**: 文件内容过短，可能不完整")
-        
+
         if issues_found:
             report += "\n".join(issues_found) + "\n"
             report += f"\n**总计发现 {len(issues_found)} 个潜在问题**\n"
         else:
             report += "未发现明显的语法问题\n"
-        
+
         return report
-    
+
     def _contains_garbage_content(self, content: str) -> bool:
         """检查内容是否包含乱码或非代码内容"""
         # 检查是否包含中文字符（代码中不应有大量无意义中文）
@@ -796,11 +826,11 @@ class Project_Programming:
                             stripped = line.strip()
                             if not stripped.startswith('#') and not stripped.startswith('"""') and not stripped.startswith("'''"):
                                 return True
-        
+
         # 检查是否包含连续的重复字符（可能是乱码）
         if re.search(r'(.)\1{5,}', content):
             return True
-        
+
         # 检查是否包含明显的乱码模式
         garbage_patterns = [
             r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]',  # 控制字符
@@ -809,28 +839,28 @@ class Project_Programming:
         for pattern in garbage_patterns:
             if re.search(pattern, content):
                 return True
-        
+
         return False
 
     def _find_dependencies(self, file_path: str) -> List[str]:
         """查找文件的依赖关系"""
         dependencies = []
-        
+
         try:
             if hasattr(self, 'project_root') and self.project_root:
                 full_path = Path(self.project_root) / file_path
             else:
                 full_path = Path(file_path)
-            
+
             if full_path.exists():
                 content = full_path.read_text(encoding='utf-8', errors='ignore')
-                
+
                 # 查找import语句
                 import_patterns = [
                     r'from\s+([a-zA-Z0-9_.]+)\s+import',
                     r'import\s+([a-zA-Z0-9_.]+)'
                 ]
-                
+
                 for pattern in import_patterns:
                     matches = re.findall(pattern, content)
                     for match in matches:
@@ -838,34 +868,34 @@ class Project_Programming:
                         if '.' in match:
                             module_path = match.replace('.', '/') + '.py'
                             dependencies.append(module_path)
-        
+
         except Exception as e:
             logger.debug(f"分析依赖失败 {file_path}: {str(e)}")
-        
+
         return dependencies
 
     def _generate_file_list(self) -> str:
         """生成项目文件列表"""
         if not self.project_context or not self.project_context.get('files'):
             return ""
-        
+
         files = self.project_context['files']
         file_list = "\n项目文件结构:\n"
-        
+
         # 按目录组织文件
         dir_structure = {}
         for f in files:
             path = f['path']
             parts = path.split('/')
             current = dir_structure
-            
+
             for i, part in enumerate(parts):
                 if part not in current:
                     current[part] = {'__type': f.get('type', 'file') if i == len(parts)-1 else 'dir', '__children': {}}
                 elif i == len(parts)-1:
                     current[part]['__type'] = f.get('type', 'file')
                 current = current[part]['__children']
-        
+
         def format_structure(structure, prefix=""):
             result = ""
             items = sorted(structure.keys())
@@ -873,16 +903,16 @@ class Project_Programming:
                 item = structure[name]
                 is_last = i == len(items) - 1
                 connector = "└── " if is_last else "├── "
-                
+
                 if item['__type'] == 'dir':
                     result += f"{prefix}{connector}{name}/\n"
                     new_prefix = prefix + ("    " if is_last else "│   ")
                     result += format_structure(item['__children'], new_prefix)
                 else:
                     result += f"{prefix}{connector}{name}\n"
-            
+
             return result
-        
+
         file_list += format_structure(dir_structure)
         return file_list
 
@@ -895,7 +925,7 @@ class Project_Programming:
 
         # 使用短期记忆获取对话历史
         conversation_history = self.memory.short_term.get_conversation_history()
-        
+
         # 记录用户输入到短期记忆
         self.memory.short_term.add_action('user_message', {'content': message_content[:100]})
 
@@ -907,7 +937,7 @@ class Project_Programming:
                       ] + conversation_history + [
                           {"role": "user", "content": user_message_content},
                       ]
-        
+
         try:
             is_multimodal = isinstance(user_message_content, list)
             if is_multimodal:
@@ -927,15 +957,15 @@ class Project_Programming:
                 response_content = response.content
             else:
                 response_content = str(response)
-            
+
             # 将响应保存到长期记忆
             self._update_memory_from_response(message_content, response_content)
-            
+
             return response_content
         except Exception as e:
             logger.error(f"project_code_node LLM 调用失败: {str(e)}")
             return f"**❌ 错误：** 抱歉，当前服务暂时不可用，请稍后重试。"
-    
+
     def _update_memory_from_response(self, user_message: str, response: str):
         """从响应中提取信息并更新记忆"""
         # 检测并记录问题
@@ -943,27 +973,27 @@ class Project_Programming:
         for issue in issues:
             self.memory.long_term.add_issue(issue)
             logger.info(f"记录问题到长期记忆: {issue.get('description', '')}")
-        
+
         # 检测并记录学习到的模式
         patterns = self._extract_patterns_from_response(response)
         for pattern in patterns:
             self.memory.long_term.add_learned_pattern(pattern)
             logger.info(f"记录模式到长期记忆: {pattern.get('name', '')}")
-        
+
         # 记录代码知识
         code_knowledge = self._extract_code_knowledge(user_message, response)
         if code_knowledge:
             for file_name, knowledge in code_knowledge.items():
                 self.memory.long_term.add_code_knowledge(file_name, knowledge)
                 logger.info(f"记录代码知识到长期记忆: {file_name}")
-        
+
         # 保存长期记忆
         self.memory.save()
-    
+
     def _extract_issues_from_response(self, response: str) -> List[dict]:
         """从响应中提取问题信息"""
         issues = []
-        
+
         # 查找问题描述模式
         issue_patterns = [
             r'发现(\d+)处问题',
@@ -975,7 +1005,7 @@ class Project_Programming:
             r'问题描述：(.+)',
             r'行(\d+)：(.+)',
         ]
-        
+
         for pattern in issue_patterns:
             matches = re.findall(pattern, response)
             for match in matches:
@@ -991,13 +1021,13 @@ class Project_Programming:
                         'description': match,
                         'severity': 'medium'
                     })
-        
+
         return issues
-    
+
     def _extract_patterns_from_response(self, response: str) -> List[dict]:
         """从响应中提取学习到的模式"""
         patterns = []
-        
+
         # 查找设计模式或最佳实践描述
         pattern_keywords = ['模式', '最佳实践', '设计模式', '建议', '优化']
         for keyword in pattern_keywords:
@@ -1010,13 +1040,13 @@ class Project_Programming:
                             'name': keyword + ': ' + sentence[:30],
                             'description': sentence.strip()
                         })
-        
+
         return patterns
-    
+
     def _extract_code_knowledge(self, user_message: str, response: str) -> Dict[str, dict]:
         """从响应中提取代码知识"""
         knowledge = {}
-        
+
         # 查找代码块
         code_blocks = re.findall(r'```(\w+)?\n([\s\S]*?)```', response)
         for lang, code in code_blocks:
@@ -1035,17 +1065,17 @@ class Project_Programming:
                             knowledge['extracted_code'] = file_knowledge
                     except:
                         pass
-        
+
         return knowledge
 
     def _build_multimodal_message(self, text_content: str):
         """构建多模态消息（文本 + 图片）"""
         if not self.images or len(self.images) == 0:
             return text_content
-        
+
         # 构建多模态内容列表
         content_parts = []
-        
+
         # 多张图片时，在文本前添加图片编号说明，方便LLM区分"第1张图""第2张图"
         img_count = len(self.images)
         if img_count > 1:
@@ -1053,43 +1083,48 @@ class Project_Programming:
             prefix += "、".join([f"图片{i+1}" for i in range(img_count)])
             prefix += "]\n\n"
             text_content = prefix + text_content
-        
+
         # 添加文本部分
         if text_content:
             content_parts.append({
                 "type": "text",
                 "text": text_content
             })
-        
+
         # 添加所有图片
         for img in self.images:
             img_data = img.get('data', '')
             img_name = img.get('name', 'image')
-            
+
             # 提取 base64 数据（去掉 data:image/xxx;base64, 前缀）
             base64_data = img_data
             if ',' in img_data:
                 base64_data = img_data.split(',', 1)[1]
-            
+
             # 检测图片类型
             mime_type = 'image/png'  # 默认
             if img_data.startswith('data:'):
                 mime_type = img_data.split(':')[1].split(';')[0]
-            
+
             content_parts.append({
                 "type": "image_url",
                 "image_url": {
                     "url": img_data
                 }
             })
-            
+
             logger.info(f"添加图片到消息: {img_name}, 类型: {mime_type}")
-        
+
         logger.info(f"构建多模态消息: {len(content_parts)} 个部分（1个文本 + {len(self.images)}张图片）")
         return content_parts
 
-    def get_model_response_stream(self, message, llm):
-        """获取模型响应（流式）"""
+    def get_model_response_stream(self, message, model_name: str = ""):
+        """获取模型响应（流式）- 使用原生 OpenAI API"""
+        from openai import OpenAI
+
+        if not model_name:
+            model_name = Params.DEFAULT_CHAT_MODEL
+
         if hasattr(message, 'content'):
             message_content = message.content
         else:
@@ -1100,20 +1135,24 @@ class Project_Programming:
 
         # 使用短期记忆获取对话历史
         conversation_history = self.memory.short_term.get_conversation_history()
-        
+
         # 记录用户输入到短期记忆
         self.memory.short_term.add_action('user_message', {'content': message_content})
 
         # 构建用户消息内容（支持多模态：文本 + 图片）
+        is_multimodal = False
         user_message_content = self._build_multimodal_message(message_content)
-        is_multimodal = isinstance(user_message_content, list)
+        for part in user_message_content:
+            if isinstance(part, dict) and part.get("type") == "image_url":
+                is_multimodal = True
+                break
 
         prompt_list = [
                           {"role": "system", "content": self.system_prompt},
                       ] + conversation_history + [
                           {"role": "user", "content": user_message_content},
                       ]
-        
+
         try:
             if is_multimodal:
                 # VL多模态模型：不支持 system 角色，使用精简版 system prompt 避免 token 超限
@@ -1128,16 +1167,29 @@ class Project_Programming:
                     {"role": "user", "content": vl_user_content},
                 ]
 
+                # 使用原生 OpenAI API 调用多模态模型
+                client = OpenAI(
+                    api_key=os.getenv("DASHSCOPE_API_KEY"),
+                    base_url=Params.API_BASE,
+                )
+                response = client.chat.completions.create(
+                    model=Params.DEFAULT_MULTIMODAL_MODEL,
+                    messages=vl_prompt_list,
+                    stream=True,
+                )
+
                 total_text = ""
-                for chunk in llm.stream(vl_prompt_list):
-                    response_text = chunk.content if hasattr(chunk, 'content') else str(chunk)
-                    self._update_memory_from_response(message_content, response_text)
-                    total_text += response_text
-                    yield response_text
-                    time.sleep(0.03)
+                for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        response_text = chunk.choices[0].delta.content
+                        self._update_memory_from_response(message_content, response_text)
+                        total_text += response_text
+                        yield response_text
+                        time.sleep(0.03)
 
                 # 多模态路径完成，直接返回
                 return
+
             thinking_count = 0
             paragraph_count = 0
             in_code_block = False
@@ -1155,27 +1207,29 @@ class Project_Programming:
     - 🔴 回复过程中严禁输出任何代码块或代码片段！
     - 🔴 回复过程中严禁提及要修改哪些具体文件！
     - 🔴 回复过程中严禁输出完整的实现代码！
-    - 🔴 不要列出依赖安装命令！
-    - 🔴 保持简洁，每个部分 1-2 句话即可！
+    -  不要列出依赖安装命令！
+    -  保持简洁，每个部分 1-2 句话即可！
 
     用户问题：{message_content}
 
     请开始你的思考分析（保持简洁）："""
 
-            # 创建思考专用的 LLM 实例（使用更快的模型）
-            llm_other = ChatOpenAI(
-                model=Params.DEFAULT_CHAT_MODEL,  # 使用更快的模型进行思考
-                api_key=os.getenv("DASHSCOPE_API_KEY"),
-                base_url=Params.API_BASE,
-                timeout=30,
-                streaming=True
-            )
-
-            # 使用思考模型（需要你在 agent.py 中创建 llm_other 实例）
+            # 使用原生 OpenAI API 进行思考阶段
             try:
-                for chunk in llm_other.stream([{"role": "user", "content": react_prompt}]):
-                    if hasattr(chunk, 'content') and chunk.content:
-                        content = chunk.content
+                client = OpenAI(
+                    api_key=os.getenv("DASHSCOPE_API_KEY"),
+                    base_url=Params.API_BASE,
+                )
+
+                response = client.chat.completions.create(
+                    model=model_name,
+                    messages=[{"role": "user", "content": react_prompt}],
+                    stream=True,
+                )
+
+                for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
                         yield content
                         time.sleep(0.03)
             except Exception as e:
@@ -1186,13 +1240,24 @@ class Project_Programming:
             yield "\n\n---\n\n"
 
             # === 正式回复阶段：用主 LLM 输出正式内容 ===
-            for chunk in llm.stream(prompt_list):
-                if hasattr(chunk, 'content') and chunk.content:
-                    content = chunk.content
+            client = OpenAI(
+                api_key=os.getenv("DASHSCOPE_API_KEY"),
+                base_url=Params.API_BASE,
+            )
+
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=prompt_list,
+                stream=True,
+            )
+
+            for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
                     full_response += content  # 累积完整响应
                     code_block_count += content.count('```')
                     in_code_block = code_block_count % 2 == 1
-                    
+
                     if intent_result and not in_code_block:
                         thinking_count += len(content)
                         paragraph_count += content.count('\n')
@@ -1202,18 +1267,18 @@ class Project_Programming:
                             paragraph_count = 0
                             thinking_phrases = [
                                 "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'>📝 继续分析中...</span><!--THINKING_END-->\n\n",
-                                "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'>🔍 深入研究中...</span><!--THINKING_END-->\n\n",
+                                "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'> 深入研究中...</span><!--THINKING_END-->\n\n",
                                 "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'>💡 发现关键点...</span><!--THINKING_END-->\n\n",
                                 "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'>⚡ 正在处理...</span><!--THINKING_END-->\n\n",
                             ]
                             yield thinking_phrases[len(conversation_history) % len(thinking_phrases)]
                             time.sleep(0.3)
                     yield content
-            
+
             # 流式响应完成后，更新长期记忆
             self.history.add_ai_message(full_response)
             self._update_memory_from_response(message_content, full_response)
-            
+
         except Exception as e:
             logger.error(f"project_code_node LLM 流式调用失败: {str(e)}")
             yield "\n\n**❌ 错误：** 抱歉，当前服务暂时不可用，请稍后重试。"
@@ -1243,11 +1308,11 @@ class Project_Programming:
             for keyword in keywords:
                 if keyword in message:
                     return ""
-        
+
         for intent, keywords in intent_keywords.items():
             for keyword in keywords:
                 if keyword in message:
                     logger.info(f"识别意图: {intent}")
                     return intent
-        
+
         return "其他"

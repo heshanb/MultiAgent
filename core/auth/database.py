@@ -1,4 +1,6 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Text
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Text, BigInteger, JSON, Float
+from sqlalchemy.dialects.mysql import JSON as MySQLJSON
+from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -59,34 +61,22 @@ class User(Base):
     full_name = Column(String(100), nullable=True)
     role = Column(String(20), default="user")  # user, vip, admin
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
     last_login = Column(DateTime, nullable=True)
 
+class SessionMemory(Base):
+    """会话记忆表（用于长期记忆，服务重启后数据不丢失）
+    每个 thread_id 只有一条记录，chat_msg 存储整个对话历史的 JSON 数组
+    """
+    __tablename__ = "session_memories"
 
-class Conversation(Base):
-    """对话表"""
-    __tablename__ = "conversations"
-
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, nullable=False, index=True)
-    thread_id = Column(String(100), unique=True, index=True, nullable=False)
-    title = Column(String(200), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-
-class Message(Base):
-    """消息表"""
-    __tablename__ = "messages"
-
-    id = Column(Integer, primary_key=True, index=True)
-    conversation_id = Column(Integer, nullable=False, index=True)
-    role = Column(String(20), nullable=False)  # user, assistant, system
-    content = Column(Text, nullable=False)
-    sources = Column(Text, nullable=True)  # JSON字符串
-    created_at = Column(DateTime, default=datetime.utcnow)
-
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    thread_id = Column(BigInteger, primary_key=True, index=True, nullable=False)
+    chat_msg = Column(JSON, nullable=True)  # JSON 数组，存储对话历史
+    context = Column(JSON, nullable=True)   # JSON 对象，存储元信息（upload_files, output_file 等）
+    create_at = Column(DateTime, default=datetime.now())
+    update_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
 class Agent(Base):
     """智能体表"""
@@ -94,6 +84,7 @@ class Agent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False, index=True)
+    user_name = Column(String(20), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     avatar = Column(String(20), nullable=True, default="🤖")
@@ -101,21 +92,84 @@ class Agent(Base):
     model = Column(String(50), nullable=True, default="")
     variables = Column(Text, nullable=True)
     knowledge_base = Column(Text, nullable=True)
+    tools = Column(Text, nullable=True)  # JSON 格式的工具配置列表
     opening = Column(Text, nullable=True)
     presets = Column(Text, nullable=True)
     is_published = Column(Boolean, default=False)
+    category = Column(String(50), nullable=True)
     publish_version = Column(String(50), nullable=True)
     publish_desc = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    publish_channels = Column(Text, nullable=True)
+    deep_think = Column(Boolean, default=False)
+    struct_output = Column(Text, nullable=True)  # JSON: {"enable": bool, "fields": [...]}
+    temperature = Column(Float, default=0.7)
+    created_at = Column(DateTime, default=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+
+
+class PublishHistory(Base):
+    """智能体发布历史表"""
+    __tablename__ = "publish_history"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    agent_id = Column(Integer, nullable=False, index=True)
+    user_name = Column(String(20), nullable=False, index=True)
+    version = Column(String(50), nullable=False)
+    description = Column(Text, nullable=True)
+    channels = Column(Text, nullable=True)
+    published_at = Column(DateTime, default=datetime.now())
+
+
+if USE_SQLITE:
+    _JSON = SQLiteJSON
+else:
+    _JSON = MySQLJSON
+
+
+class CustomTool(Base):
+    """自定义工具表"""
+    __tablename__ = "custom_tools"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, nullable=False, index=True)
+    user_name = Column(String(20), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    category = Column(String(50), nullable=True)  # 工具分类
+    url = Column(String(500), nullable=False)
+    method = Column(String(10), nullable=False, default="GET")
+    timeout = Column(Integer, nullable=False, default=10)
+    headers = Column(Text, nullable=True)  # JSON 格式
+    parameters = Column(Text, nullable=True)  # JSON 格式
+    auth_type = Column(String(20), nullable=False, default="none")
+    auth_value = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
+
+
+class Knowledge(Base):
+    """知识库元数据表（knowledges）"""
+    __tablename__ = "knowledges"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, index=True)
+    knowledge_name = Column(String(50), nullable=False)
+    knowledge_description = Column(String(255), nullable=True)
+    user_name = Column(String(20), nullable=False, index=True)
+    chunk_retrieve_setting = Column(_JSON, nullable=False, default=dict)
+    knowledge_id = Column(_JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, default=datetime.now())
+    update_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())
 
 
 def init_db():
     """初始化数据库，创建所有表，并安全迁移新增列"""
     try:
         Base.metadata.create_all(bind=engine)
-
+        SessionMemory.__table__.create(bind=engine, checkfirst=True)
         _ensure_agents_table()
+        _ensure_knowledges_table()
+        _ensure_publish_history_table()
+        _ensure_custom_tools_table()
 
         if USE_SQLITE:
             try:
@@ -170,6 +224,75 @@ def _ensure_agents_table():
                 print(f"📌 agents 表新增列: {col_name} ({col_type})")
             except Exception as e:
                 print(f"⚠️ agents 表新增列 {col_name} 失败: {e}")
+
+
+def _ensure_knowledges_table():
+    """确保 knowledges 表存在（兼容已存在的旧数据库）"""
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    if not inspector.has_table("knowledges"):
+        print("📌 检测到 knowledges 表不存在，正在创建...")
+        Knowledge.__table__.create(bind=engine, checkfirst=True)
+        print("✅ knowledges 表创建成功")
+    else:
+        existing_cols = {c['name'] for c in inspector.get_columns("knowledges")}
+        missing = [c for c in Knowledge.__table__.columns.keys() if c not in existing_cols]
+        for col_name in missing:
+            col_obj = Knowledge.__table__.c[col_name]
+            col_type = str(col_obj.type)
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE knowledges ADD COLUMN {col_name} {col_type}"))
+                    conn.commit()
+                print(f" knowledges 表新增列: {col_name} ({col_type})")
+            except Exception as e:
+                print(f"⚠️ knowledges 表新增列 {col_name} 失败: {e}")
+
+
+def _ensure_publish_history_table():
+    """确保 publish_history 表存在（兼容已存在的旧数据库）"""
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    if not inspector.has_table("publish_history"):
+        print(" 检测到 publish_history 表不存在，正在创建...")
+        PublishHistory.__table__.create(bind=engine, checkfirst=True)
+        print("✅ publish_history 表创建成功")
+    else:
+        existing_cols = {c['name'] for c in inspector.get_columns("publish_history")}
+        missing = [c for c in PublishHistory.__table__.columns.keys() if c not in existing_cols]
+        for col_name in missing:
+            col_obj = PublishHistory.__table__.c[col_name]
+            col_type = str(col_obj.type)
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE publish_history ADD COLUMN {col_name} {col_type}"))
+                    conn.commit()
+                print(f" publish_history 表新增列: {col_name} ({col_type})")
+            except Exception as e:
+                print(f"⚠️ publish_history 表新增列 {col_name} 失败: {e}")
+
+
+def _ensure_custom_tools_table():
+    """确保 custom_tools 表存在（兼容已存在的旧数据库）"""
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    if not inspector.has_table("custom_tools"):
+        print("📌 检测到 custom_tools 表不存在，正在创建...")
+        CustomTool.__table__.create(bind=engine, checkfirst=True)
+        print("✅ custom_tools 表创建成功")
+    else:
+        existing_cols = {c['name'] for c in inspector.get_columns("custom_tools")}
+        missing = [c for c in CustomTool.__table__.columns.keys() if c not in existing_cols]
+        for col_name in missing:
+            col_obj = CustomTool.__table__.c[col_name]
+            col_type = str(col_obj.type)
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE custom_tools ADD COLUMN {col_name} {col_type}"))
+                    conn.commit()
+                print(f"📌 custom_tools 表新增列: {col_name} ({col_type})")
+            except Exception as e:
+                print(f"⚠️ custom_tools 表新增列 {col_name} 失败: {e}")
 
 
 def get_db():

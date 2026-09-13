@@ -7,6 +7,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
+
 class ShortTermMemory:
     """短期记忆 - 存储当前会话的对话历史和上下文信息"""
     
@@ -449,6 +450,11 @@ class MemoryManager:
     def close(self):
         """关闭记忆管理器，确保保存"""
         self.save()
+
+
+
+
+
 
 
 # 全局记忆管理器实例（可选单例模式）
