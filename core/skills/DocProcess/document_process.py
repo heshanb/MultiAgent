@@ -79,7 +79,7 @@ class DocumentProcessor:
         elif ext == '.txt':
             async for chunk_text in self._read_txt(file_path):
                 yield chunk_text
-        if ext in ['.xlsx', '.xls']:
+        elif ext in ['.xlsx', '.xls']:
             async for chunk_text in self._read_excel(file_path):
                 yield chunk_text
         elif ext in ['.pptx', '.ppt']:
@@ -335,19 +335,39 @@ class DocumentProcessor:
 源文件格式：{file_ext}
 目标输出格式：{output_ext}
 
+【重要】你必须使用 Markdown 格式输出！这是强制要求！
+
 任务：根据用户需求，将下方提供的{file_ext}文件内容进行相应处理后，以{output_ext}格式输出。
 
 要求：
 1. 完整理解用户需求，对源文件内容进行整理/汇总/分析/改写等操作
 2. 输出高质量、结构化的内容，适合保存为{output_ext}文件
 3. 如果是表格类内容，请用 Markdown 表格格式输出（| 列1 | 列2 | ... |）
-4. 如果是文档类内容，请合理使用 Markdown 标题（# / ## / ###）、列表、表格等格式
+4. 【强制要求】如果是文档类内容，必须使用 Markdown 标题语法：
+   - 最大章节标题必须用 # 开头，例如：# 爬虫基本原理讲解
+   - 子章节标题必须用 ## 开头，例如：## 什么是爬虫？
+   - 细分内容标题必须用 ### 开头，例如：### 爬虫基本流程
+   - 更细分内容用 #### 开头
+   - 标题后面必须有空格，然后才是标题文字
+   - 标题必须有实际文字内容，不能只是纯数字（如不能写 "## 2"）
+   - 带括号的数字列表如 (1) xxx、（1）xxx 是正文内容，不是标题，绝对不要用 # 标记
 5. 只返回最终内容本身，不要任何解释、开头语或结束语
 
-注意：你的回复将直接被保存为{output_ext}文件！"""
+错误示例（不要这样写）：
+什么是爬虫？
+请求网站并提取数据的自动化程序
+
+正确示例（必须这样写）：
+# 爬虫基本原理讲解
+## 什么是爬虫？
+### 请求网站并提取数据的自动化程序
+
+注意：你的回复将直接被保存为{output_ext}文件！如果不用 Markdown 格式，文档将无法正确排版！"""
 
         if is_organize:
             return f"""你是一个专业的文档分析与整理助手。
+
+【重要】你必须使用 Markdown 格式输出！这是强制要求！
 
 任务：根据用户需求，对下方提供的文档内容进行整理、汇总、分析或改写。
 
@@ -356,13 +376,32 @@ class DocumentProcessor:
 要求：
 1. 准确把握用户的核心意图（整理结构 / 汇总数据 / 提炼要点 / 分析内容 / 格式转换等）
 2. 输出结构化、条理清晰、重点突出的内容
-3. 使用 Markdown 格式组织内容（标题用 # / ## / ###，表格用 | 分隔，列表用 - 或数字编号）
+3. 【强制要求】必须严格按以下规则使用 Markdown 格式：
+   - 最大章节标题必须用 # 开头，例如：# 爬虫基本原理讲解
+   - 子章节标题必须用 ## 开头，例如：## 什么是爬虫？
+   - 细分内容标题必须用 ### 开头，例如：### 爬虫基本流程
+   - 更细分内容用 #### 开头
+   - 标题后面必须有空格，然后才是标题文字
+   - 标题必须有实际文字内容，不能只是纯数字（如不能写 "## 2"）
+   - 带括号的数字列表如 (1) xxx、（1）xxx 是正文内容，不是标题，绝对不要用 # 标记
+   - 表格用 | 分隔，列表用 - 或数字编号
 4. 保留对用户有用的所有重要信息，不要遗漏关键数据
 5. 只返回最终整理好的内容本身，不要任何解释、开头语或结束语
 
-注意：你的回复将直接被保存为文档文件！"""
+错误示例（不要这样写）：
+什么是爬虫？
+请求网站并提取数据的自动化程序
+
+正确示例（必须这样写）：
+# 爬虫基本原理讲解
+## 什么是爬虫？
+### 请求网站并提取数据的自动化程序
+
+注意：你的回复将直接被保存为文档文件！如果不用 Markdown 格式，文档将无法正确排版！"""
 
         return f"""你是一个专业的文档修改助手。
+
+【重要】你必须使用 Markdown 格式输出！这是强制要求！
 
 任务：根据用户的具体要求，对下方提供的文档内容进行针对性的修改。
 
@@ -372,9 +411,26 @@ class DocumentProcessor:
 1. 严格按照用户要求进行修改（增删内容 / 调整格式 / 润色语言 / 修正错误等）
 2. 只修改用户指定的部分，未提及的内容保持原样
 3. 保留原文档的结构和换行格式
-4. 直接返回修改后的完整内容，不要解释、不要说明改了什么
+4. 【强制要求】如果涉及标题层级，必须使用 Markdown 标题语法：
+   - 最大章节标题必须用 # 开头，例如：# 爬虫基本原理讲解
+   - 子章节标题必须用 ## 开头，例如：## 什么是爬虫？
+   - 细分内容标题必须用 ### 开头，例如：### 爬虫基本流程
+   - 更细分内容用 #### 开头
+   - 标题后面必须有空格，然后才是标题文字
+   - 标题必须有实际文字内容，不能只是纯数字（如不能写 "## 2"）
+   - 带括号的数字列表如 (1) xxx、（1）xxx 是正文内容，不是标题，绝对不要用 # 标记
+5. 直接返回修改后的完整内容，不要解释、不要说明改了什么
 
-注意：你的回复将直接保存为文档文件。"""
+错误示例（不要这样写）：
+什么是爬虫？
+请求网站并提取数据的自动化程序
+
+正确示例（必须这样写）：
+# 爬虫基本原理讲解
+## 什么是爬虫？
+### 请求网站并提取数据的自动化程序
+
+注意：你的回复将直接保存为文档文件。如果不用 Markdown 格式，文档将无法正确排版！"""
     
     def _read_docx(self, file_path: str) -> str:
         """读取 .docx 文件"""
@@ -520,15 +576,24 @@ class DocumentProcessor:
 
             # return '\n'.join(content)
         except Exception as e:
-            # # xlrd读取失败，尝试作为文本文件读取（可能是CSV或其他文本格式）
-            # print(f"xlrd 读取失败，尝试作为文本文件读取: {str(e)}")
-            # try:
-            #     with open(file_path, 'r', encoding='utf-8') as f:
-            #         content = f.read()
-            #     # 尝试解析为CSV格式
-            #     yield self._parse_text_as_csv(content, file_path)
-            # except Exception as text_e:
-            raise ValueError(f"无法读取文件 '{file_path}'。文件可能不是有效的 Excel 格式，或已损坏。尝试的错误: xlrd: {str(e)}")
+            # xlrd读取失败，尝试作为文本文件读取（可能是CSV或其他文本格式被改名为.xls）
+            print(f"xlrd 读取失败，尝试作为文本文件读取: {str(e)}")
+            try:
+                # 尝试多种编码
+                content = None
+                for encoding in ['utf-8-sig', 'utf-8', 'gbk', 'gb2312', 'latin-1']:
+                    try:
+                        with open(file_path, 'r', encoding=encoding) as f:
+                            content = f.read()
+                        break
+                    except (UnicodeDecodeError, UnicodeError):
+                        continue
+                if content is not None:
+                    yield self._parse_text_as_csv(content, file_path)
+                else:
+                    raise ValueError("无法识别文件编码")
+            except Exception as text_e:
+                raise ValueError(f"无法读取文件 '{file_path}'。文件可能不是有效的 Excel 格式，或已损坏。尝试的错误: xlrd: {str(e)}, 文本读取: {str(text_e)}")
     
     def _parse_text_as_csv(self, content: str, file_path: str) -> str:
         """将文本内容解析为CSV格式并转换为MD表格"""
@@ -600,6 +665,24 @@ class DocumentProcessor:
             # return '\n'.join(content)
         except ImportError:
             raise ImportError("请安装 openpyxl: pip install openpyxl")
+        except Exception as e:
+            # openpyxl读取失败，尝试作为文本文件读取（可能是CSV或其他文本格式被改名为.xlsx）
+            print(f"openpyxl 读取失败，尝试作为文本文件读取: {str(e)}")
+            try:
+                content = None
+                for encoding in ['utf-8-sig', 'utf-8', 'gbk', 'gb2312', 'latin-1']:
+                    try:
+                        with open(file_path, 'r', encoding=encoding) as f:
+                            content = f.read()
+                        break
+                    except (UnicodeDecodeError, UnicodeError):
+                        continue
+                if content is not None:
+                    yield self._parse_text_as_csv(content, file_path)
+                else:
+                    raise ValueError("无法识别文件编码")
+            except Exception as text_e:
+                raise ValueError(f"无法读取文件 '{file_path}'。文件可能不是有效的 Excel 格式，或已损坏。尝试的错误: openpyxl: {str(e)}, 文本读取: {str(text_e)}")
     
     async def _read_pptx(self, file_path: str):
         """读取 PowerPoint 文件，逐页 yield Markdown 内容"""
@@ -761,17 +844,227 @@ class DocumentProcessor:
                                 instructions: str, output_path: str, paragraph_info: List[Tuple[int, str]]):
         """修改 .docx 文件并保持格式"""
         from docx import Document
-        doc = Document(original_path)
-        modified_lines = modified_content.split('\n')
+        from docx.shared import Pt, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        import re
         
-        for idx, (para_index, original_text) in enumerate(paragraph_info):
-            if idx < len(modified_lines):
-                para = doc.paragraphs[para_index]
-                new_text = modified_lines[idx]
+        doc = Document(original_path)
+        
+        # 如果没有段落信息，直接重建文档内容
+        if paragraph_info is None:
+            # 清空原文档内容
+            for para in doc.paragraphs:
                 for run in para.runs:
                     run.text = ""
-                if new_text:
-                    para.add_run(new_text)
+            
+            # 解析 Markdown 内容并按标题层级写入
+            lines = modified_content.split('\n')
+            first_para = True
+            
+            # 标题编号追踪器：{level: current_number}
+            heading_counters = {1: 0, 2: 0, 3: 0, 4: 0}
+            last_heading_level = 0
+            
+            # 智能标题检测：判断一行是否可能是标题
+            def is_likely_title(text, prev_line_was_title=False):
+                """判断一行是否可能是标题（即使没有 # 标记）"""
+                if not text:
+                    return False, 0
+                
+                # 1. 纯数字跳过
+                if re.match(r'^\d+$', text):
+                    return False, 0
+                
+                # 2. 带括号数字列表是正文
+                if re.match(r'^[（(]\d+[）)]\s', text):
+                    return False, 0
+                
+                # 3. 太长的行不是标题（超过50字）
+                if len(text) > 50:
+                    return False, 0
+                
+                # 4. 以问号结尾的短句可能是标题
+                if text.endswith('？') or text.endswith('?'):
+                    if len(text) < 30:
+                        return True, 2  # 默认二级标题
+                
+                # 5. 短句（<20字）且不含标点符号结尾，可能是标题
+                if len(text) < 20 and not re.search(r'[。！？；]$', text):
+                    # 如果前一行也是标题，这可能是子标题
+                    if prev_line_was_title:
+                        return True, min(last_heading_level + 1, 4)
+                    return True, 2
+                
+                # 6. 包含"什么是"、"如何"等关键词的短句
+                if re.match(r'^(什么是|如何|为什么|怎样|哪些|哪个|谁|哪里)', text) and len(text) < 30:
+                    return True, 2
+                
+                return False, 0
+            
+            for line in lines:
+                stripped = line.strip()
+                if not stripped:
+                    # 空行，跳过
+                    continue
+                
+                # 检测 Markdown 标题
+                heading_match = re.match(r'^(#{1,4})\s+(.+)$', stripped)
+                
+                if heading_match:
+                    level = len(heading_match.group(1))  # # 的数量
+                    title_text = heading_match.group(2).strip()
+                    
+                    # 跳过纯数字标题（如 "2"、"3"）
+                    if re.match(r'^\d+$', title_text):
+                        continue
+                    
+                    # 跳过带括号的数字列表作为标题（如 "(1) xxx"、"（1）xxx"）
+                    if re.match(r'^[（(]\d+[）)]\s', title_text):
+                        # 这是正文内容，不是标题
+                        if first_para and doc.paragraphs:
+                            para = doc.paragraphs[0]
+                        else:
+                            para = doc.add_paragraph()
+                        run = para.add_run(stripped)
+                        run.font.size = Pt(10.5)
+                        first_para = False
+                        continue
+                    
+                    # 更新标题计数器
+                    # 重置当前级别以下的计数器
+                    for l in range(level + 1, 5):
+                        heading_counters[l] = 0
+                    heading_counters[level] += 1
+                    
+                    # 生成编号
+                    if level == 1:
+                        numbered_title = f"{heading_counters[1]} {title_text}"
+                    elif level == 2:
+                        numbered_title = f"{heading_counters[1]}.{heading_counters[2]} {title_text}"
+                    elif level == 3:
+                        numbered_title = f"{heading_counters[1]}.{heading_counters[2]}.{heading_counters[3]} {title_text}"
+                    else:  # level == 4
+                        numbered_title = f"{heading_counters[1]}.{heading_counters[2]}.{heading_counters[3]}.{heading_counters[4]} {title_text}"
+                    
+                    # 写入标题
+                    if first_para and doc.paragraphs:
+                        para = doc.paragraphs[0]
+                    else:
+                        para = doc.add_paragraph()
+                    
+                    run = para.add_run(numbered_title)
+                    
+                    # 设置标题样式
+                    if level == 1:
+                        run.font.size = Pt(22)
+                        run.font.bold = True
+                        run.font.color.rgb = RGBColor(0x2E, 0x74, 0xB5)
+                        para.paragraph_format.space_before = Pt(18)
+                        para.paragraph_format.space_after = Pt(6)
+                    elif level == 2:
+                        run.font.size = Pt(18)
+                        run.font.bold = True
+                        run.font.color.rgb = RGBColor(0x5B, 0x9B, 0xD5)
+                        para.paragraph_format.space_before = Pt(12)
+                        para.paragraph_format.space_after = Pt(6)
+                    elif level == 3:
+                        run.font.size = Pt(14)
+                        run.font.bold = True
+                        run.font.color.rgb = RGBColor(0x7F, 0xB3, 0xE6)
+                        para.paragraph_format.space_before = Pt(6)
+                        para.paragraph_format.space_after = Pt(3)
+                    else:  # level == 4
+                        run.font.size = Pt(12)
+                        run.font.bold = True
+                        run.font.color.rgb = RGBColor(0x99, 0xC5, 0xF0)
+                        para.paragraph_format.space_before = Pt(3)
+                        para.paragraph_format.space_after = Pt(3)
+                    
+                    first_para = False
+                    last_heading_level = level
+                else:
+                    # 智能检测：即使没有 # 也判断是否为标题
+                    is_title, detected_level = is_likely_title(stripped, last_heading_level > 0)
+                    
+                    if is_title and detected_level > 0:
+                        title_text = stripped
+                        
+                        # 更新标题计数器
+                        for l in range(detected_level + 1, 5):
+                            heading_counters[l] = 0
+                        heading_counters[detected_level] += 1
+                        
+                        # 生成编号
+                        if detected_level == 1:
+                            numbered_title = f"{heading_counters[1]} {title_text}"
+                        elif detected_level == 2:
+                            numbered_title = f"{heading_counters[1]}.{heading_counters[2]} {title_text}"
+                        elif detected_level == 3:
+                            numbered_title = f"{heading_counters[1]}.{heading_counters[2]}.{heading_counters[3]} {title_text}"
+                        else:
+                            numbered_title = f"{heading_counters[1]}.{heading_counters[2]}.{heading_counters[3]}.{heading_counters[4]} {title_text}"
+                        
+                        # 写入标题
+                        if first_para and doc.paragraphs:
+                            para = doc.paragraphs[0]
+                        else:
+                            para = doc.add_paragraph()
+                        
+                        run = para.add_run(numbered_title)
+                        
+                        # 设置标题样式
+                        if detected_level == 1:
+                            run.font.size = Pt(22)
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(0x2E, 0x74, 0xB5)
+                            para.paragraph_format.space_before = Pt(18)
+                            para.paragraph_format.space_after = Pt(6)
+                        elif detected_level == 2:
+                            run.font.size = Pt(18)
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(0x5B, 0x9B, 0xD5)
+                            para.paragraph_format.space_before = Pt(12)
+                            para.paragraph_format.space_after = Pt(6)
+                        elif detected_level == 3:
+                            run.font.size = Pt(14)
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(0x7F, 0xB3, 0xE6)
+                            para.paragraph_format.space_before = Pt(6)
+                            para.paragraph_format.space_after = Pt(3)
+                        else:
+                            run.font.size = Pt(12)
+                            run.font.bold = True
+                            run.font.color.rgb = RGBColor(0x99, 0xC5, 0xF0)
+                            para.paragraph_format.space_before = Pt(3)
+                            para.paragraph_format.space_after = Pt(3)
+                        
+                        first_para = False
+                        last_heading_level = detected_level
+                    else:
+                        # 普通正文内容
+                        if first_para and doc.paragraphs:
+                            para = doc.paragraphs[0]
+                        else:
+                            para = doc.add_paragraph()
+                        
+                        run = para.add_run(stripped)
+                        run.font.size = Pt(10.5)
+                        run.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
+                        para.paragraph_format.space_before = Pt(0)
+                        para.paragraph_format.space_after = Pt(6)
+                        para.paragraph_format.first_line_indent = Pt(21)  # 首行缩进2字符
+                        
+                        first_para = False
+        else:
+            modified_lines = modified_content.split('\n')
+            for idx, (para_index, original_text) in enumerate(paragraph_info):
+                if idx < len(modified_lines):
+                    para = doc.paragraphs[para_index]
+                    new_text = modified_lines[idx]
+                    for run in para.runs:
+                        run.text = ""
+                    if new_text:
+                        para.add_run(new_text)
         
         doc.save(output_path)
     
@@ -1084,28 +1377,82 @@ class DocumentProcessor:
             os.replace(str(docx_output_path), str(output_path))
     
     def _create_docx(self, content: str, output_path: str):
-        """创建 .docx 文档"""
+        """创建 .docx 文档，正确解析 Markdown 格式"""
         from docx import Document
-        from docx.shared import Pt
-        
+        from docx.shared import Pt, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.oxml.ns import nsdecls
+        from docx.oxml import parse_xml
+
+        # 清理 LLM 输出的代码块标记（```markdown ... ```）
+        content = re.sub(r'^```markdown\s*\n', '', content)
+        content = re.sub(r'\n```\s*$', '', content)
+        content = re.sub(r'^```\s*\n', '', content)
+        content = re.sub(r'\n```\s*$', '', content)
+        content = content.strip()
+
         doc = Document()
-        
+        # 设置默认字体
+        style = doc.styles['Normal']
+        font = style.font
+        font.name = '微软雅黑'
+        font.size = Pt(11)
+        style.paragraph_format.space_after = Pt(6)
+        style.paragraph_format.line_spacing = 1.5
+
+        def apply_inline_format(paragraph, text):
+            """解析并应用行内 Markdown 格式（**粗体**、*斜体*、`代码`）"""
+            # 先处理粗体 **text**
+            parts = re.split(r'(\*\*(.+?)\*\*)', text)
+            for part in parts:
+                if part.startswith('**') and part.endswith('**'):
+                    inner = part[2:-2]
+                    # 粗体内部可能还有斜体
+                    sub_parts = re.split(r'(\*(.+?)\*)', inner)
+                    for sub in sub_parts:
+                        if sub.startswith('*') and sub.endswith('*'):
+                            run = paragraph.add_run(sub[1:-1])
+                            run.font.bold = True
+                            run.font.italic = True
+                        else:
+                            run = paragraph.add_run(sub)
+                            run.font.bold = True
+                else:
+                    # 处理斜体 *text*
+                    sub_parts = re.split(r'(\*(.+?)\*)', part)
+                    for sub in sub_parts:
+                        if sub.startswith('*') and sub.endswith('*'):
+                            run = paragraph.add_run(sub[1:-1])
+                            run.font.italic = True
+                        else:
+                            # 处理行内代码 `text`
+                            code_parts = re.split(r'(`(.+?)`)', sub)
+                            for cp in code_parts:
+                                if cp.startswith('`') and cp.endswith('`'):
+                                    run = paragraph.add_run(cp[1:-1])
+                                    run.font.name = 'Consolas'
+                                    run.font.size = Pt(10)
+                                    run.font.color.rgb = RGBColor(0xC7, 0x25, 0x4E)
+                                else:
+                                    paragraph.add_run(cp)
+
         def clean_md_inline(text):
+            """去除 Markdown 格式标记，返回纯文本"""
             text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
             text = re.sub(r'\*(.+?)\*', r'\1', text)
             text = re.sub(r'~~(.+?)~~', r'\1', text)
             text = re.sub(r'`(.+?)`', r'\1', text)
             return text.strip()
-        
+
         def is_table_row(line):
             s = line.strip()
             return s.startswith('|') and s.endswith('|') and '|' in s[1:-1]
-        
+
         def is_table_separator(line):
             s = line.strip()
             cells = s.strip('|').split('|')
             return all(re.match(r'^[\s\-:]+$', cell) for cell in cells if cell.strip())
-        
+
         def parse_table_rows(lines):
             if len(lines) < 3:
                 return None, []
@@ -1116,34 +1463,104 @@ class DocumentProcessor:
                     row = [cell.strip() for cell in line.strip().strip('|').split('|')]
                     data_rows.append(row)
             return header, data_rows
-        
+
+        def detect_heading(stripped):
+            """检测标题级别，返回 (level, title_text) 或 (None, None)"""
+            if not stripped:
+                return None, None
+
+            # Markdown 标题 # ## ### 等
+            if stripped.startswith('#'):
+                title_text = stripped.lstrip('#').strip()
+                if stripped.startswith('######'):
+                    return 6, title_text
+                elif stripped.startswith('#####'):
+                    return 5, title_text
+                elif stripped.startswith('####'):
+                    return 4, title_text
+                elif stripped.startswith('###'):
+                    return 3, title_text
+                elif stripped.startswith('##'):
+                    return 2, title_text
+                else:
+                    return 1, title_text
+
+            # 中文数字标题：一、二、三、四... 或 第一部分、第二部分...
+            if re.match(r'^第[一二三四五六七八九十]+部分[：:]', stripped):
+                return 1, stripped
+            if re.match(r'^[一二三四五六七八九十]+[、.]', stripped) and len(stripped) < 80:
+                return 2, stripped
+
+            # 阿拉伯数字标题：1. 2. 3. 或 1、2、3、
+            if re.match(r'^\d+[.、]\s', stripped) and len(stripped) < 80:
+                return 3, stripped
+
+            # 带括号数字：(1) （1）
+            if re.match(r'^[$（]\d+[$）]', stripped) and len(stripped) < 60:
+                return 4, stripped
+
+            # 英文字母标题：A. B. C.
+            if re.match(r'^[A-Z][.、]\s', stripped) and len(stripped) < 60:
+                return 4, stripped
+
+            return None, None
+
+        def is_list_item(stripped):
+            """检测是否为列表项，返回 (is_list, is_ordered, text)"""
+            # 无序列表：- * • ·
+            if re.match(r'^[\-\*•·]\s+', stripped):
+                return True, False, re.sub(r'^[\-\*•·]\s+', '', stripped)
+            # 有序列表：1. 2. 3. 或 1、2、3、
+            m = re.match(r'^(\d+)[.、]\s+(.+)', stripped)
+            if m:
+                return True, True, m.group(2)
+            return False, False, stripped
+
         paragraphs = content.split('\n')
         i = 0
         while i < len(paragraphs):
             para = paragraphs[i]
-            
-            if is_table_row(para) and not is_table_separator(para):
-                table_lines = [para]
+            stripped = para.strip()
+
+            # 跳过空行
+            if not stripped:
+                i += 1
+                continue
+
+            # 处理表格
+            if is_table_row(stripped) and not is_table_separator(stripped):
+                table_lines = [stripped]
                 j = i + 1
                 while j < len(paragraphs):
-                    if is_table_row(paragraphs[j]) or is_table_separator(paragraphs[j]):
-                        table_lines.append(paragraphs[j])
+                    next_stripped = paragraphs[j].strip()
+                    if is_table_row(next_stripped) or is_table_separator(next_stripped):
+                        table_lines.append(next_stripped)
                         j += 1
                     else:
                         break
-                
+
                 header, data_rows = parse_table_rows(table_lines)
                 if header and data_rows:
                     table = doc.add_table(rows=len(data_rows) + 1, cols=len(header))
                     table.style = 'Table Grid'
+                    table.autofit = True
+
+                    # 表头
                     header_cells = table.rows[0].cells
                     for col_idx, cell_text in enumerate(header):
                         cell = header_cells[col_idx]
                         cell.text = clean_md_inline(cell_text)
                         for paragraph in cell.paragraphs:
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
                             for run in paragraph.runs:
                                 run.font.bold = True
                                 run.font.size = Pt(10)
+                                run.font.name = '微软雅黑'
+                        # 表头背景色
+                        shading_elm = parse_xml(r'<w:shd {} w:fill="F2F2F2"/>'.format(nsdecls('w')))
+                        cell._tc.get_or_add_tcPr().append(shading_elm)
+
+                    # 数据行
                     for row_idx, row_data in enumerate(data_rows):
                         row_cells = table.rows[row_idx + 1].cells
                         for col_idx, cell_text in enumerate(row_data):
@@ -1152,60 +1569,36 @@ class DocumentProcessor:
                                 for paragraph in row_cells[col_idx].paragraphs:
                                     for run in paragraph.runs:
                                         run.font.size = Pt(10)
+                                        run.font.name = '微软雅黑'
                     i = j
                     continue
                 else:
-                    doc.add_paragraph(para.strip())
+                    doc.add_paragraph(stripped)
                     i = j
                     continue
-            
-            stripped = para.strip()
-            if not stripped:
-                i += 1
-                continue
-            
-            heading_level = None
-            title_text = None
-            
-            if stripped.startswith('#'):
-                title_text = stripped.lstrip('#').strip()
-                if stripped.startswith('######'):
-                    heading_level = 6
-                elif stripped.startswith('#####'):
-                    heading_level = 5
-                elif stripped.startswith('####'):
-                    heading_level = 4
-                elif stripped.startswith('###'):
-                    heading_level = 3
-                elif stripped.startswith('##'):
-                    heading_level = 2
-                else:
-                    heading_level = 1
-            elif re.match(r'^[一二三四五六七八九十百]+[、.]', stripped):
-                title_text = stripped
-                heading_level = 2
-            elif re.match(r'^\d+[.、]', stripped):
-                title_text = stripped
-                heading_level = 3
-            elif re.match(r'^[\(（]?\d+[\)）]', stripped) or re.match(r'^[①③④⑤⑧⑨⑩]', stripped):
-                title_text = stripped
-                heading_level = 4
-            elif re.match(r'^[A-Z][.、]', stripped) or re.match(r'^[a-z][.、]', stripped):
-                title_text = stripped
-                heading_level = 4
-            elif len(stripped) < 50 and not stripped.endswith(('。', '！', '？', '，', '；', ':', '：')):
-                title_text = stripped
-                heading_level = 2
-            
+
+            # 检测标题
+            heading_level, title_text = detect_heading(stripped)
             if heading_level and title_text:
                 doc.add_heading(title_text, level=heading_level)
-            else:
-                doc.add_paragraph(stripped)
-            
+                i += 1
+                continue
+
+            # 检测列表项
+            is_list, is_ordered, list_text = is_list_item(stripped)
+            if is_list:
+                p = doc.add_paragraph(style='List Bullet' if not is_ordered else 'List Number')
+                apply_inline_format(p, list_text)
+                i += 1
+                continue
+
+            # 普通段落，保留行内格式
+            p = doc.add_paragraph()
+            apply_inline_format(p, stripped)
             i += 1
-        
+
         doc.save(output_path)
-    
+
     def _create_txt(self, content: str, output_path: str):
         """创建 .txt 文档"""
         with open(output_path, 'w', encoding='utf-8') as f:

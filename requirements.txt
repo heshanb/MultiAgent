@@ -42,3 +42,4 @@ pymupdf
 langchain-qdrant
 qdrant-client
 fastembed
+FlagEmbedding

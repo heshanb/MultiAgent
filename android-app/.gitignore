@@ -1,0 +1,17 @@
+# Android 项目文件
+*.iml
+.gradle
+/local.properties
+/.idea/
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# 签名文件
+*.jks
+*.keystore
+
+# 本地配置
+local.properties

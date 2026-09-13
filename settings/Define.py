@@ -14,6 +14,7 @@ class PathConfig:
     TEMPLATES_DIR = BASE_DIR / "templates"
     UPLOADS_DIR = BASE_DIR / "uploads"
     OUTPUTS_DIR = BASE_DIR / "outputs"
+    CACHE_DIR = BASE_DIR / "cache"
     RESOURCE_DIR = BASE_DIR / "resource"
     DB_DIR = BASE_DIR / "chroma_db"
     KNOWLEDGE_DB_DIR = BASE_DIR / "drawing_knowledge_db"
@@ -28,6 +29,7 @@ class PathConfig:
             cls.TEMPLATES_DIR, 
             cls.UPLOADS_DIR,
             cls.OUTPUTS_DIR,
+            cls.CACHE_DIR,
             cls.RESOURCE_DIR,
             cls.DB_DIR,
             cls.LOG_DIR,
@@ -37,7 +39,6 @@ class PathConfig:
             if not dir_path.exists():
                 dir_path.mkdir(parents=True, exist_ok=True)
                 logging.getLogger(__name__).info(f"创建目录: {dir_path}")
-                
 
 class Params:
     DEFAULT_CHAT_MODEL="deepseek-v4-pro-0813"

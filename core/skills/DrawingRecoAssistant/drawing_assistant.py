@@ -56,6 +56,119 @@ class DrawingAssistant:
         )
         self.last_sources: list[dict] = []  # {source_file, content, score}
 
+    # def stream_invoke(
+    #         self,
+    #         user_query: str,
+    #         img_path: str | None = None,
+    #         pdf_path: str | None = None,
+    #         dxf_path: str | None = None,
+    #         thread_id: str = "draw_chat_001",
+    # ):
+    #     """流式调用图纸助手（当前使用同步调用，逐块 yield 模拟流式）"""
+    #     input_state = {
+    #         "user_query": user_query,
+    #         "drawing_base64": None,
+    #         "dxf_path": None,
+    #         "file_type": "",
+    #         "drawing_full_info": "",
+    #         "messages": [],
+    #         "is_new_drawing": True,
+    #         "sources": [],
+    #     }
+    #
+    #     if img_path:
+    #         img = Image.open(img_path)
+    #         img = self.preprocess_image(img)
+    #         input_state["drawing_base64"] = self.img_to_base64(img)
+    #         input_state["file_type"] = "image"
+    #         input_state["drawing_full_info"] = ""
+    #     elif pdf_path:
+    #         b64_list = self.pdf_to_base64_list(pdf_path)
+    #         input_state["drawing_base64"] = b64_list[0]
+    #         input_state["file_type"] = "pdf"
+    #         input_state["drawing_full_info"] = ""
+    #     elif dxf_path:
+    #         input_state["dxf_path"] = dxf_path
+    #         input_state["file_type"] = "dxf"
+    #         input_state["drawing_full_info"] = ""
+    #     else:
+    #         input_state["is_new_drawing"] = False
+    #
+    #     config = {"configurable": {"thread_id": thread_id}}
+    #
+    #     # 使用 invoke 获取完整结果
+    #     output = self.graph.invoke(input_state, config=config)
+    #
+    #     # 提取回答
+    #     answer = ""
+    #     if output.get("messages"):
+    #         last_msg = output["messages"][-1]
+    #         if hasattr(last_msg, 'content'):
+    #             answer = last_msg.content
+    #
+    #     # 逐块 yield（模拟流式效果，每 100 字符一块）
+    #     if answer:
+    #         chunk_size = 100
+    #         for i in range(0, len(answer), chunk_size):
+    #             yield answer[i:i + chunk_size]
+    #
+    #     # 返回 sources
+    #     sources = output.get("sources", [])
+    #     yield {"sources": sources}
+
+    def stream_invoke(
+            self,
+            user_query: str,
+            img_path: str | None = None,
+            pdf_path: str | None = None,
+            dxf_path: str | None = None,
+            thread_id: str = "draw_chat_001",
+    ):
+        """流式调用图纸助手，逐 chunk yield 输出"""
+        input_state = {
+            "user_query": user_query,
+            "drawing_base64": None,
+            "dxf_path": None,
+            "file_type": "",
+            "drawing_full_info": "",
+            "messages": [],
+            "is_new_drawing": True,
+            "sources": [],
+        }
+
+        if img_path:
+            img = Image.open(img_path)
+            img = self.preprocess_image(img)
+            input_state["drawing_base64"] = self.img_to_base64(img)
+            input_state["file_type"] = "image"
+            input_state["drawing_full_info"] = ""
+        elif pdf_path:
+            b64_list = self.pdf_to_base64_list(pdf_path)
+            input_state["drawing_base64"] = b64_list[0]
+            input_state["file_type"] = "pdf"
+            input_state["drawing_full_info"] = ""
+        elif dxf_path:
+            input_state["dxf_path"] = dxf_path
+            input_state["file_type"] = "dxf"
+            input_state["drawing_full_info"] = ""
+        else:
+            input_state["is_new_drawing"] = False
+
+        config = {"configurable": {"thread_id": thread_id}}
+
+        # 使用 stream 代替 invoke，并正确处理事件结构
+        for event in self.graph.stream(input_state, config=config, stream_mode="messages"):
+            logger.debug(f"stream event: {event}")
+            for node_name, node_output in event.items():
+                if "messages" in node_output and node_output["messages"]:
+                    last_msg = node_output["messages"][-1]
+                    if hasattr(last_msg, 'content') and last_msg.content:
+                        yield last_msg.content
+
+        # 最后返回 sources
+        sources = self.last_sources
+        yield {"sources": sources}
+
     # ─────────────── PDF 数据清洗（通用） ───────────────
     # 国标中常见的结构性关键词（用于判断内容是否为纯表头/框架）
     _STRUCTURAL_KEYWORDS = frozenset({
@@ -475,7 +588,9 @@ class DrawingAssistant:
             "输出校核风险点与优化建议。"
         )
         resp = self.llm_text.invoke([SystemMessage(content=prompt)])
-        state["messages"].append(("assistant", f"【尺寸校核报告】\n{resp.content}"))
+        full_content = resp.content if hasattr(resp, 'content') else str(resp)
+
+        state["messages"].append(("assistant", f"【尺寸校核报告】\n{full_content}"))
         return state
 
     def _tool_call_node(self, state: DrawingState) -> DrawingState:
@@ -508,8 +623,10 @@ class DrawingAssistant:
                 f"# 用户提问\n{query}\n\n"
                 "请严格基于知识库检索结果回答，不要自由发挥。以机械工程师身份直接回答用户问题，简洁专业。"
             )
-        ans = self.llm_text.invoke([HumanMessage(prompt)])
-        state["messages"] = [("assistant", ans.content)]
+        ans = self.llm_text.invoke([HumanMessage(content=prompt)])
+        full_content = ans.content if hasattr(ans, 'content') else str(ans)
+
+        state["messages"] = [("assistant", full_content)]
         state["sources"] = list(self.last_sources)
         self.last_sources = []
         return state

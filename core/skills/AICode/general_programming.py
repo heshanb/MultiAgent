@@ -1,4 +1,14 @@
-from langchain_community.chat_models import ChatTongyi
+# 懒加载重型库
+_ChatOpenAI = None
+
+def _get_chat_openai():
+    """懒加载 ChatOpenAI"""
+    global _ChatOpenAI
+    if _ChatOpenAI is None:
+        from langchain_openai import ChatOpenAI
+        _ChatOpenAI = ChatOpenAI
+    return _ChatOpenAI
+
 from settings.Define import Params, PathConfig
 import os
 from logging import getLogger
@@ -15,7 +25,7 @@ class General_Programming:
             from pathlib import Path
             filename = Path(file_path).name
 
-        system_prompt = f"""你是一个专业的代码编程专家，熟悉各种语言的编程，比如C、C++、HTML、Go、Java、PHP、Python等。
+        system_prompt = f"""你是一个专业的代码编程专家，熟悉各种语言的编程，比如C、C++、C#、HTML、Go、Java、PHP、Python等。
         请根据用户的具体需求进行回答：
         **场景A：用户要求生成新代码**
         - 使用 Markdown 格式，包括标题（# ## ###）、加粗（**文本**）、列表（- 或 1.）等
@@ -78,7 +88,9 @@ class General_Programming:
 
         return system_prompt
 
-    def get_model_response(self, message, llm) -> str:
+    def get_model_response_stream(self, message):
+        from openai import OpenAI
+
         if hasattr(message, 'content'):
             message_content = message.content
         else:
@@ -102,14 +114,27 @@ class General_Programming:
                           {"role": "user", "content": message_content},
                       ]
         try:
-            response = llm.invoke(prompt_list)
-            content = response.content if hasattr(response, 'content') else str(response)
-            return content
+            # 使用原生 OpenAI API
+            client = OpenAI(
+                api_key=os.getenv("DASHSCOPE_API_KEY"),
+                base_url=Params.API_BASE,
+            )
+            
+            response = client.chat.completions.create(
+                model=Params.DEFAULT_CHAT_MODEL,
+                messages=prompt_list,
+                stream=True
+            )
+            
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    yield content
         except Exception as e:
             logger.error(f"code_node LLM 调用失败: {str(e)[:50]}")
             content = "抱歉，当前服务暂时不可用，请稍后重试。"
 
-            return content
+            yield content
 
     # 检查是否需要保存修改后的代码文件
     def check_save_code(self, content: str, file_path: str) -> str:
@@ -152,4 +177,3 @@ class General_Programming:
                 logger.error(f"保存代码文件失败: {str(e)}")
 
         return original_content
-

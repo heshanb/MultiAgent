@@ -6,9 +6,21 @@ import hashlib
 import json
 import time
 import re
-import numpy as np
 from typing import Optional
-import redis
+
+# 懒加载重型库
+_np = None
+_redis = None
+
+def _get_heavy_libs():
+    """懒加载重型库"""
+    global _np, _redis
+    if _np is None:
+        import numpy as np
+        import redis
+        _np = np
+        _redis = redis
+    return _np, _redis
 
 from settings.Define import Params
 from settings.logger_manager import get_logger
@@ -22,15 +34,16 @@ class RAGCache:
     SEMANTIC_THRESHOLD = 0.90
 
     def __init__(self):
-        self._redis = None
+        self._redis_client = None
         self._index_created = False
 
     # ─────────── Redis 连接 ───────────
     @property
     def client(self):
-        if self._redis is None:
+        if self._redis_client is None:
+            _, redis = _get_heavy_libs()
             try:
-                self._redis = redis.Redis(
+                self._redis_client = redis.Redis(
                     host=Params.REDIS_HOST,
                     port=Params.REDIS_PORT,
                     db=Params.REDIS_DB,
@@ -39,12 +52,12 @@ class RAGCache:
                     socket_connect_timeout=3,
                     socket_timeout=3,
                 )
-                self._redis.ping()
+                self._redis_client.ping()
                 logger.info("Redis 连接成功")
             except Exception as e:
                 logger.warning(f"Redis 不可用，缓存关闭: {e}")
-                self._redis = None
-        return self._redis
+                self._redis_client = None
+        return self._redis_client
 
     def _available(self) -> bool:
         return self.client is not None
@@ -119,6 +132,7 @@ class RAGCache:
             return None
         try:
             self._ensure_index(len(query_embedding))
+            np, _ = _get_heavy_libs()
             emb_bytes = np.array(query_embedding, dtype=np.float32).tobytes()
             result = self.client.execute_command(
                 "FT.SEARCH", self.SEMANTIC_IDX,
@@ -146,6 +160,7 @@ class RAGCache:
             return
         try:
             self._ensure_index(len(query_embedding))
+            np, _ = _get_heavy_libs()
             key = f"{self.SEMANTIC_PFX}{hashlib.md5(query.encode()).hexdigest()}"
             emb_bytes = np.array(query_embedding, dtype=np.float32).tobytes()
             self.client.hset(key, mapping={

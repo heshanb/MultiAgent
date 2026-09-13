@@ -7,8 +7,20 @@ from logging import getLogger
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from core.memory.memory_manager import MemoryManager
-from langchain_openai import ChatOpenAI
-from langchain_core.chat_history import InMemoryChatMessageHistory
+
+# 懒加载重型库
+_ChatOpenAI = None
+_InMemoryChatMessageHistory = None
+
+def _get_langchain_models():
+    """懒加载 LangChain 模型"""
+    global _ChatOpenAI, _InMemoryChatMessageHistory
+    if _ChatOpenAI is None:
+        from langchain_openai import ChatOpenAI
+        from langchain_core.chat_history import InMemoryChatMessageHistory
+        _ChatOpenAI = ChatOpenAI
+        _InMemoryChatMessageHistory = InMemoryChatMessageHistory
+    return _ChatOpenAI, _InMemoryChatMessageHistory
 
 
 logger = getLogger(__name__)
@@ -20,6 +32,9 @@ class Project_Programming:
         self.state_list = state_list
         self.project_context = project_context
         self.images = images  # 存储图片数据
+        
+        # 懒加载 InMemoryChatMessageHistory
+        _, InMemoryChatMessageHistory = _get_langchain_models()
         self.history = InMemoryChatMessageHistory()
         
         # 提取项目根路径
@@ -1088,8 +1103,10 @@ class Project_Programming:
         logger.info(f"构建多模态消息: {len(content_parts)} 个部分（1个文本 + {len(self.images)}张图片）")
         return content_parts
 
-    def get_model_response_stream(self, message, llm):
-        """获取模型响应（流式）"""
+    def get_model_response_stream(self, message):
+        """获取模型响应（流式）- 使用原生 OpenAI API"""
+        from openai import OpenAI
+        
         if hasattr(message, 'content'):
             message_content = message.content
         else:
@@ -1128,16 +1145,30 @@ class Project_Programming:
                     {"role": "user", "content": vl_user_content},
                 ]
 
+                # 使用原生 OpenAI API 调用多模态模型
+                client = OpenAI(
+                    api_key=os.getenv("DASHSCOPE_API_KEY"),
+                    base_url=Params.API_BASE,
+                )
+                
+                response = client.chat.completions.create(
+                    model=Params.DEFAULT_MULTIMODAL_MODEL,
+                    messages=vl_prompt_list,
+                    stream=True,
+                )
+
                 total_text = ""
-                for chunk in llm.stream(vl_prompt_list):
-                    response_text = chunk.content if hasattr(chunk, 'content') else str(chunk)
-                    self._update_memory_from_response(message_content, response_text)
-                    total_text += response_text
-                    yield response_text
-                    time.sleep(0.03)
+                for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        response_text = chunk.choices[0].delta.content
+                        self._update_memory_from_response(message_content, response_text)
+                        total_text += response_text
+                        yield response_text
+                        time.sleep(0.03)
 
                 # 多模态路径完成，直接返回
                 return
+            
             thinking_count = 0
             paragraph_count = 0
             in_code_block = False
@@ -1155,27 +1186,29 @@ class Project_Programming:
     - 🔴 回复过程中严禁输出任何代码块或代码片段！
     - 🔴 回复过程中严禁提及要修改哪些具体文件！
     - 🔴 回复过程中严禁输出完整的实现代码！
-    - 🔴 不要列出依赖安装命令！
-    - 🔴 保持简洁，每个部分 1-2 句话即可！
+    -  不要列出依赖安装命令！
+    -  保持简洁，每个部分 1-2 句话即可！
 
     用户问题：{message_content}
 
     请开始你的思考分析（保持简洁）："""
 
-            # 创建思考专用的 LLM 实例（使用更快的模型）
-            llm_other = ChatOpenAI(
-                model=Params.DEFAULT_CHAT_MODEL,  # 使用更快的模型进行思考
-                api_key=os.getenv("DASHSCOPE_API_KEY"),
-                base_url=Params.API_BASE,
-                timeout=30,
-                streaming=True
-            )
-
-            # 使用思考模型（需要你在 agent.py 中创建 llm_other 实例）
+            # 使用原生 OpenAI API 进行思考阶段
             try:
-                for chunk in llm_other.stream([{"role": "user", "content": react_prompt}]):
-                    if hasattr(chunk, 'content') and chunk.content:
-                        content = chunk.content
+                client = OpenAI(
+                    api_key=os.getenv("DASHSCOPE_API_KEY"),
+                    base_url=Params.API_BASE,
+                )
+                
+                response = client.chat.completions.create(
+                    model=Params.DEFAULT_CHAT_MODEL,
+                    messages=[{"role": "user", "content": react_prompt}],
+                    stream=True,
+                )
+
+                for chunk in response:
+                    if chunk.choices and chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
                         yield content
                         time.sleep(0.03)
             except Exception as e:
@@ -1186,9 +1219,20 @@ class Project_Programming:
             yield "\n\n---\n\n"
 
             # === 正式回复阶段：用主 LLM 输出正式内容 ===
-            for chunk in llm.stream(prompt_list):
-                if hasattr(chunk, 'content') and chunk.content:
-                    content = chunk.content
+            client = OpenAI(
+                api_key=os.getenv("DASHSCOPE_API_KEY"),
+                base_url=Params.API_BASE,
+            )
+            
+            response = client.chat.completions.create(
+                model=Params.DEFAULT_CHAT_MODEL,
+                messages=prompt_list,
+                stream=True,
+            )
+
+            for chunk in response:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
                     full_response += content  # 累积完整响应
                     code_block_count += content.count('```')
                     in_code_block = code_block_count % 2 == 1
@@ -1202,7 +1246,7 @@ class Project_Programming:
                             paragraph_count = 0
                             thinking_phrases = [
                                 "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'>📝 继续分析中...</span><!--THINKING_END-->\n\n",
-                                "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'>🔍 深入研究中...</span><!--THINKING_END-->\n\n",
+                                "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'> 深入研究中...</span><!--THINKING_END-->\n\n",
                                 "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'>💡 发现关键点...</span><!--THINKING_END-->\n\n",
                                 "\n\n<!--THINKING_START--><span style='color:#666;font-style:italic'>⚡ 正在处理...</span><!--THINKING_END-->\n\n",
                             ]

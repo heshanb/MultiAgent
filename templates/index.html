@@ -1,15 +1,18 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>小智-AI智能助手</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" type="image/svg+xml">
     <script src="https://cdn.bootcdn.net/ajax/libs/marked/4.3.0/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css">
     <script src="https://cdn.bootcdn.net/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
-<style>
+    <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; overflow: hidden; }
 
@@ -53,8 +56,9 @@
         .history-item:hover { background: #f0f0f0; }
         .history-item.active { background: #e8e6ff; }
         .history-item.active .item-text { color: #667eea; }
-        .history-item .item-icon { font-size: 0.85rem; flex-shrink: 0; opacity: 0.5; }
-        .history-item.active .item-icon { opacity: 0.8; }
+        .history-item .item-icon { font-size: 0.85rem; flex-shrink: 0; }
+        .history-item .item-icon img { opacity: 0.6; transition: opacity 0.15s; }
+        .history-item.active .item-icon img { opacity: 1; }
         .history-item .item-text { flex: 1; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #444; }
         .history-item .item-delete { opacity: 0; font-size: 0.75rem; color: #bbb; cursor: pointer; padding: 2px 4px; border-radius: 4px; transition: all 0.15s; }
         .history-item:hover .item-delete { opacity: 1; }
@@ -141,8 +145,12 @@
         @keyframes spin { to { transform: rotate(360deg); } }
         .typing-cursor::after { content: '|'; animation: blink 1s step-end infinite; }
         @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-        .loading-text { color: #999; font-style: italic; display: inline-flex; align-items: center; }
-        .loading-text::after { content: ''; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.4s steps(4, end) infinite; }
+        .loading-text { color: #999; font-style: italic; display: inline-flex; align-items: center; gap: 8px; }
+        .loading-stars { display: inline-flex; align-items: center; gap: 4px; }
+        .loading-stars .star { font-size: 1.1rem; animation: starPulse 1.4s ease-in-out infinite; }
+        .loading-stars .star:nth-child(1) { color: #667eea; animation-delay: 0s; }
+        .loading-stars .star:nth-child(2) { color: #764ba2; animation-delay: 0.7s; }
+        @keyframes starPulse { 0%, 100% { opacity: 0.4; transform: scale(0.6); } 50% { opacity: 1; transform: scale(1.3); } }
         @keyframes dots { 0% { content: ''; } 25% { content: '.'; } 50% { content: '..'; } 75% { content: '...'; } }
 
         .dots-anim {
@@ -174,33 +182,84 @@
         .step-sub-title:first-child { padding-top: 0; }
         .agent-final { margin-top: 8px; padding-top: 8px; border-top: 1px solid #eef0f2; }
 
-        .input-wrapper { padding: 15px 24px 20px; background: white; border-top: 1px solid #eee; position: relative; z-index: 10; flex-shrink: 0; }
+        .input-wrapper { padding: 15px 240px 20px; background: transparent; border-top: none; position: relative; z-index: 10; flex-shrink: 0; }
         .input-box { display: flex; flex-direction: column; gap: 6px; padding: 10px 16px 10px; border: 2px solid #e0e0e0; border-radius: 24px; transition: all 0.3s; background: #fafafa; position: relative; }
         .input-box:focus-within { border-color: #667eea; background: white; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
         .input-row { display: flex; align-items: center; gap: 10px; }
-        .skill-tag { display: none; align-items: center; gap: 4px; padding: 4px 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 12px; font-size: 0.85rem; white-space: nowrap; }
+        .skill-tag { display: none; align-items: center; gap: 4px; padding: 4px 10px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 12px; font-size: 0.85rem; white-space: nowrap; flex-shrink: 0; }
         .skill-tag.show { display: flex; }
         .skill-tag.skill-document { background: linear-gradient(135deg, #4facfe, #005bea); }
         .skill-tag.skill-code { background: linear-gradient(135deg, #11998e, #38ef7d); }
         .skill-tag.skill-drawing { background: linear-gradient(135deg, #f5af19, #f12711); }
-        .skill-tag .remove { cursor: pointer; margin-left: 4px; opacity: 0.8; }
+        .skill-tag .remove { cursor: pointer; margin-left: 6px; opacity: 0.8; }
         .skill-tag .remove:hover { opacity: 1; }
-        .file-tag-inline { display: none; align-items: center; gap: 6px; padding: 6px 10px; background: #f0f0f0; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; max-width: 150px; }
-        .file-tag-inline.show { display: flex; }
-        .file-tag-inline .file-icon { font-size: 1rem; }
-        .file-tag-inline .file-info { display: flex; flex-direction: column; overflow: hidden; }
-        .file-tag-inline .file-name { font-size: 0.8rem; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .file-tag-inline .file-size { font-size: 0.7rem; color: #999; }
-        .file-tag-inline .remove { cursor: pointer; color: #999; margin-left: 4px; }
-        .file-tag-inline .remove:hover { color: #f44336; }
+        .file-tags-container { display: none; flex-wrap: wrap; gap: 6px; padding: 0; }
+        .file-tags-container.show { display: flex; }
+
+        .quick-prompts { display: none; flex-wrap: wrap; gap: 8px; padding: 4px 0 2px; }
+        .quick-prompts.show { display: flex; animation: fadeInQuick 0.25s ease; }
+        @keyframes fadeInQuick { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .quick-prompt-tag { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 14px; font-size: 0.85rem; color: #555; cursor: pointer; transition: all 0.2s; white-space: nowrap; user-select: none; }
+        .quick-prompt-tag:hover { background: #eef0ff; border-color: #667eea; color: #667eea; transform: translateY(-1px); }
+        .quick-prompt-tag:active { transform: translateY(0); background: #e6e8ff; }
+        .file-tag-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #f7f8fa; border: 1px solid #eaecef; border-radius: 10px; font-size: 0.85rem; max-width: 220px; transition: all 0.15s; }
+        .file-tag-item:hover { background: #f0f2f5; border-color: #e0e4e8; }
+        .file-tag-item .file-icon { flex-shrink: 0; width: 22px; height: 22px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: white; letter-spacing: -0.5px; overflow: hidden; }
+        .file-tag-item .file-icon.img-icon { padding: 0; border-radius: 4px; }
+        .file-tag-item .file-icon.img-icon img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 4px; }
+        .file-tag-item .file-info { display: flex; flex-direction: column; overflow: hidden; min-width: 0; gap: 1px; }
+        .file-tag-item .file-name { font-size: 0.8rem; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-tag-item .file-size { font-size: 0.68rem; color: #999; }
+        .file-tag-item .remove { cursor: pointer; color: #bbb; flex-shrink: 0; font-size: 0.85rem; line-height: 1; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .file-tag-item .remove:hover { color: #fff; background: #f44336; }
+
+        /* 图片预览样式 */
+        .image-preview-inline { display: none; margin-bottom: 8px; position: relative; flex-direction: column; align-items: flex-start; }
+        .image-preview-inline.show { display: flex; }
+        .image-preview-inline img { max-width: 120px; max-height: 90px; border-radius: 6px; border: 1px solid #e0e0e0; object-fit: contain; margin-bottom: 6px; cursor: pointer; transition: opacity 0.2s; }
+        .image-preview-inline img:hover { opacity: 0.85; }
+        .image-preview-inline .remove-img { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 50%; background: #f44336; color: white; border: 2px solid white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        .image-preview-inline .remove-img:hover { background: #d32f2f; }
+        .image-preview-inline .file-info { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #f5f5f5; border-radius: 6px; font-size: 0.8rem; }
+        .image-preview-inline .file-info .file-name { color: #333; }
+        .image-preview-inline .file-info .file-size { color: #999; font-size: 0.75rem; }
+        .image-preview-inline .file-info .remove { cursor: pointer; color: #999; margin-left: 4px; }
+        .image-preview-inline .file-info .remove:hover { color: #f44336; }
+
+        /* 工程图纸技能图片预览样式 */
+        .image-preview-drawing { display: none; margin-bottom: 8px; position: relative; width: fit-content; }
+        .image-preview-drawing.show { display: block; }
+        .image-preview-drawing img { max-width: 200px; max-height: 150px; border-radius: 8px; border: 1px solid #e0e0e0; object-fit: contain; cursor: pointer; transition: opacity 0.2s; }
+        .image-preview-drawing img:hover { opacity: 0.85; }
+        .image-preview-drawing .remove-img { position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; background: #f44336; color: white; border: 2px solid white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        .image-preview-drawing .remove-img:hover { background: #d32f2f; }
+
+        /* 消息中的图片样式 */
+        .msg-image { max-width: 300px; max-height: 250px; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: transform 0.2s; }
+        .msg-image:hover { transform: scale(1.02); }
+
+        /* 图片放大查看器 */
+        .image-viewer { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; justify-content: center; align-items: center; cursor: pointer; }
+        .image-viewer.show { display: flex; }
+        .image-viewer img { max-width: 90vw; max-height: 90vh; object-fit: contain; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        .image-viewer .close-viewer { position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .image-viewer .close-viewer:hover { background: rgba(255,255,255,0.3); }
+
+        /* 图片右键菜单 */
+        .image-context-menu { display: none; position: fixed; background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 10001; min-width: 160px; padding: 6px 0; }
+        .image-context-menu.show { display: block; }
+        .image-context-menu .menu-item { padding: 10px 16px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; color: #333; transition: background 0.15s; }
+        .image-context-menu .menu-item:hover { background: #f5f5f5; }
+        .image-context-menu .menu-item svg { width: 18px; height: 18px; fill: #666; }
+        .image-context-menu .menu-divider { height: 1px; background: #eee; margin: 4px 0; }
         .input-row textarea { flex: 1; border: none; background: transparent; font-size: 1rem; outline: none; padding: 4px 0; resize: none; max-height: 160px; line-height: 1.55; overflow-y: auto; font-family: inherit; }
         .input-row textarea::placeholder { color: #999; }
-        .send-btn { width: 40px; height: 40px; border: none; border-radius: 50%; background: #1677ff; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: white; flex-shrink: 0; }
-        .send-btn:hover { background: #4096ff; box-shadow: 0 4px 12px rgba(22,119,255,0.3); }
+        .send-btn { width: 40px; height: 40px; border: none; border-radius: 50%; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; color: white; flex-shrink: 0; padding: 0; }
+        .send-btn:hover { background: transparent; opacity: 0.85; }
         .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .send-btn svg { width: 20px; height: 20px; fill: white; }
-        .send-btn.stop-mode { background: #ff4d4f; }
-        .send-btn.stop-mode:hover { background: #ff7875; box-shadow: 0 4px 12px rgba(255,77,79,0.4); }
+        .send-btn img { width: 100%; height: 100%; object-fit: contain; border-radius: 50%; }
+        .send-btn.stop-mode { background: transparent; }
+        .send-btn.stop-mode:hover { background: transparent; opacity: 0.85; }
         .stop-icon { width: 14px; height: 14px; background: white; border-radius: 2px; }
         .stop-tag { font-size: 0.75rem; color: #aaa; margin-top: 8px; padding-top: 6px; border-top: 1px solid #f0f0f0; }
         .toolbar-row { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid #eee; }
@@ -208,6 +267,9 @@
         .toolbar-btn:hover { background: #f0f0f0; color: #667eea; }
         .toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
         .toolbar-btn.active { background: #3b82f6; color: white; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
+        #uploadFileBtn { width: 32px; height: 32px; padding: 0; border-radius: 50%; justify-content: center; }
+        #uploadFileBtn::before { content: '+'; font-size: 1.5rem; font-weight: bold; color: #667eea; }
+        #uploadFileBtn:disabled::before { color: #ccc; }
         .help-btn { background: #3b82f6; color: white; padding: 6px 12px; border-radius: 20px; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
         .help-btn:not(.active) { background: transparent; color: #666; box-shadow: none; }
         .help-btn.active { background: #3b82f6; color: white; }
@@ -247,14 +309,14 @@
 
         /* 用户消息 hover 操作 */
         .message.user { position: relative; }
-        .user-hover-bar { display: none; position: absolute; top: -42px; right: 0; align-items: center; gap: 2px; background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 4px 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 5; white-space: nowrap; }
+        .user-hover-bar { display: none; position: absolute; bottom: -42px; right: 0; align-items: center; gap: 2px; background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 4px 6px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); z-index: 5; white-space: nowrap; }
         .user-hover-bar.show { display: flex; }
         .user-hover-bar .hover-time { font-size: 0.72rem; color: #999; padding: 0 6px 0 4px; border-right: 1px solid #f0f0f0; margin-right: 2px; }
         .user-hover-bar .action-btn { width: 26px; height: 26px; color: #888; }
         .user-hover-bar .action-btn:hover { background: #f5f5f5; color: #667eea; }
 
         /* 三点菜单 */
-        .dropdown-menu { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); min-width: 120px; z-index: 20; padding: 4px 0; }
+        .dropdown-menu { display: none; position: absolute; bottom: calc(100% + 6px); right: 0; background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); min-width: 120px; z-index: 20; padding: 4px 0; }
         .dropdown-menu.show { display: block; animation: fadeIn 0.15s ease; }
         .dropdown-item { display: flex; align-items: center; gap: 8px; padding: 8px 14px; font-size: 0.85rem; color: #333; cursor: pointer; transition: background 0.15s; border: none; background: none; width: 100%; text-align: left; }
         .dropdown-item:hover { background: #f5f5f5; }
@@ -392,6 +454,8 @@
         .sidebar-group { margin-top: 4px; }
         .sidebar-group-header { display: flex; align-items: center; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: background 0.15s, box-shadow 0.15s; user-select: none; }
         .sidebar-group-header:hover { background: #f2f4ff; }
+        .sidebar-group-header.active { background: #eef0ff; box-shadow: inset 0 0 0 1px #667eea; }
+        .sidebar-group-header.active .btn-text { color: #667eea; font-weight: 600; }
         .sidebar-group-header.disabled { opacity: 0.45; cursor: not-allowed; }
         .sidebar-group-header.disabled:hover { background: transparent; }
         .sidebar-group-header .btn-icon { width: 20px; height: 20px; margin-right: 12px; display: flex; align-items: center; justify-content: center; color: #667eea; flex-shrink: 0; }
@@ -418,6 +482,7 @@
 
         .panel-header { padding: 16px 28px; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; background: white; }
         .panel-header h2 { font-size: 1.15rem; font-weight: 600; color: #1a1a1a; margin: 0; display: flex; align-items: center; gap: 10px; }
+        .panel-header h2.store-title { font-size: 1.3rem; font-weight: 700; color: #1a1a1a; }
         .panel-header h2 .header-icon { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; color: white; }
         .panel-header .back-btn { padding: 6px 14px; border: 1px solid #e0e0e0; border-radius: 8px; background: white; cursor: pointer; font-size: 0.85rem; color: #666; transition: all 0.15s; }
         .panel-header .back-btn:hover { border-color: #667eea; color: #667eea; }
@@ -429,6 +494,28 @@
         .panel-form-card .form-group input, .panel-form-card .form-group textarea { width: 100%; padding: 10px 14px; border: 1.5px solid #e0e0e0; border-radius: 10px; font-size: 0.95rem; transition: all 0.2s; box-sizing: border-box; font-family: inherit; }
         .panel-form-card .form-group input:focus, .panel-form-card .form-group textarea:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
         .panel-form-card .form-group textarea { resize: vertical; min-height: 100px; }
+
+        .chunk-strategy-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .strategy-card { border: 1.5px solid #e8e8e8; border-radius: 10px; padding: 14px 10px; cursor: pointer; transition: all 0.2s; background: #fafafa; text-align: center; }
+        .strategy-card:hover { border-color: #c7d2fe; background: #f5f7ff; transform: translateY(-1px); }
+        .strategy-card.active { border-color: #667eea; background: linear-gradient(135deg, #eef2ff, #f0e7ff); box-shadow: 0 2px 10px rgba(102,126,234,0.18); }
+        .strategy-card .sc-icon { font-size: 1.5rem; margin-bottom: 6px; }
+        .strategy-card .sc-name { font-size: 0.88rem; font-weight: 600; color: #333; margin-bottom: 4px; }
+        .strategy-card .sc-desc { font-size: 0.72rem; color: #888; line-height: 1.4; }
+        .strategy-card.active .sc-name { color: #5a67d8; }
+        .chunk-advanced-config { margin-top: 12px; padding: 12px; background: #f8f9fb; border: 1px solid #eceef2; border-radius: 8px; display: none; }
+        .chunk-advanced-config.show { display: block; }
+        .cac-row { display: flex; gap: 12px; margin-bottom: 10px; }
+        .cac-item { flex: 1; }
+        .cac-item label { display: block; font-size: 0.78rem; color: #555; margin-bottom: 4px; font-weight: 500; }
+        .cac-item input[type="number"], .cac-item input[type="text"] { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.82rem; box-sizing: border-box; }
+        .cac-item input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.12); }
+        .cac-hint { font-size: 0.7rem; color: #999; margin-top: 4px; }
+        .cac-group { }
+        .pc-block { margin-bottom: 12px; padding: 10px; background: #fff; border: 1px solid #e6e8ef; border-radius: 8px; }
+        .pc-block:last-child { margin-bottom: 0; }
+        .pc-block-title { font-size: 0.82rem; font-weight: 600; color: #333; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px dashed #e6e8ef; }
+        .strategy-tip { font-size: 0.76rem; color: #999; margin-top: 8px; line-height: 1.5; padding: 6px 10px; background: #fffbe6; border-radius: 6px; border: 1px solid #ffe58f; }
 
         .panel-btn { padding: 10px 24px; border-radius: 10px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; display: inline-flex; align-items: center; gap: 6px; }
         .panel-btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
@@ -556,23 +643,33 @@
         .back-btn { padding: 7px 14px; border: 1px solid #e0e0e0; border-radius: 8px; background: white; cursor: pointer; font-size: 0.82rem; color: #666; transition: all 0.15s; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
         .back-btn:hover { border-color: #667eea; color: #667eea; }
 
-        .agent-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
-        .agent-list-card { background: white; border: 1px solid #f0f0f0; border-radius: 14px; padding: 20px; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .agent-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+        .agent-list-card { background: white; border: 1px solid #f0f0f0; border-radius: 14px; padding: 18px 20px; cursor: pointer; transition: all 0.2s; }
         .agent-list-card:hover { border-color: #667eea; box-shadow: 0 4px 16px rgba(102,126,234,0.12); transform: translateY(-2px); }
-        .agent-list-card .alc-avatar { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 12px; color: white; }
-        .agent-list-card .alc-name { font-size: 0.95rem; font-weight: 500; color: #333; margin-bottom: 4px; }
-        .agent-list-card .alc-desc { font-size: 0.8rem; color: #888; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; min-height: 2.8em; }
-        .agent-list-card .alc-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+        .agent-list-card .alc-body-card { display: flex; align-items: flex-start; gap: 14px; }
+        .agent-list-card .alc-main { flex: 1; min-width: 0; }
+        .agent-list-card .alc-right { display: flex; flex-direction: column; align-items: center; gap: 6px; flex-shrink: 0; }
+        .agent-list-card .alc-avatar { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; color: white; flex-shrink: 0; }
+        .agent-list-card .alc-name { font-size: 0.98rem; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; }
+        .agent-list-card .alc-desc { font-size: 0.82rem; color: #888; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.5; margin-bottom: 10px; }
+        .agent-list-card .alc-footer { display: flex; align-items: center; }
         .agent-list-card .alc-pub { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.72rem; }
         .agent-list-card .alc-pub.pub { background: #e6f7e6; color: #52c41a; }
         .agent-list-card .alc-pub.private { background: #f5f5f5; color: #999; }
         .agent-list-card .alc-more { position: relative; width: 28px; height: 28px; border-radius: 6px; border: none; background: transparent; cursor: pointer; font-size: 1rem; color: #bbb; display: flex; align-items: center; justify-content: center; transition: all 0.2s; z-index: 2; }
         .agent-list-card .alc-more:hover { background: #f5f5f5; color: #667eea; }
-        .agent-list-empty { text-align: center; padding: 40px; color: #999; }
-        .agent-list-empty .empty-emoji { font-size: 2.5rem; margin-bottom: 12px; }
+        .agent-list-empty { text-align: center; padding: 60px 40px; color: #888; }
+        .agent-list-empty .empty-box-icon { margin-bottom: 20px; }
+        .agent-list-empty .empty-filter-img { width: 120px; height: 120px; object-fit: contain; }
+        .agent-list-empty .empty-text { font-size: 0.95rem; color: #1a1a1a; font-weight: 500; margin-bottom: 24px; }
+        .agent-list-empty .empty-action-btn { padding: 8px 20px; border: 1px solid #d0d5dd; border-radius: 8px; background: white; color: #344054; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; font-family: inherit; }
+        .agent-list-empty .empty-action-btn:hover { border-color: #667eea; color: #667eea; }
+        .agent-list-empty .empty-action-icon { width: 16px; height: 16px; object-fit: contain; }
 
-        .agent-filter-bar { display: flex; align-items: center; justify-content: flex-start; margin-bottom: 16px; gap: 14px; }
-        .agent-filter-bar .afb-label { font-size: 0.85rem; color: #666; }
+        .agent-filter-bar { margin-bottom: 20px; }
+        .agent-filter-bar .afb-title { font-size: 1rem; font-weight: 700; color: #1a1a1a; margin-bottom: 12px; display: block; }
+        .agent-filter-bar .afb-row { display: flex; align-items: center; gap: 12px; }
+        .agent-filter-bar .afb-label { font-size: 0.85rem; color: #666; margin-left: auto; }
         .agent-filter-bar select { padding: 6px 28px 6px 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 0.84rem; color: #333; background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center; appearance: none; cursor: pointer; transition: border-color 0.2s; }
         .agent-filter-bar select:hover { border-color: #bbb; }
         .agent-filter-bar select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
@@ -580,6 +677,50 @@
         .agent-list-card { position: relative; }
         .agent-list-card .alc-body-card { pointer-events: none; }
         .agent-list-card .alc-body-card > * { pointer-events: auto; }
+
+        .store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+        .store-card { background: white; border: 1px solid #f0f0f0; border-radius: 14px; padding: 20px 22px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 10px; }
+        .store-card:hover { border-color: #667eea; box-shadow: 0 4px 20px rgba(102,126,234,0.12); transform: translateY(-2px); }
+        .store-card .sc-head { display: flex; align-items: center; gap: 12px; }
+        .store-card .sc-avatar { width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: white; flex-shrink: 0; }
+        .store-card .sc-info { flex: 1; min-width: 0; }
+        .store-card .sc-name { font-size: 0.98rem; font-weight: 600; color: #1a1a1a; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+        .store-card .sc-version { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: #f0f4ff; color: #667eea; font-weight: 500; }
+        .store-card .sc-platform { font-size: 0.75rem; display: flex; align-items: center; gap: 4px; }
+        .store-card .sc-platform::before { content: '✓'; width: 14px; height: 14px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.6rem; color: #fff; }
+        .store-card .sc-pofficial { color: #1677ff; }
+        .store-card .sc-pofficial::before { background: #1677ff; }
+        .store-card .sc-pthird { color: #fa8c16; }
+        .store-card .sc-pthird::before { background: #fa8c16; }
+        .store-card .sc-desc { font-size: 0.82rem; color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.5; margin-bottom: 0; }
+        .store-tip { position: fixed; max-width: 280px; padding: 8px 12px; background: #333; color: #fff; font-size: 0.78rem; line-height: 1.5; border-radius: 6px; white-space: normal; word-break: break-all; z-index: 9999; pointer-events: none; display: none; }
+        .store-tip::after { content: ''; position: absolute; top: 100%; left: 16px; border: 5px solid transparent; border-top-color: #333; }
+        .store-card .sc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .store-card .sc-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.68rem; font-weight: 500; white-space: nowrap; }
+        .store-card .sc-tag-official { background: #e8f3ff; color: #1677ff; }
+        .store-card .sc-tag-third { background: #fff7e6; color: #fa8c16; }
+        .store-card .sc-tag-free { background: #e8f8f0; color: #52c41a; }
+        .store-card .sc-tag-paid { background: #fff0f0; color: #ff4d4f; }
+        .store-card .sc-tag-cat { background: #f5f5f5; color: #666; }
+        .store-empty { text-align: center; padding: 80px 40px; color: #888; }
+        .store-empty .empty-icon { font-size: 3.5rem; margin-bottom: 16px; }
+        .store-empty .empty-text { font-size: 0.95rem; color: #999; margin-bottom: 8px; }
+        .store-empty .empty-hint { font-size: 0.82rem; color: #bbb; }
+        .store-panel-header { gap: 24px; }
+        .store-panel-header .store-title { flex-shrink: 0; }
+        .store-panel-header .store-toolbar { margin-bottom: 0; margin-left: auto; margin-right: auto; width: 480px; }
+        .store-panel-header .store-search { max-width: none; }
+        .store-toolbar { margin-bottom: 16px; }
+        .store-search { position: relative; max-width: 560px; width: 100%; }
+        .store-search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #999; }
+        .store-search input { width: 100%; height: 38px; padding: 0 16px 0 40px; border: 1px solid #e5e6eb; border-radius: 6px; font-size: 0.88rem; background: #f7f8fa; outline: none; transition: all 0.2s; box-sizing: border-box; }
+        .store-search input:focus { border-color: #1677ff; background: #fff; box-shadow: 0 0 0 3px rgba(22,119,255,0.1); }
+        .store-cats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .store-cat { padding: 5px 14px; border-radius: 6px; font-size: 0.82rem; color: #4e5969; background: transparent; cursor: pointer; transition: all 0.2s; user-select: none; white-space: nowrap; }
+        .store-cat:hover { color: #1677ff; }
+        .store-cat.active { color: #fff; background: #1677ff; }
+        .store-cat.active:hover { color: #fff; }
+        .store-card .sc-cat { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 0.68rem; background: #fff0e6; color: #ff8c1a; margin-right: 6px; }
 
         .alc-menu { position: absolute; background: white; border: 1px solid #eee; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 6px 0; min-width: 110px; z-index: 1000; animation: alcFadeIn 0.12s ease; }
         @keyframes alcFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
@@ -603,6 +744,77 @@
         .modal-actions .cancel-btn:hover { background: #f5f5f5; }
         .modal-actions .confirm-btn { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
         .modal-actions .confirm-btn:hover { opacity: 0.92; }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .sidebar { 
+                position: fixed; 
+                left: 0; 
+                top: 0; 
+                z-index: 1000; 
+                width: 280px !important; 
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1); 
+            }
+            .sidebar.collapsed { 
+                transform: translateX(-100%); 
+                width: 280px !important; 
+            }
+            .main-content { 
+                width: 100% !important; 
+                margin-left: 0 !important; 
+            }
+            .chat-header { 
+                padding: 10px 12px !important; 
+            }
+            .chat-header .header-title { 
+                font-size: 1rem !important; 
+            }
+            .message-container { 
+                padding: 12px !important; 
+            }
+            .message { 
+                max-width: 90% !important; 
+            }
+            .input-area { 
+                padding: 10px !important; 
+            }
+            .input-area textarea { 
+                font-size: 14px !important; 
+                padding: 10px !important; 
+            }
+            .send-btn { 
+                width: 40px !important; 
+                height: 40px !important; 
+            }
+            .code-block { 
+                font-size: 12px !important; 
+            }
+            .modal-box { 
+                width: 90% !important; 
+                max-width: 400px !important; 
+            }
+        }
+
+        /* 小屏幕手机适配 */
+        @media (max-width: 480px) {
+            .chat-header { 
+                padding: 8px 10px !important; 
+            }
+            .message-container { 
+                padding: 8px !important; 
+            }
+            .message { 
+                max-width: 95% !important; 
+                padding: 10px !important; 
+            }
+            .input-area { 
+                padding: 8px !important; 
+            }
+            .input-area textarea { 
+                font-size: 13px !important; 
+                padding: 8px !important; 
+            }
+        }
     </style>
 </head>
 <body>
@@ -676,6 +888,18 @@
                     <div class="sidebar-sub-item" onclick="switchPanel('agentList')">
                         <span class="sub-icon">📝</span><span>编辑智能体</span>
                     </div>
+                </div>
+            </div>
+            <div class="sidebar-group" id="storeGroup">
+                <div class="sidebar-group-header" onclick="switchPanel('store')">
+                    <span class="btn-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+                            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <path d="M16 10a4 4 0 0 1-8 0"/>
+                        </svg>
+                    </span>
+                    <span class="btn-text">小智商店</span>
                 </div>
             </div>
         </div>
@@ -770,25 +994,31 @@
                         </div>
                     </div>
                 </div>
+                <div class="file-tags-container" id="fileTagsContainer"></div>
+                <div class="quick-prompts" id="quickPrompts">
+                    <div class="quick-prompt-tag" data-prompt="详细总结这些文档内容">详细总结这些文档内容 →</div>
+                    <div class="quick-prompt-tag" data-prompt="用通俗易懂的话，说说这些文档讲了什么">用通俗易懂的话，说说这些文档讲了什么 →</div>
+                    <div class="quick-prompt-tag" data-prompt="生成一个简短摘要">生成一个简短摘要 →</div>
+                </div>
+                <div class="image-preview-drawing" id="imagePreviewDrawing">
+                    <img id="imagePreviewDrawingImg" src="" alt="预览" onclick="openImageViewer(this.src)">
+                    <span class="remove-img" onclick="removeImagePreview()">×</span>
+                </div>
                 <div class="input-row">
-                    <div class="file-tag-inline" id="fileTagInline">
-                        <span class="file-icon" id="fileTagIcon"></span>
-                        <div class="file-info">
-                            <span class="file-name" id="fileTagName"></span>
-                            <span class="file-size" id="fileTagSize"></span>
-                        </div>
-                        <span class="remove" onclick="removeFileTag()">删除</span>
-                    </div>
                     <div class="skill-tag" id="skillTag">
                         <span id="skillTagIcon"></span>
                         <span id="skillTagName"></span>
-                        <span class="remove" onclick="removeSkill()">删除</span>
+                        <span class="remove" onclick="removeSkill()" title="移除技能">✕</span>
+                    </div>
+                    <div class="image-preview-inline" id="imagePreviewInline">
+                        <img id="imagePreviewImg" src="" alt="预览" onclick="openImageViewer(this.src)">
+                        <span class="remove-img" onclick="removeImagePreview()">×</span>
                     </div>
                     <textarea id="messageInput" rows="1" placeholder="输入问题或任务，/ 选择技能" onkeydown="handleKeyPress(event)" onpaste="handlePaste(event)" oninput="autoResizeInput(this)"></textarea>
-                    <button class="send-btn" id="sendBtn" onclick="window._sendOrStop()" title="发送"><span><svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg></span></button>
+                    <button class="send-btn" id="sendBtn" onclick="window._sendOrStop()" title="发送"><img src="static/icons/send.png" alt="发送"></button>
                 </div>
                 <div class="toolbar-row">
-                    <button class="toolbar-btn" id="uploadFileBtn" disabled onclick="document.getElementById('fileInput').click()">📤 上传文件</button>
+                    <button class="toolbar-btn" id="uploadFileBtn" disabled onclick="document.getElementById('fileInput').click()" title="上传文件"></button>
                     <button class="toolbar-btn" onclick="toggleSkillPanel()">🛠技能</button>
                     <button class="toolbar-btn help-btn" id="helpBtn" onclick="toggleHelpSkill()">
                         <span class="help-icon">💬</span>
@@ -797,50 +1027,11 @@
                 </div>
             </div>
         </div>
-        <input type="file" id="fileInput" style="display:none;" accept=".docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls,.pdf,.md,.html,.json" onchange="handleFileSelect(event)">
+        <input type="file" id="fileInput" style="display:none;" accept=".docx,.doc,.pptx,.ppt,.xlsx,.xls,.pdf,.md,.txt,.json,.html,.htm,.rtf,.csv,.dxf,.dwg,.step,.stp,.obj,.stl,.xml,.yaml,.yml,.zip,.rar,.7z,.png,.jpg,.jpeg,.bmp,.gif,.tiff,.tif" multiple onchange="handleFileSelect(event)">
         </div>
 
-        <div class="main-panel" id="knowledgeCreatePanel">
-            <div class="panel-header">
-                <h2><span class="header-icon">📚</span>创建知识库</h2>
-                <button class="back-btn" onclick="switchPanel('chat')">⬅️ 返回对话</button>
-            </div>
-            <div class="panel-body">
-                <div class="panel-form-card">
-                    <div class="form-group">
-                        <label>知识库名称<span style="color:#ff4d4f">*</span></label>
-                        <input type="text" id="kbCreateName" placeholder="例如：公司产品文档库">
-                    </div>
-                    <div class="form-group">
-                        <label>知识库描述</label>
-                        <textarea id="kbCreateDesc" placeholder="简要描述这个知识库的内容和用途（可选）"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>上传文档到知识库</label>
-                        <div class="doc-upload-area" id="kbCreateUpload" onclick="document.getElementById('kbCreateFileInput').click()">
-                            <div class="upload-icon">📁</div>
-                            <div class="upload-text">点击或拖拽文件到此处上传</div>
-                            <div class="upload-hint">支持 .pdf .docx .doc .txt .md .xlsx .xls .pptx .ppt .html .json</div>
-                        </div>
-                        <input type="file" id="kbCreateFileInput" style="display:none;" accept=".docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls,.pdf,.md,.html,.json" multiple onchange="handleKBUpload(this, 'create')">
-                        <div class="doc-list" id="kbCreateDocList"></div>
-                    </div>
-                    <div class="panel-btn-row">
-                        <button class="panel-btn panel-btn-secondary" onclick="switchPanel('chat')">取消</button>
-                        <button class="panel-btn panel-btn-primary" onclick="handleKBCreate()">创建知识库</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="main-panel" id="knowledgeListPanel">
-            <div class="panel-header">
-                <h2><span class="header-icon">📋</span>我的知识库</h2>
-                <button class="back-btn" onclick="switchPanel('chat')">⬅️返回对话</button>
-            </div>
-            <div class="panel-body">
-                <div id="kbListContainer"></div>
-            </div>
+        <div class="main-panel" id="knowledgePanel">
+            <iframe id="knowledgeIframe" src="/knowledge" style="width:100%;height:100%;border:none;display:block;"></iframe>
         </div>
 
         <div class="main-panel" id="agentCreatePanel">
@@ -888,20 +1079,53 @@
                 <div id="agentListContainer"></div>
             </div>
         </div>
+
+        <div class="main-panel" id="storePanel">
+            <div class="panel-header store-panel-header">
+                <h2 class="store-title">小智商店</h2>
+                <div class="store-toolbar">
+                    <div class="store-search">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                        <input type="text" id="storeSearchInput" placeholder="搜索智能体名称" oninput="onStoreSearchInput()" onkeydown="if(event.key==='Enter'){onStoreSearchInput();this.blur();}" />
+                    </div>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="store-cats" id="storeCats"></div>
+                <div id="storeContainer"></div>
+            </div>
+        </div>
+
+        <!-- 图片放大查看器 -->
+        <div class="image-viewer" id="imageViewer" onclick="closeImageViewer()">
+            <button class="close-viewer" onclick="closeImageViewer()">×</button>
+            <img id="viewerImage" src="" alt="大图">
+        </div>
+
+        <!-- 图片右键菜单 -->
+        <div class="image-context-menu" id="imageContextMenu">
+            <div class="menu-item" onclick="copyImageFromMenu()">
+                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                复制图片
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item" onclick="downloadImageFromMenu()">
+                <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+                下载图片
+            </div>
+        </div>
     </div>
     <script>
         let conversations = JSON.parse(localStorage.getItem('conversations') || '[]');
         let authToken = localStorage.getItem('authToken');
         let currentConvId = null;
         let uploadedFiles = [];
+        let uploadedFilePaths = {};
         let currentSkill = null;
         let uploadedFilePath = null;
-        let kbPendingUploads = [];
-        let kbListState = { docList: [], editing: false, info: null };
-        let currentKbId = null;
-        let kbDropdownEl = null;
         let selectedPanelAvatar = '🤖';
         let currentActivePanel = 'chat';
+        let cachedDownloadFile = null; // 记录从 cache 目录下载的生成文档文件名
 
         function toggleSidebarGroup(id) {
             const group = document.getElementById(id);
@@ -911,7 +1135,7 @@
         }
 
         function switchPanel(panelId) {
-            if (panelId !== 'chat' && !authToken) {
+            if (panelId !== 'chat' && panelId !== 'store' && !authToken) {
                 openAuthModal();
                 return;
             }
@@ -920,10 +1144,11 @@
 
             var map = {
                 'chat': 'chatPanel',
-                'knowledgeCreate': 'knowledgeCreatePanel',
-                'knowledgeList': 'knowledgeListPanel',
+                'knowledgeCreate': 'knowledgePanel',
+                'knowledgeList': 'knowledgePanel',
                 'agentCreate': 'agentCreatePanel',
-                'agentList': 'agentListPanel'
+                'agentList': 'agentListPanel',
+                'store': 'storePanel'
             };
             var elId = map[panelId];
             if (!elId) { panelId = 'chat'; elId = 'chatPanel'; }
@@ -931,6 +1156,14 @@
             var target = document.getElementById(elId);
             if (target) target.classList.add('active');
             currentActivePanel = panelId;
+
+            if (panelId === 'knowledgeCreate' || panelId === 'knowledgeList') {
+                var iframe = document.getElementById('knowledgeIframe');
+                var targetSrc = panelId === 'knowledgeCreate' ? '/knowledge?view=create' : '/knowledge?view=list';
+                if (iframe && iframe.getAttribute('src') !== targetSrc) {
+                    iframe.setAttribute('src', targetSrc);
+                }
+            }
 
             var subMap = {
                 'knowledgeCreate': 'knowledgeGroup',
@@ -954,17 +1187,14 @@
                 if (subs[subIndex[panelId]]) subs[subIndex[panelId]].classList.add('active');
             }
 
-            if (panelId === 'knowledgeCreate') resetKnowledgeCreate();
-            if (panelId === 'knowledgeList') renderKnowledgeList();
+            document.querySelectorAll('.sidebar-group-header').forEach(function(h) { h.classList.remove('active'); });
+            if (panelId === 'store') {
+                document.querySelector('#storeGroup .sidebar-group-header').classList.add('active');
+            }
+
             if (panelId === 'agentCreate') resetAgentCreatePanel();
             if (panelId === 'agentList') renderAgentList();
-        }
-
-        function resetKnowledgeCreate() {
-            document.getElementById('kbCreateName').value = '';
-            document.getElementById('kbCreateDesc').value = '';
-            document.getElementById('kbCreateDocList').innerHTML = '';
-            kbPendingUploads = [];
+            if (panelId === 'store') renderStoreList();
         }
 
         function resetAgentCreatePanel() {
@@ -979,614 +1209,6 @@
             });
             var first = document.querySelector('#agentCreatePanel .avatar-option');
             if (first) { first.classList.add('active'); first.style.borderColor = '#667eea'; }
-        }
-
-        async function handleKBUpload(input, mode) {
-            var files = input.files;
-            if (!files.length) return;
-            var uploadArea = document.getElementById('kbCreateUpload');
-            var docListEl = document.getElementById('kbCreateDocList');
-            var listForEdit = document.getElementById('kbEditDocList');
-
-            if (mode === 'create') {
-                kbPendingUploads = kbPendingUploads.concat(Array.from(files));
-                renderPendingDocList(docListEl, kbPendingUploads, 'create');
-            } else if (mode === 'edit') {
-                if (!currentKbId) { showToast('请先选择知识库', 'error'); return; }
-                for (var i = 0; i < files.length; i++) {
-                    try {
-                        await uploadSingleKBFile(files[i], currentKbId);
-                    } catch(e) { showToast('上传 ' + files[i].name + ' 失败', 'error'); }
-                }
-                renderKnowledgeList();
-            }
-            input.value = '';
-        }
-
-        function renderPendingDocList(container, files, mode) {
-            if (!files || !files.length) { container.innerHTML = ''; return; }
-            var html = '<div class="doc-list-title">📂 待上传文档 (' + files.length + ')</div>';
-            files.forEach(function(f, i) {
-                html += '<div class="doc-item">';
-                html += '<div class="di-left"><span class="di-icon">📄</span>';
-                html += '<div class="di-info"><span class="di-name">' + f.name + '</span>';
-                html += '<span class="di-size">' + formatSize(f.size) + '</span></div></div>';
-                html += '<button class="di-del" onclick="removePendingDoc(' + i + ')">🗑️</button>';
-                html += '</div>';
-            });
-            container.innerHTML = html;
-        }
-
-        function removePendingDoc(i) {
-            kbPendingUploads.splice(i, 1);
-            renderPendingDocList(document.getElementById('kbCreateDocList'), kbPendingUploads, 'create');
-        }
-
-        async function uploadSingleKBFile(file, kbId) {
-            var fd = new FormData();
-            fd.append('file', file);
-            var r = await fetch('/api/knowledge/upload?kb_id=' + encodeURIComponent(kbId), {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + authToken },
-                body: fd
-            });
-            if (!r.ok) { var e = await r.json().catch(function(){return {};}); throw new Error(e.detail || '上传失败'); }
-            return r.json();
-        }
-
-        async function handleKBCreate() {
-            var name = document.getElementById('kbCreateName').value.trim();
-            var desc = document.getElementById('kbCreateDesc').value.trim();
-            if (!name) { showToast('请输入知识库名称', 'error'); return; }
-
-            var btn = document.querySelector('#knowledgeCreatePanel .panel-btn-primary');
-            if (btn) { btn.disabled = true; btn.textContent = '创建知识库...'; }
-
-            try {
-                var r = await fetch('/api/knowledge/bases?name=' + encodeURIComponent(name) + '&description=' + encodeURIComponent(desc), {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                if (!r.ok) { var e = await r.json().catch(function(){return {};}); throw new Error(e.detail || '创建失败'); }
-                var kb = await r.json();
-                var kbId = kb.id;
-
-                for (var i = 0; i < kbPendingUploads.length; i++) {
-                    try { await uploadSingleKBFile(kbPendingUploads[i], kbId); }
-                    catch(e) { showToast('上传 ' + kbPendingUploads[i].name + ' 失败', 'error'); }
-                }
-                showToast('✅ 知识库创建成功！', 'success');
-                kbPendingUploads = [];
-                if (btn) { btn.disabled = false; btn.textContent = '创建知识库'; }
-                document.getElementById('kbCreateName').value = '';
-                document.getElementById('kbCreateDesc').value = '';
-                document.getElementById('kbCreateDocList').innerHTML = '';
-            } catch(e) {
-                showToast(e.message || '创建失败', 'error');
-                if (btn) { btn.disabled = false; btn.textContent = '创建知识库'; }
-            }
-        }
-
-        function closeKbMenu() {
-            if (kbDropdownEl) { kbDropdownEl.remove(); kbDropdownEl = null; }
-        }
-
-        function toggleKbMenu(event, kbId) {
-            event.stopPropagation();
-            closeKbMenu();
-            var menu = document.createElement('div');
-            menu.className = 'kb-menu-dropdown';
-            menu.innerHTML =
-                '<div class="kb-menu-item" onclick="openKbEditor(\'' + kbId + '\')">✏️ 编辑</div>' +
-                '<div class="kb-menu-item danger" onclick="deleteKb(\'' + kbId + '\')">🗑 删除</div>';
-            event.currentTarget.parentElement.appendChild(menu);
-            kbDropdownEl = menu;
-            setTimeout(function() {
-                document.addEventListener('click', closeKbMenu, { once: true });
-            }, 0);
-        }
-
-        function selectKb(kbId) {
-            closeKbMenu();
-            var cards = document.querySelectorAll('.kb-card');
-            cards.forEach(function(c) { c.classList.remove('active'); });
-            var activeCard = document.querySelector('.kb-card[data-kb-id="' + kbId + '"]');
-            var kbName = '';
-            if (activeCard) {
-                activeCard.classList.add('active');
-                var h4 = activeCard.querySelector('h4');
-                if (h4) kbName = h4.textContent;
-            }
-            currentKbId = kbId;
-            var area = document.getElementById('kbDetailArea');
-            if (area) {
-                area.innerHTML =
-                    '<div class="kb-selected-hint">' +
-                    '<div class="ksh-check">✅</div>' +
-                    '<div class="ksh-text">' +
-                    '<div class="ksh-title">已选中知识库：' + esc(kbName) + '</div>' +
-                    '<div class="ksh-desc">点击卡片右侧的 <span class="ksh-dots">⋯</span> 按钮，选择「编辑」查看详情</div>' +
-                    '</div>' +
-                    '</div>';
-            }
-        }
-
-        function openKbEditor(kbId) {
-            closeKbMenu();
-            currentKbId = kbId;
-            var grid = document.querySelector('.kb-grid');
-            if (grid) grid.style.display = 'none';
-            var guide = document.querySelector('#kbListContainer > .kb-empty-guide');
-            if (guide) guide.style.display = 'none';
-            renderKnowledgeDetail(kbId);
-        }
-
-        function backToKbList() {
-            closeKbMenu();
-            currentKbId = null;
-            var grid = document.querySelector('.kb-grid');
-            if (grid) grid.style.display = '';
-            var area = document.getElementById('kbDetailArea');
-            if (area) {
-                area.innerHTML = '';
-            }
-            var cards = document.querySelectorAll('.kb-card');
-            cards.forEach(function(c) { c.classList.remove('active'); });
-        }
-
-        async function renameKb(kbId) {
-            closeKbMenu();
-            try {
-                var r = await fetch('/api/knowledge/bases', { headers: { 'Authorization': 'Bearer ' + authToken } });
-                if (!r.ok) throw new Error('请求失败');
-                var data = await r.json();
-                var kbs = data.bases || [];
-                var kb = null;
-                for (var i = 0; i < kbs.length; i++) { if (kbs[i].id === kbId) { kb = kbs[i]; break; } }
-                if (!kb) { showToast('知识库不存在', 'error'); return; }
-
-                var newName = await showConfirm({ title: '编辑知识库', message: '请输入知识库名称', input: true, inputValue: kb.name, inputPlaceholder: '知识库名称', confirmText: '确定', cancelText: '取消' });
-                if (newName === null) return;
-                newName = newName.trim();
-                if (!newName) { showToast('名称不能为空', 'error'); return; }
-                var newDesc = await showConfirm({ title: '编辑知识库', message: '请输入知识库描述', input: true, inputValue: kb.description || '', inputPlaceholder: '知识库描述（可选）', confirmText: '确定', cancelText: '取消' });
-                if (newDesc === null) newDesc = kb.description || '';
-
-                var u = await fetch('/api/knowledge/bases/' + encodeURIComponent(kbId) + '?name=' + encodeURIComponent(newName) + '&description=' + encodeURIComponent(newDesc), {
-                    method: 'PUT',
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                if (!u.ok) throw new Error('更新失败');
-                showToast('更新成功', 'success');
-                renderKnowledgeList();
-            } catch(e) { showToast(e.message || '操作失败', 'error'); }
-        }
-
-        async function deleteKb(kbId) {
-            closeKbMenu();
-            if (!await showConfirm({
-                title: '删除知识库',
-                message: '确定要删除整个知识库吗？\n该知识库下的所有文档和向量都会被删除，此操作不可撤销',
-                icon: 'danger',
-                type: 'danger',
-                confirmText: '删除',
-                cancelText: '取消'
-            })) return;
-            try {
-                var r = await fetch('/api/knowledge/bases/' + encodeURIComponent(kbId), {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                if (!r.ok) throw new Error('删除失败');
-                showToast('知识库已删除', 'success');
-                if (currentKbId === kbId) currentKbId = null;
-                renderKnowledgeList();
-            } catch(e) { showToast(e.message || '删除失败', 'error'); }
-        }
-
-        async function renderKnowledgeList() {
-            var container = document.getElementById('kbListContainer');
-            container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">加载中...</div>';
-
-            if (!authToken) { container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">请先登录</div>'; return; }
-
-            try {
-                var r = await fetch('/api/knowledge/bases', {
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                if (!r.ok) throw new Error('请求失败');
-                var data = await r.json();
-                var bases = data.bases || [];
-
-                if (bases.length === 0) {
-                    container.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#aaa;">' +
-                        '<div style="font-size:3rem;margin-bottom:14px;">📚</div>' +
-                        '<div style="font-size:0.95rem;color:#999;margin-bottom:6px;">还没有任何知识库</div>' +
-                        '<div style="font-size:0.82rem;color:#bbb;margin-bottom:20px;">创建你的第一个知识库，开始智能问答</div>' +
-                        '<button class="panel-btn panel-btn-primary" onclick="switchPanel(\'knowledgeCreate\')">创建知识库</button>' +
-                        '</div>';
-                    currentKbId = null;
-                    return;
-                }
-
-                if (currentKbId && !bases.find(function(b) { return b.id === currentKbId; })) {
-                    currentKbId = null;
-                }
-
-                var html = '<div class="kb-grid">';
-                bases.forEach(function(kb) {
-                    var active = kb.id === currentKbId ? ' active' : '';
-                    html += '<div class="kb-card' + active + '" data-kb-id="' + kb.id + '" onclick="selectKb(\'' + kb.id + '\')">';
-                    html += '<div class="kc-icon">📚</div>';
-                    html += '<div class="kc-info"><h4>' + esc(kb.name) + '</h4>';
-                    html += '<p>' + (kb.description ? esc(kb.description) + ' · ' : '') + kb.doc_count + ' 个文档</p>';
-                    html += '</div>';
-                    html += '<div class="kc-menu"><button class="kc-menu-btn" onclick="event.stopPropagation(); toggleKbMenu(event, \'' + kb.id + '\')">...</button></div>';
-                    html += '</div>';
-                });
-                html += '</div>';
-                html += '<div id="kbDetailArea">';
-                html += '<div class="kb-empty-guide">';
-                html += '<div class="keg-illustration"><svg viewBox="0 0 200 140" width="200" height="140" fill="none">' +
-                    '<rect x="20" y="30" width="70" height="90" rx="6" fill="#E8ECFF" stroke="#667eea" stroke-width="1.5"/>' +
-                    '<rect x="28" y="42" width="54" height="5" rx="2" fill="#C7D0FF"/>' +
-                    '<rect x="28" y="54" width="44" height="4" rx="2" fill="#C7D0FF"/>' +
-                    '<rect x="28" y="64" width="50" height="4" rx="2" fill="#C7D0FF"/>' +
-                    '<rect x="28" y="74" width="38" height="4" rx="2" fill="#C7D0FF"/>' +
-                    '<rect x="110" y="50" width="70" height="70" rx="6" fill="#F3F0FF" stroke="#764ba2" stroke-width="1.5"/>' +
-                    '<rect x="118" y="62" width="54" height="4" rx="2" fill="#D8D0FF"/>' +
-                    '<rect x="118" y="72" width="40" height="4" rx="2" fill="#D8D0FF"/>' +
-                    '<rect x="118" y="82" width="48" height="4" rx="2" fill="#D8D0FF"/>' +
-                    '<rect x="118" y="92" width="32" height="4" rx="2" fill="#D8D0FF"/>' +
-                    '<circle cx="100" cy="130" r="6" fill="#667eea"/>' +
-                    '<path d="M97 130 L99 132 L103 128" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
-                    '</svg></div>';
-                html += '<div class="keg-title">选择一个知识库开始管理</div>';
-                html += '<div class="keg-steps">';
-                html += '<span class="keg-step"><i>1</i> 点击卡片选中</span>';
-                html += '<span class="keg-step-arrow">➡️</span>';
-                html += '<span class="keg-step"><i>2</i> 点击卡片...</span>';
-                html += '<span class="keg-step-arrow">➡️</span>';
-                html += '<span class="keg-step"><i>3</i> 选择「编辑」进入详情</span>';
-                html += '</div>';
-                html += '</div>';
-                html += '</div>';
-
-                container.innerHTML = html;
-                if (currentKbId) {
-                    var g = document.querySelector('#kbListContainer .kb-grid');
-                    if (g) g.style.display = 'none';
-                    var guide = document.querySelector('#kbListContainer .kb-empty-guide');
-                    if (guide) guide.style.display = 'none';
-                    renderKnowledgeDetail(currentKbId);
-                }
-            } catch(e) {
-                container.innerHTML = '<div style="text-align:center;padding:40px;color:#ff4757;">加载失败：' + e.message + '</div>';
-            }
-        }
-
-        function _recallHistoryKey() {
-            var user = (typeof currentUser !== 'undefined' && currentUser && currentUser.username) ? currentUser.username : 'guest';
-            return 'recall_history_' + user + '_' + (currentKbId || 'all');
-        }
-
-        function _loadRecallHistory() {
-            try {
-                var raw = localStorage.getItem(_recallHistoryKey());
-                return raw ? JSON.parse(raw) : [];
-            } catch(e) { return []; }
-        }
-
-        function _saveRecallHistory(list) {
-            try { localStorage.setItem(_recallHistoryKey(), JSON.stringify(list.slice(-20))); } catch(e) {}
-        }
-
-        async function renderKnowledgeDetail(kbId) {
-            var area = document.getElementById('kbDetailArea');
-            if (!area) return;
-
-            area.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">加载中...</div>';
-
-            try {
-                var r = await fetch('/api/knowledge/documents?kb_id=' + encodeURIComponent(kbId), {
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                var data = await r.json();
-                var docs = data.documents || [];
-
-                var kbData = null;
-                try {
-                    var br = await fetch('/api/knowledge/bases', { headers: { 'Authorization': 'Bearer ' + authToken } });
-                    if (br.ok) {
-                        var bd = await br.json();
-                        for (var i = 0; i < (bd.bases || []).length; i++) {
-                            if (bd.bases[i].id === kbId) { kbData = bd.bases[i]; break; }
-                        }
-                    }
-                } catch(e) {}
-                if (!kbData) kbData = { name: '知识库', description: '' };
-
-                var html = '<div class="kb-detail-wrapper">';
-                html += '<div class="kb-detail-back">';
-                html += '<button class="back-btn" onclick="backToKbList()">⬅️返回列表</button>';
-                html += '<div class="kb-detail-title"><span class="dot"></span>' + esc(kbData.name) + '</div>';
-                html += '<div style="width:80px;"></div>';
-                html += '</div>';
-
-                html += '<div class="kb-three-col">';
-
-                html += '<div class="col col-edit-info">';
-                html += '<div class="col-header">⚙️ 知识库设置</div>';
-                html += '<div class="col-body">';
-                html += '<div class="kb-edit-meta">';
-                html += '<div class="form-group"><label>知识库名称</label>';
-                html += '<input type="text" id="kbEditName" value="' + esc(kbData.name) + '" onchange="updateKBMeta(\'name\', this.value)"></div>';
-                html += '<div class="form-group"><label>知识库描述</label>';
-                html += '<textarea id="kbEditDesc" onchange="updateKBMeta(\'description\', this.value)">' + esc(kbData.description || '') + '</textarea></div>';
-                html += '</div>';
-                html += '<div class="col-header" style="padding:10px 12px;margin:0 -16px 12px;border-bottom:1px solid #f0f0f0;background:#fafbfc;font-size:0.82rem;color:#333;">📄 文档管理 <span class="ch-count">' + docs.length + '</span></div>';
-                html += '<div class="doc-upload-area" onclick="document.getElementById(\'kbEditFileInput\').click()" style="padding:14px;">';
-                html += '<div class="upload-icon">📤</div>';
-                html += '<div class="upload-text">上传新文档</div>';
-                html += '<div class="upload-hint">支持 .pdf .docx .doc .txt .md .xlsx .xls .pptx .ppt .html .json</div></div>';
-                html += '<input type="file" id="kbEditFileInput" style="display:none;" accept=".docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls,.pdf,.md,.html,.json" multiple onchange="handleKBUpload(this, \'edit\')">';
-                html += '<div id="kbEditDocList"></div>';
-                html += '</div></div>';
-
-                html += '<div class="col col-recall-input">';
-                html += '<div class="col-header">🔍 召回测试</div>';
-                html += '<div class="col-body">';
-                html += '<textarea class="query-textarea" id="recallQuery" placeholder="输入测试文本，按 Ctrl+Enter 快速召回测试"></textarea>';
-                html += '<div class="query-actions">';
-                html += '<button class="panel-btn panel-btn-primary" onclick="runRecallTest()">开始召回测试</button>';
-                html += '<button class="panel-btn panel-btn-secondary" onclick="clearRecallQuery()">清空</button>';
-                html += '</div>';
-                html += '<div class="query-history">';
-                html += '<div class="qh-title"><span>召回测试历史</span><button onclick="clearRecallHistory()">清空</button></div>';
-                html += '<div class="qh-list" id="recallHistoryList">';
-                html += '<div class="qh-empty">加载中...</div>';
-                html += '</div>';
-                html += '</div>';
-                html += '</div></div>';
-
-                html += '<div class="col col-result">';
-                html += '<div class="col-header">📊 召回结果 <span class="ch-count" id="resultCount">待测试</span></div>';
-                html += '<div class="col-body" id="recallResultArea">';
-                html += '<div class="result-empty">';
-                html += '<svg viewBox="0 0 80 80" width="80" height="80" fill="none"><circle cx="40" cy="40" r="36" fill="#f5f7ff" stroke="#e0e8ff" stroke-width="2"/><path d="M30 36 L38 44 L52 30" stroke="#667eea" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="40" cy="58" r="3" fill="#667eea"/></svg>';
-                html += '<div class="re-title">输入测试文本开始召回测试</div>';
-                html += '<div class="re-hint">结果将在此显示分数排名前 10 的文档片段</div>';
-                html += '</div>';
-                html += '</div></div>';
-
-                html += '</div></div>';
-
-                area.innerHTML = html;
-                renderEditDocList(docs);
-                bindQueryTextarea();
-                renderHistoryList();
-            } catch(e) {
-                area.innerHTML = '<div style="text-align:center;padding:20px;color:#ff4757;">加载失败</div>';
-            }
-        }
-
-        function bindQueryTextarea() {
-            var ta = document.getElementById('recallQuery');
-            if (!ta) return;
-            ta.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                    e.preventDefault();
-                    runRecallTest();
-                }
-            });
-            var area = document.getElementById('recallQuery') ? document.getElementById('recallQuery').parentElement : null;
-            if (area) {
-                var uploadArea = area.querySelector('.query-textarea');
-                if (uploadArea) {
-                    uploadArea.addEventListener('dragover', function(e) { e.preventDefault(); uploadArea.classList.add('dragover'); });
-                    uploadArea.addEventListener('dragleave', function() { uploadArea.classList.remove('dragover'); });
-                    uploadArea.addEventListener('drop', function(e) { e.preventDefault(); uploadArea.classList.remove('dragover'); });
-                }
-            }
-        }
-
-        function clearRecallQuery() {
-            var ta = document.getElementById('recallQuery');
-            if (ta) ta.value = '';
-            var resultEl = document.getElementById('recallResultArea');
-            if (resultEl) {
-                resultEl.innerHTML = '<div class="result-empty"><svg viewBox="0 0 80 80" width="80" height="80" fill="none"><circle cx="40" cy="40" r="36" fill="#f5f7ff" stroke="#e0e8ff" stroke-width="2"/><path d="M30 36 L38 44 L52 30" stroke="#667eea" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="40" cy="58" r="3" fill="#667eea"/></svg><div class="re-title">输入测试文本开始召回测试</div><div class="re-hint">结果将在此显示分数排名前 10 的文档片段</div></div>';
-            }
-            var countEl = document.getElementById('resultCount');
-            if (countEl) countEl.textContent = '待测试';
-        }
-
-        function useHistoryQuery(el, idx) {
-            var ta = document.getElementById('recallQuery');
-            if (ta) {
-                var list = _loadRecallHistory();
-                ta.value = list[idx];
-                runRecallTest();
-            }
-        }
-
-        function clearRecallHistory() {
-            _saveRecallHistory([]);
-            renderHistoryList();
-        }
-
-        function renderHistoryList() {
-            var list = document.getElementById('recallHistoryList');
-            if (!list) return;
-            var history = _loadRecallHistory();
-            if (!history.length) {
-                list.innerHTML = '<div class="qh-empty">暂无测试历史</div>';
-                return;
-            }
-            var html = '';
-            history.slice().reverse().forEach(function(q, idx) {
-                html += '<div class="qh-item" onclick="useHistoryQuery(this, ' + (history.length - 1 - idx) + ')">' + esc(q) + '</div>';
-            });
-            list.innerHTML = html;
-        }
-
-        function renderEditDocList(docs) {
-            var el = document.getElementById('kbEditDocList');
-            if (!el) return;
-            if (!docs.length) { el.innerHTML = '<div style="text-align:center;padding:16px;color:#999;font-size:0.78rem;margin-top:10px;">暂无文档</div>'; return; }
-            var html = '<div class="doc-list-title">📎 已上传文档</div>';
-            docs.forEach(function(d) {
-                html += '<div class="doc-item">';
-                html += '<div class="di-left"><span class="di-icon">📄</span>';
-                html += '<div class="di-info"><span class="di-name">' + esc(d.filename) + '</span>';
-                html += '<span class="di-size">' + formatSize(d.size) + '</span></div></div>';
-                html += '<div class="di-actions">';
-                html += '<input type="file" class="di-replace-input" id="replaceFile_' + esc(d.filename).replace(/'/g, "") + '" accept=".docx,.doc,.txt,.ppt,.pptx,.xlsx,.xls,.pdf,.md,.html,.json">';
-                html += '<button class="di-replace" onclick="triggerReplace(\'' + esc(d.filename).replace(/'/g, "\\'") + '\')" title="替换">替换</button>';
-                html += '<button class="di-del" onclick="deleteKBDoc(\'' + esc(d.filename).replace(/'/g, "\\'") + '\')" title="删除">删除</button>';
-                html += '</div></div>';
-            });
-            el.innerHTML = html;
-            docs.forEach(function(d) {
-                var fname = d.filename;
-                var inputId = 'replaceFile_' + fname.replace(/'/g, "");
-                var input = document.getElementById(inputId);
-                if (input) {
-                    input.addEventListener('change', function(e) {
-                        if (e.target.files.length) replaceKBDoc(fname, e.target.files[0]);
-                    });
-                }
-            });
-        }
-
-        function triggerReplace(filename) {
-            var inputId = 'replaceFile_' + filename.replace(/'/g, "");
-            var input = document.getElementById(inputId);
-            if (input) input.click();
-        }
-
-        async function replaceKBDoc(oldFilename, newFile) {
-            try {
-                showToast('正在替换 ' + esc(oldFilename) + '...');
-                await deleteKBDoc(oldFilename, true);
-                var fd = new FormData();
-                fd.append('file', newFile);
-                var r = await fetch('/api/knowledge/upload?kb_id=' + encodeURIComponent(currentKbId), {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + authToken },
-                    body: fd
-                });
-                if (!r.ok) {
-                    var e = await r.json().catch(function() { return {}; });
-                    throw new Error(e.detail || '上传失败');
-                }
-                showToast('✅ 已替换为 ' + newFile.name, 'success');
-                renderKnowledgeDetail(currentKbId);
-            } catch(e) {
-                showToast('替换失败' + (e.message || ''), 'error');
-            }
-        }
-
-        async function deleteKBDoc(filename, silent) {
-            if (!currentKbId) { showToast('请先选择知识库', 'error'); return; }
-            if (!silent && !await showConfirm({ title: '删除文档', message: '确定删除文档 "' + filename + '" 吗？', icon: 'danger', type: 'danger', confirmText: '删除' })) return;
-            try {
-                var r = await fetch('/api/knowledge/delete-doc?kb_id=' + encodeURIComponent(currentKbId) + '&filename=' + encodeURIComponent(filename), {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                if (!r.ok) throw new Error('删除失败');
-                if (!silent) showToast('已删除', 'success');
-                renderKnowledgeDetail(currentKbId);
-            } catch(e) { showToast('删除失败', 'error'); }
-        }
-
-        async function updateKBMeta(field, val) {
-            if (!currentKbId) return;
-            try {
-                var params = {};
-                if (field === 'name') {
-                    if (!val.trim()) { showToast('名称不能为空', 'warning'); renderKnowledgeDetail(currentKbId); return; }
-                    params.name = val;
-                }
-                if (field === 'description') params.description = val;
-                var qs = Object.keys(params).map(function(k) { return k + '=' + encodeURIComponent(params[k]); }).join('&');
-                var r = await fetch('/api/knowledge/bases/' + encodeURIComponent(currentKbId) + '?' + qs, {
-                    method: 'PUT',
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                if (!r.ok) throw new Error('更新失败');
-                showToast('已保存', 'success');
-            } catch(e) { showToast(e.message || '保存失败', 'error'); }
-        }
-
-        async function runRecallTest() {
-            var q = document.getElementById('recallQuery').value.trim();
-            if (!q) { showToast('请输入测试问题', 'warning'); return; }
-            var resultEl = document.getElementById('recallResultArea');
-            var countEl = document.getElementById('resultCount');
-            resultEl.innerHTML = '<div style="text-align:center;padding:40px;color:#999;"><div class="spinner-small"></div><div style="margin-top:8px;font-size:0.82rem;">测试中...</div></div>';
-            if (countEl) countEl.textContent = '测试中...';
-
-            var history = _loadRecallHistory();
-            if (history.indexOf(q) === -1) {
-                history.push(q);
-                _saveRecallHistory(history);
-            }
-            renderHistoryList();
-
-            try {
-                var url = '/api/knowledge/search?query=' + encodeURIComponent(q) + '&k=10';
-                if (currentKbId) url += '&kb_id=' + encodeURIComponent(currentKbId);
-                var r = await fetch(url, {
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                var data = await r.json();
-                var results = data.results || [];
-                if (countEl) countEl.textContent = results.length + ' 条结果';
-
-                if (!results.length) {
-                    resultEl.innerHTML = '<div style="text-align:center;padding:50px 20px;color:#aaa;"><svg viewBox="0 0 80 80" width="64" height="64" fill="none"><circle cx="40" cy="40" r="36" fill="#f5f5f5"/><text x="40" y="52" text-anchor="middle" font-size="28">🔍</text></svg><div style="margin-top:12px;font-size:0.88rem;color:#999;">未找到相关文档片段</div></div>';
-                    return;
-                }
-
-                var html = '';
-                results.forEach(function(item, i) {
-                    var rankClass = '';
-                    if (i === 0) rankClass = 'top1';
-                    else if (i === 1) rankClass = 'top2';
-                    else if (i === 2) rankClass = 'top3';
-                    var score = typeof item.score === 'number' ? item.score.toFixed(4) : '-';
-                    html += '<div class="rr-item">';
-                    html += '<div class="rr-head">';
-                    html += '<div class="rr-rank-score">';
-                    html += '<span class="rr-rank ' + rankClass + '">#' + (i + 1) + '</span>';
-                    html += '<span class="rr-score">' + score + '</span>';
-                    html += '</div>';
-                    html += '<span class="rr-source" title="' + esc(item.source) + '">📄 ' + esc(item.source) + '</span>';
-                    html += '</div>';
-                    html += '<div class="rr-content" id="rrContent_' + i + '">' + esc(item.content) + '</div>';
-                    if (item.content && item.content.length > 300) {
-                        html += '<button class="rr-show-more" onclick="toggleRrContent(' + i + ', this)">展开全文</button>';
-                    }
-                    html += '</div>';
-                });
-                resultEl.innerHTML = html;
-            } catch(e) {
-                resultEl.innerHTML = '<div style="color:#ff4757;text-align:center;padding:20px;font-size:0.82rem;">测试失败：' + esc(e.message || '') + '</div>';
-            }
-        }
-
-        function toggleRrContent(idx, btn) {
-            var el = document.getElementById('rrContent_' + idx);
-            if (!el) return;
-            if (el.style.maxHeight && el.style.maxHeight !== 'none') {
-                el.style.maxHeight = 'none';
-                btn.textContent = '收起';
-            } else {
-                el.style.maxHeight = '180px';
-                btn.textContent = '展开全文';
-            }
         }
 
         var _agentFilter = 'all';
@@ -1627,7 +1249,8 @@
             });
 
             var filterHtml = '<div class="agent-filter-bar">';
-            filterHtml += '<span class="afb-label">筛选：</span>';
+            filterHtml += '<span class="afb-title">项目</span>';
+            filterHtml += '<div class="afb-row">';
             filterHtml += '<select id="agentFilterStatus" onchange="_onAgentFilterChange(this.value)">';
             filterHtml += '<option value="all"' + (_agentFilter === 'all' ? ' selected' : '') + '>全部</option>';
             filterHtml += '<option value="published"' + (_agentFilter === 'published' ? ' selected' : '') + '>已发布</option>';
@@ -1636,11 +1259,22 @@
             if (filtered.length > 0) {
                 filterHtml += '<span class="afb-label">共 ' + filtered.length + ' 个智能体</span>';
             }
-            filterHtml += '</div>';
+            filterHtml += '</div></div>';
 
             if (!filtered.length) {
-                container.innerHTML = filterHtml + '<div class="agent-list-empty"><div class="empty-emoji">🤖</div><div>' +
-                    (_agentFilter === 'all' ? '还没有智能体，去创建一个吧！' : '当前筛选下没有智能体') + '</div></div>';
+                var isFiltered = _agentFilter !== 'all';
+                var emptyHtml = '<div class="agent-list-empty">';
+                emptyHtml += '<div class="empty-box-icon">';
+                emptyHtml += '<img src="/static/icons/filter.png" alt="" class="empty-filter-img">';
+                emptyHtml += '</div>';
+                emptyHtml += '<div class="empty-text">' + (isFiltered ? '当前筛选状态下未能找到相关结果' : '还没有智能体，去创建一个吧！') + '</div>';
+                if (isFiltered) {
+                    emptyHtml += '<button class="empty-action-btn" onclick="_onAgentFilterChange(\'all\')">';
+                    emptyHtml += '<img src="/static/icons/clear.png" alt="" class="empty-action-icon">';
+                    emptyHtml += '清空筛选</button>';
+                }
+                emptyHtml += '</div>';
+                container.innerHTML = filterHtml + emptyHtml;
                 return;
             }
 
@@ -1648,11 +1282,15 @@
             filtered.forEach(function(a) {
                 html += '<div class="agent-list-card">';
                 html += '<div class="alc-body-card" onclick="window.location.href=\'/agent-editor?id=' + a.id + '\'">';
-                html += '<div class="alc-avatar">' + esc(a.avatar || '🤖') + '</div>';
+                html += '<div class="alc-main">';
                 html += '<div class="alc-name">' + esc(a.name) + '</div>';
                 html += '<div class="alc-desc">' + esc(a.description || '暂无描述') + '</div>';
-                html += '<div class="alc-footer"><span class="alc-pub ' + (a.is_published ? 'pub' : 'private') + '">' + (a.is_published ? '已发布' : '未发布') + '</span>' +
-                    '<button class="alc-more" onclick="event.stopPropagation(); _toggleAlcMenu(' + a.id + ', this)" title="更多">⋯</button></div>';
+                html += '<div class="alc-footer"><span class="alc-pub ' + (a.is_published ? 'pub' : 'private') + '">' + (a.is_published ? '已发布' : '未发布') + '</span></div>';
+                html += '</div>';
+                html += '<div class="alc-right">';
+                html += '<div class="alc-avatar">' + esc(a.avatar || '🤖') + '</div>';
+                html += '<button class="alc-more" onclick="event.stopPropagation(); _toggleAlcMenu(' + a.id + ', this)" title="更多">⋯</button>';
+                html += '</div>';
                 html += '</div></div>';
             });
             html += '</div>';
@@ -1748,6 +1386,193 @@
             } catch(e) { showToast('删除失败：' + e.message, 'error'); }
         }
 
+        const STORE_CATEGORIES = [
+            { value: 'all', label: '推荐' },
+            { value: '效率工具', label: '效率工具' },
+            { value: '商业服务', label: '商业服务' },
+            { value: '文本创作', label: '文本创作' },
+            { value: '学习教育', label: '学习教育' },
+            { value: '代码助手', label: '代码助手' },
+            { value: '生活方式', label: '生活方式' },
+            { value: '游戏', label: '游戏' },
+            { value: '娱乐创意', label: '娱乐创意' },
+            { value: '实用工具', label: '实用工具' },
+            { value: '医疗客服', label: '医疗客服' },
+            { value: '其他', label: '其他' }
+        ];
+        let storeAllAgents = [];
+        let storeCurrentCat = 'all';
+        let storeSearchKw = '';
+
+        function renderStoreCats() {
+            var catsEl = document.getElementById('storeCats');
+            if (!catsEl) return;
+            var html = '';
+            STORE_CATEGORIES.forEach(function(c) {
+                html += '<span class="store-cat' + (storeCurrentCat === c.value ? ' active' : '') + '" onclick="selectStoreCat(\'' + c.value + '\')">' + c.label + '</span>';
+            });
+            catsEl.innerHTML = html;
+        }
+
+        function getCatLabel(val) {
+            return val || '其他';
+        }
+
+        function bindStoreTip() {
+            document.addEventListener('mouseover', function(e) {
+                var el = e.target.closest('.sc-desc');
+                var storeTipEl = document.getElementById('storeTip');
+                if (!el) {
+                    if (storeTipEl) storeTipEl.style.display = 'none';
+                    return;
+                }
+                var text = el.getAttribute('data-desc') || el.textContent;
+                if (!text) return;
+                if (!storeTipEl) return;
+                var rect = el.getBoundingClientRect();
+                storeTipEl.textContent = text;
+                storeTipEl.style.display = 'block';
+                var tipW = storeTipEl.offsetWidth;
+                var left = rect.left;
+                if (left + tipW > window.innerWidth - 10) {
+                    left = window.innerWidth - tipW - 10;
+                }
+                var top = rect.top - storeTipEl.offsetHeight - 8;
+                storeTipEl.style.left = left + 'px';
+                storeTipEl.style.top = top + 'px';
+            });
+            document.addEventListener('mouseout', function(e) {
+                if (e.target.closest('.sc-desc')) {
+                    var storeTipEl = document.getElementById('storeTip');
+                    if (storeTipEl) storeTipEl.style.display = 'none';
+                }
+            });
+        }
+        bindStoreTip();
+
+        function selectStoreCat(val) {
+            storeCurrentCat = val;
+            storeSearchKw = '';
+            var searchInput = document.getElementById('storeSearchInput');
+            if (searchInput) searchInput.value = '';
+            renderStoreCats();
+            renderStoreGrid();
+        }
+
+        function onStoreSearchInput() {
+            var v = document.getElementById('storeSearchInput').value || '';
+            storeSearchKw = v.trim().toLowerCase();
+            if (!storeSearchKw) {
+                if (storeCurrentCat !== 'all') {
+                    storeCurrentCat = 'all';
+                    renderStoreCats();
+                }
+            }
+            renderStoreGrid();
+        }
+
+        function renderStoreGrid() {
+            var container = document.getElementById('storeContainer');
+            if (!storeAllAgents || storeAllAgents.length === 0) {
+                container.innerHTML = '<div class="store-empty">' +
+                    '<div class="empty-icon">📦</div>' +
+                    '<div class="empty-text">商店里还没有智能体</div>' +
+                    '<div class="empty-hint">去创建一个智能体并发布到小智商店吧！</div>' +
+                    '</div>';
+                return;
+            }
+
+            if (storeSearchKw) {
+                var matched = storeAllAgents.filter(function(a) {
+                    var name = (a.name || '').toLowerCase();
+                    var desc = (a.description || '').toLowerCase();
+                    return name.indexOf(storeSearchKw) >= 0 || desc.indexOf(storeSearchKw) >= 0;
+                });
+                if (matched.length > 0) {
+                    var firstCat = matched[0].category || '其他';
+                    if (storeCurrentCat !== firstCat) {
+                        storeCurrentCat = firstCat;
+                        renderStoreCats();
+                    }
+                }
+            }
+
+            var list = storeAllAgents.filter(function(a) {
+                if (!storeSearchKw && storeCurrentCat !== 'all' && (a.category || 'other') !== storeCurrentCat) return false;
+                if (storeSearchKw) {
+                    var name = (a.name || '').toLowerCase();
+                    var desc = (a.description || '').toLowerCase();
+                    if (name.indexOf(storeSearchKw) < 0 && desc.indexOf(storeSearchKw) < 0) return false;
+                }
+                return true;
+            });
+
+            if (list.length === 0) {
+                container.innerHTML = '<div class="store-empty">' +
+                    '<div class="empty-icon">🔍</div>' +
+                    '<div class="empty-text">没有找到匹配的智能体</div>' +
+                    '<div class="empty-hint">试试其他关键词或分类</div>' +
+                    '</div>';
+                return;
+            }
+
+            var html = '<div class="store-grid">';
+            list.forEach(function(a) {
+                html += '<div class="store-card" onclick="openAgentUse(' + a.id + ')">';
+                html += '<div class="sc-head">';
+                html += '<div class="sc-avatar">' + esc(a.avatar || '🤖') + '</div>';
+                html += '<div class="sc-info">';
+                html += '<div class="sc-name">';
+                html += esc(a.name);
+                if (a.publish_version) {
+                    html += '<span class="sc-version">' + esc(a.publish_version) + '</span>';
+                }
+                html += '</div>';
+                var platform = a.is_official ? '小智官方' : (a.source_channel || '第三方平台');
+                var pClass = a.is_official ? 'sc-pofficial' : 'sc-pthird';
+                html += '<div class="sc-platform ' + pClass + '">' + esc(platform) + '</div>';
+                html += '</div>';
+                html += '</div>';
+                html += '<div class="sc-desc" data-desc="' + esc(a.description || '暂无描述') + '">' + esc(a.description || '暂无描述') + '</div>';
+                html += '<div class="sc-tags">';
+                if (a.is_official) {
+                    html += '<span class="sc-tag sc-tag-official">官方</span>';
+                } else {
+                    html += '<span class="sc-tag sc-tag-third">第三方</span>';
+                }
+                if (a.is_free) {
+                    html += '<span class="sc-tag sc-tag-free">免费</span>';
+                } else {
+                    html += '<span class="sc-tag sc-tag-paid">付费</span>';
+                }
+                var catLabel = getCatLabel(a.category || '其他');
+                html += '<span class="sc-tag sc-tag-cat">' + esc(catLabel) + '</span>';
+                html += '</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function renderStoreList() {
+            var container = document.getElementById('storeContainer');
+            container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">加载中...</div>';
+
+            try {
+                var r = await fetch('/api/agents/store/list');
+                if (!r.ok) throw new Error('请求失败');
+                storeAllAgents = await r.json();
+                renderStoreCats();
+                renderStoreGrid();
+            } catch(e) {
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:#ff4757;">加载失败：' + e.message + '</div>';
+            }
+        }
+
+        function openAgentUse(agentId) {
+            window.location.href = '/agent-use?id=' + agentId;
+        }
+
         async function handlePanelCreateAgent() {
             var name = document.getElementById('agentPanelName').value.trim();
             var description = document.getElementById('agentPanelDesc').value.trim();
@@ -1782,6 +1607,25 @@
         // 初始化：上传文件按钮默认禁用
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('uploadFileBtn').disabled = true;
+
+            document.getElementById('quickPrompts').addEventListener('click', function(e) {
+                const tag = e.target.closest('.quick-prompt-tag');
+                if (tag) {
+                    const prompt = tag.getAttribute('data-prompt');
+                    if (prompt) {
+                        const input = document.getElementById('messageInput');
+                        input.value = prompt;
+                        autoResizeInput(input);
+                        sendMessage();
+                    }
+                }
+            });
+        });
+
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'goBack') {
+                switchPanel('chat');
+            }
         });
 
         function getTime() {
@@ -1797,10 +1641,16 @@
         }
 
         function createNewChat() {
+            const existingEmpty = conversations.find(c => c.title === '新对话' && c.messages.length === 0);
+            if (existingEmpty) {
+                switchConversation(existingEmpty.id);
+                return existingEmpty;
+            }
+
             const conv = {
                 id: generateId(),
                 title: '新对话',
-                threadId: Math.floor(Math.random() * 100000),
+                threadId: Math.floor(Math.random() * 1000000),
                 messages: [],
                 createdAt: new Date().toISOString()
             };
@@ -1808,7 +1658,15 @@
             saveConversations();
             switchConversation(conv.id);
             renderHistory();
+            
+            // 重置技能选择
+            currentSkill = null;
+            const skillTag = document.getElementById('skillTag');
+            skillTag.className = 'skill-tag';
+            document.getElementById('messageInput').placeholder = '输入问题或任务，/ 选择技能';
             document.getElementById('uploadFileBtn').disabled = true;
+            
+            return conv;
         }
 
         function switchConversation(convId) {
@@ -1816,21 +1674,47 @@
             const conv = conversations.find(c => c.id === convId);
             if (!conv) return;
 
+            // 切换回聊天面板
+            switchPanel('chat');
+
             document.getElementById('chatTitle').textContent = conv.title;
             renderMessages(conv.messages);
             renderHistory();
             document.getElementById('uploadFileBtn').disabled = true;
         }
 
-        function deleteConversation(convId, event) {
-            event.stopPropagation();
+        async function deleteConversation(convId, event) {
+            if (event) event.stopPropagation();
+
+            // 找到对应的对话对象，获取 threadId
+            const conv = conversations.find(c => c.id === convId);
+            const threadId = conv ? conv.threadId : convId;
+
+            // 先调用后端 API 清理数据库中的会话记忆（使用 threadId）
+            try {
+                await fetch(`/api/memory/clear/${threadId}`, {
+                    method: 'DELETE'
+                });
+            } catch (e) {
+                console.error('[Memory] 清理会话记忆失败:', e);
+            }
+
+            // 再在前端本地删除（使用 convId）
             conversations = conversations.filter(c => c.id !== convId);
             saveConversations();
             if (currentConvId === convId) {
                 if (conversations.length > 0) {
                     switchConversation(conversations[0].id);
                 } else {
-                    createNewChat();
+                    currentConvId = null;
+                    document.getElementById('chatTitle').textContent = '新对话';
+                    const chatArea = document.getElementById('chatArea');
+                    chatArea.innerHTML = '';
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.id = 'emptyChat';
+                    emptyDiv.className = 'empty-chat';
+                    emptyDiv.innerHTML = '<div class="empty-icon">💬</div><div class="empty-text">有什么我能帮你的吗？</div>';
+                    chatArea.appendChild(emptyDiv);
                 }
             }
             renderHistory();
@@ -1840,7 +1724,7 @@
             const section = document.getElementById('historySection');
             const searchTerm = document.getElementById('searchInput').value.toLowerCase();
 
-            let html = '<div class="history-label">历史对话</div>';
+            let html = `<div class="history-label">${conversations.length > 0 ? '历史对话' : '暂无对话'}</div>`;
             const filtered = conversations.filter(c =>
                 c.title.toLowerCase().includes(searchTerm) ||
                 c.messages.some(m => m.content.toLowerCase().includes(searchTerm))
@@ -1848,17 +1732,17 @@
 
             filtered.forEach(conv => {
                 const isActive = conv.id === currentConvId;
-                const iconSvg = `<svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;opacity:0.5"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>`;
+                const iconSvg = `<img src="/static/icons/chat_history.png" style="width:16px;height:16px;display:block;object-fit:contain">`;
                 html += `
                     <div class="history-item ${isActive ? 'active' : ''}" onclick="switchConversation('${conv.id}')">
                         <span class="item-icon">${iconSvg}</span>
                         <span class="item-text">${escapeHtml(conv.title)}</span>
-                        <span class="item-delete" onclick="deleteConversation('${conv.id}', event)" title="删除">❌</span>
+                        <span class="item-delete" onclick="event.stopPropagation(); deleteConversation('${conv.id}', null)" title="删除">❌</span>
                     </div>`;
             });
 
-            if (filtered.length === 0) {
-                html += '<div style="text-align:center;padding:20px;color:#999;font-size:0.85rem;">暂无对话</div>';
+            if (conversations.length > 0 && filtered.length === 0) {
+                html += '<div style="text-align:center;padding:20px;color:#999;font-size:0.85rem;">没有匹配的对话</div>';
             }
 
             section.innerHTML = html;
@@ -2019,12 +1903,19 @@
                 if (msg.role === 'assistant') {
                     displayContent = renderMarkdown(msg.content);
                 } else {
+                    // 用户消息：显示图片预览（如果有）
+                    let imageHTML = '';
+                    if (msg.image_data) {
+                        const imgSrc = `data:image/png;base64,${msg.image_data}`;
+                        imageHTML = `<img class="msg-image" src="${imgSrc}" alt="图片" onclick="openImageViewer('${imgSrc}')" oncontextmenu="showImageContextMenu(event, '${imgSrc}', '${msg.file_name || 'image.png'}')">`;
+                    }
+                    
                     let fileBadgeHTML = '';
-                    if (msg.file_name) {
+                    if (msg.file_name && !msg.image_data) {
                         const ext = msg.file_name.split('.').pop().toUpperCase();
                         fileBadgeHTML = `<div class="msg-file-badge"><span class="file-ext">${ext}</span><span class="file-name">${escapeHtml(msg.file_name)}</span></div>`;
                     }
-                    displayContent = fileBadgeHTML + escapeHtml(msg.content).replace(/\n/g, '<br>');
+                    displayContent = imageHTML + fileBadgeHTML + escapeHtml(msg.content).replace(/\n/g, '<br>');
                 }
 
                 let actionsHTML = '';
@@ -2119,10 +2010,10 @@
             return conversations.find(c => c.id === currentConvId);
         }
 
-        function addMessageToConv(role, content, time, sources, duration, file_name) {
+        function addMessageToConv(role, content, time, sources, duration, file_name, image_data) {
             const conv = getCurrentConv();
             if (!conv) return;
-            conv.messages.push({ role, content, time: time || getTime(), sources: sources || [], duration: duration || null, file_name: file_name || null });
+            conv.messages.push({ role, content, time: time || getTime(), sources: sources || [], duration: duration || null, file_name: file_name || null, image_data: image_data || null });
 
             if (role === 'user' && conv.messages.filter(m => m.role === 'user').length === 1) {
                 conv.title = content.substring(0, 20) + (content.length > 20 ? '...' : '');
@@ -2161,30 +2052,70 @@
         async function sendMessage() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
+
+            // 先保存文件状态，再判断
             if (!message && uploadedFiles.length === 0) return;
 
-            const conv = getCurrentConv();
+            let conv = getCurrentConv();
             if (!conv) {
-                createNewChat();
+                conv = createNewChat();
             }
 
             const emptyChat = document.getElementById('emptyChat');
             if (emptyChat) emptyChat.remove();
 
-            addMessageToConv('user', message, null, null, null, uploadedFiles.length > 0 ? uploadedFiles[0].name : null);
+            // 获取图片数据（如果有）
+            let imageData = null;
+            let fileNames = uploadedFiles.map(f => f.name);
+            if (uploadedFiles.length > 0) {
+                const firstFile = uploadedFiles[0];
+                const ext = firstFile.name.split('.').pop().toLowerCase();
+                if (['png', 'jpg', 'jpeg', 'bmp', 'gif', 'tiff', 'tif'].includes(ext)) {
+                    imageData = await fileToBase64(firstFile);
+                }
+            }
+
+            addMessageToConv('user', message, null, null, null, fileNames.join(', '), imageData);
             renderMessages(getCurrentConv().messages);
 
             input.value = '';
             autoResizeInput(input);
+
             setLoading(true);
+
+            // 先保存文件状态副本，再清除预览（removeImagePreview 会清空 uploadedFiles）
+            const filesToProcess = [...uploadedFiles];
+            const filePathsBackup = {...uploadedFilePaths};
+
+            // 清除图片预览（这里会清空 uploadedFiles）
+            removeImagePreview();
+
+            // 清除图片预览和文件标签
+            document.getElementById('imagePreviewInline').classList.remove('show');
+            document.getElementById('imagePreviewImg').src = '';
+            document.getElementById('fileTagsContainer').classList.remove('show');
+            document.getElementById('fileTagsContainer').innerHTML = '';
+            const quickPrompts = document.getElementById('quickPrompts');
+            if (quickPrompts) quickPrompts.classList.remove('show');
 
             const startTime = performance.now();
 
             const thinkingMsg = document.createElement('div');
             thinkingMsg.className = 'message assistant';
-            thinkingMsg.innerHTML = `<div class="message-content"></div><div class="message-time">${getTime()}</div>`;
+            thinkingMsg.innerHTML = `<div class="message-content"><div class="agent-final"><span class="loading-text"><span class="loading-stars"><span class="star"></span><span class="star">✦</span></span></span></div></div><div class="message-time">${getTime()}</div>`;
             document.getElementById('chatArea').appendChild(thinkingMsg);
             document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
+
+            // 15秒后显示等待提示
+            let waitingTimeout = setTimeout(() => {
+                const contentDiv = thinkingMsg.querySelector('.message-content');
+                if (contentDiv && state === 'thinking') {
+                    const agentFinal = contentDiv.querySelector('.agent-final');
+                    if (agentFinal) {
+                        agentFinal.innerHTML = `<span class="loading-text"><span class="loading-stars"><span class="star">✦</span><span class="star">✦</span></span> 正在思考中，请稍等<span class="dots-anim"></span></span>`;
+                    }
+                }
+            }, 15000);
 
             let latestResponse = '';
             let state = 'thinking';
@@ -2193,22 +2124,44 @@
 
             try {
                 let fileContent = null;
-                let fileName = null;
                 let imagesData = [];
+                let uploadedFilePathsResult = [];
+                let fileNames = [];
 
-                if (uploadedFiles.length > 0) {
-                    const file = uploadedFiles[0];
-                    fileName = file.name;
-                    const uploadResult = await uploadFile(file);
-                    uploadedFilePath = uploadResult.file_path;
-                    fileName = uploadResult.filename;
-                    const ext = file.name.split('.').pop().toLowerCase();
-                    if (ext === 'txt') {
-                        fileContent = await readTextFile(file);
-                    } else if (['png', 'jpg', 'jpeg', 'bmp', 'gif'].includes(ext)) {
-                        // 将图片转换为 base64
-                        const base64Data = await fileToBase64(file);
-                        imagesData = [{ data: base64Data, name: file.name, size: file.size }];
+                console.log('[DEBUG] filesToProcess 数量:', filesToProcess.length);
+
+                if (filesToProcess.length > 0) {
+                    console.log('[DEBUG] 处理文件，数量:', filesToProcess.length);
+                    for (const file of filesToProcess) {
+                        const fileKey = file.name + '_' + file.size;
+                        if (filePathsBackup[fileKey]) {
+                            console.log('[DEBUG] 文件已上传，复用路径:', file.name);
+                            uploadedFilePathsResult.push(filePathsBackup[fileKey]);
+                            fileNames.push(file.name);
+                            const ext = file.name.split('.').pop().toLowerCase();
+                            if (ext === 'txt') {
+                                const content = await readTextFile(file);
+                                fileContent = (fileContent || '') + `\n--- ${file.name} ---\n${content}`;
+                            } else if (['png', 'jpg', 'jpeg', 'bmp', 'gif', 'tiff', 'tif'].includes(ext)) {
+                                const base64Data = await fileToBase64(file);
+                                imagesData.push({ data: base64Data, name: file.name, size: file.size });
+                            }
+                        } else {
+                            console.log('[DEBUG] 上传新文件:', file.name);
+                            const uploadResult = await uploadFile(file);
+                            console.log('[DEBUG] 上传结果:', uploadResult);
+                            uploadedFilePathsResult.push(uploadResult.file_path);
+                            fileNames.push(uploadResult.filename);
+                            filePathsBackup[fileKey] = uploadResult.file_path;
+                            const ext = file.name.split('.').pop().toLowerCase();
+                            if (ext === 'txt') {
+                                const content = await readTextFile(file);
+                                fileContent = (fileContent || '') + `\n--- ${file.name} ---\n${content}`;
+                            } else if (['png', 'jpg', 'jpeg', 'bmp', 'gif', 'tiff', 'tif'].includes(ext)) {
+                                const base64Data = await fileToBase64(file);
+                                imagesData.push({ data: base64Data, name: file.name, size: file.size });
+                            }
+                        }
                     }
                 }
 
@@ -2226,13 +2179,16 @@
                         message,
                         thread_id: conv.threadId,
                         file_content: fileContent,
-                        file_name: fileName,
+                        file_name: fileNames.join(', '),
+                        file_paths: uploadedFilePathsResult,
                         skill: currentSkill,
                         images: imagesData,
                         history: conv.messages.filter(m => m.role !== 'system').map(m => ({ role: m.role, content: m.content }))
                     }),
                     signal: currentAbortController.signal
                 });
+
+                console.log('[DEBUG] 发送给后端的 file_paths:', uploadedFilePathsResult);
 
                 if (!response.ok) throw new Error('网络请求失败');
 
@@ -2278,13 +2234,14 @@
                     if (latestResponse) {
                         html += '<div class="agent-final">' + renderMarkdown(latestResponse) + '</div>';
                     } else if (state === 'thinking') {
-                        html += '<div class="agent-final"><span class="loading-text">正在思考中...</span></div>';
+                        html += '<div class="agent-final"><span class="loading-text"><span class="loading-stars"><span class="star">✦</span><span class="star">✦</span></span></span></div>';
                     }
                     contentDiv.innerHTML = html;
                     animateTrailingDots(contentDiv);
                 }
 
-                while (true) {
+                let shouldBreak = false;
+                while (!shouldBreak) {
                     const { done, value } = await reader.read();
                     if (done) break;
                     const chunk = decoder.decode(value, { stream: true });
@@ -2302,15 +2259,19 @@
 
                             if (isStop) {
                                 state = 'stopped';
+                                clearTimeout(waitingTimeout);
                                 for (const s of steps) s.status = 'done';
                                 renderContent();
+                                shouldBreak = true;
                                 break;
                             }
 
                             if (isError) {
                                 state = 'error';
+                                clearTimeout(waitingTimeout);
                                 latestResponse += '⚠️ ' + (text || '服务错误');
                                 renderContent();
+                                shouldBreak = true;
                                 break;
                             }
 
@@ -2342,9 +2303,10 @@
                                         lastRunning.details.push(data.step_detail);
                                     }
                                 }
+                                renderContent();
                             }
 
-                            if (!isDone && text && !isStep && !isStepDetail) {
+                            if (!isDone && text && !(isStep || isStepDetail || data.step || data.step_detail)) {
                                 latestResponse += text;
                             }
 
@@ -2354,6 +2316,13 @@
 
                             if (state === 'thinking' && latestResponse) {
                                 state = 'responding';
+                                clearTimeout(waitingTimeout);
+                            }
+
+                            if (isDone) {
+                                state = 'done';
+                                shouldBreak = true;
+                                break; // 跳出内层 for 循环
                             }
 
                             if (!isStep && !isStepDetail) {
@@ -2361,6 +2330,7 @@
                             }
                         } catch (e) {}
                     }
+                    if (shouldBreak) break; // 跳出外层 while 循环
                     document.getElementById('chatArea').scrollTop = document.getElementById('chatArea').scrollHeight;
                 }
 
@@ -2369,6 +2339,13 @@
                     renderContent();
                     if (contentDiv && contentDiv.querySelector('.agent-final')) {
                         contentDiv.querySelector('.agent-final').innerHTML = renderMarkdown(latestResponse) || '';
+                    }
+                    
+                    // 提取并记录下载的文件名
+                    const downloadMatch = latestResponse.match(/\[下载[^\]]*\]\([^)]+\/([^)]+\.(?:docx|pdf|txt|xlsx|pptx))\)/);
+                    if (downloadMatch) {
+                        cachedDownloadFile = downloadMatch[1];
+                        console.log('[CACHE] 记录下载文件:', cachedDownloadFile);
                     }
 
                     const elapsedMs = performance.now() - startTime;
@@ -2410,6 +2387,7 @@
                     thinkingMsg.querySelector('.message-content').innerHTML = '⚠️ 抱歉，服务响应超时';
                 }
             } catch (error) {
+                clearTimeout(waitingTimeout);
                 if (error.name === 'AbortError') {
                     state = 'stopped';
                     for (const s of steps) s.status = 'done';
@@ -2419,9 +2397,10 @@
                     thinkingMsg.innerHTML = `<div class="message-content">⚠️ 抱歉，服务出现错误 ${error.message}</div><div class="message-time">${getTime()}</div>`;
                 }
             } finally {
+                clearTimeout(waitingTimeout);
                 currentAbortController = null;
                 setLoading(false);
-                removeFileTag();
+                hideFileTags();
             }
         }
 
@@ -2510,12 +2489,12 @@
                 btn.disabled = false;
                 btn.classList.add('stop-mode');
                 btn.title = '停止';
-                btn.innerHTML = '<div class="stop-icon"></div>';
+                btn.innerHTML = '<img src="static/icons/cancel_send.png" alt="停止">';
             } else {
                 btn.disabled = false;
                 btn.classList.remove('stop-mode');
                 btn.title = '发送';
-                btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 4l-8 8h5v8h6v-8h5z"/></svg>';
+                btn.innerHTML = '<img src="static/icons/send.png" alt="发送">';
             }
         }
 
@@ -2559,6 +2538,12 @@
             const skillTagIcon = document.getElementById('skillTagIcon');
             const skillTagName = document.getElementById('skillTagName');
             const messageInput = document.getElementById('messageInput');
+
+            // 切换技能时清除图片预览
+            document.getElementById('imagePreviewInline').classList.remove('show');
+            document.getElementById('imagePreviewImg').src = '';
+            document.getElementById('imagePreviewDrawing').classList.remove('show');
+            document.getElementById('imagePreviewDrawingImg').src = '';
 
             if (skillType === 'document') {
                 skillTagIcon.textContent = '📄';
@@ -2638,9 +2623,60 @@
 
         function getFileIcon(filename) {
             const ext = filename.split('.').pop().toLowerCase();
-            const icons = { docx: '📝', doc: '📝', txt: '📄', ppt: '', pptx: '📊', xlsx: '📈', xls: '📈',
-                            png: '', jpg: '', jpeg: '', bmp: '', tiff: '', tif: '', pdf: '📕', dxf: '📐' };
-            return icons[ext] || '';
+            const iconMap = {
+                docx:  { bg: '#2b579a', label: 'W' },
+                doc:   { bg: '#2b579a', label: 'W' },
+                txt:   { bg: '#6b7280', label: 'T' },
+                md:    { bg: '#5a5f6a', label: 'MD' },
+                rtf:   { bg: '#4a5568', label: 'RTF' },
+                pdf:   { bg: '#e53935', label: 'PDF' },
+                pptx:  { bg: '#c0392b', label: 'P' },
+                ppt:   { bg: '#c0392b', label: 'P' },
+                key:   { bg: '#bc3655', label: 'K' },
+                xlsx:  { bg: '#217346', label: 'X' },
+                xls:   { bg: '#217346', label: 'X' },
+                csv:   { bg: '#0f766e', label: 'CSV' },
+                numbers:{ bg: '#107c10', label: 'N' },
+                dxf:   { bg: '#34495e', label: 'CAD' },
+                dwg:   { bg: '#34495e', label: 'CAD' },
+                step:  { bg: '#2c3e50', label: '3D' },
+                stp:   { bg: '#2c3e50', label: '3D' },
+                obj:   { bg: '#2c3e50', label: '3D' },
+                stl:   { bg: '#2c3e50', label: '3D' },
+                html:  { bg: '#e34c26', label: 'H' },
+                htm:   { bg: '#e34c26', label: 'H' },
+                css:   { bg: '#2965f1', label: 'CSS' },
+                js:    { bg: '#f7df1e', label: 'JS', dark: true },
+                ts:    { bg: '#3178c6', label: 'TS' },
+                json:  { bg: '#f5a623', label: 'J' },
+                xml:   { bg: '#0060ac', label: 'XML' },
+                yaml:  { bg: '#cb171e', label: 'YML' },
+                yml:   { bg: '#cb171e', label: 'YML' },
+                py:    { bg: '#3776ab', label: 'PY' },
+                java:  { bg: '#ed8b00', label: 'JAVA' },
+                c:     { bg: '#00599c', label: 'C' },
+                cpp:   { bg: '#00599c', label: 'C++' },
+                h:     { bg: '#00599c', label: 'H' },
+                zip:   { bg: '#8e44ad', label: 'ZIP' },
+                rar:   { bg: '#8e44ad', label: 'RAR' },
+                '7z':  { bg: '#8e44ad', label: '7Z' },
+                tar:   { bg: '#8e44ad', label: 'TAR' },
+                gz:    { bg: '#8e44ad', label: 'GZ' },
+                mp3:   { bg: '#d81b60', label: 'MP3' },
+                wav:   { bg: '#d81b60', label: 'WAV' },
+                mp4:   { bg: '#ff6f00', label: 'MP4' },
+                avi:   { bg: '#ff6f00', label: 'AVI' },
+                mov:   { bg: '#ff6f00', label: 'MOV' },
+            };
+            const item = iconMap[ext] || { bg: '#9ca3af', label: ext.toUpperCase().substring(0, 2) };
+            const labelLen = item.label.length;
+            let fontSize;
+            if (labelLen >= 4) fontSize = '0.48rem';
+            else if (labelLen === 3) fontSize = '0.55rem';
+            else if (labelLen === 2) fontSize = '0.62rem';
+            else fontSize = '0.72rem';
+            const color = item.dark ? '#333' : '#fff';
+            return `<span class="file-icon" style="background:${item.bg};font-size:${fontSize};color:${color}">${item.label}</span>`;
         }
 
         function formatFileSize(bytes) {
@@ -2649,31 +2685,253 @@
             return (bytes / 1048576).toFixed(1) + ' MB';
         }
 
+        function renderFileTags() {
+            const container = document.getElementById('fileTagsContainer');
+            const quickPrompts = document.getElementById('quickPrompts');
+            if (!container) return;
+            container.innerHTML = '';
+            if (uploadedFiles.length === 0) {
+                container.classList.remove('show');
+                if (quickPrompts) quickPrompts.classList.remove('show');
+                return;
+            }
+            
+            // 只在 document 技能时显示文件标签和快捷提示
+            if (currentSkill === 'document') {
+                container.classList.add('show');
+                // 只在 document 技能时显示快捷标签
+                if (quickPrompts) {
+                    quickPrompts.classList.add('show');
+                }
+                
+                uploadedFiles.forEach((file, index) => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const isImage = ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'tiff', 'tif'].includes(ext);
+                    const tag = document.createElement('div');
+                    tag.className = 'file-tag-item';
+                    if (isImage) {
+                        const tempId = 'img-icon-' + generateId();
+                        tag.innerHTML = `
+                            <span class="file-icon img-icon" id="${tempId}"></span>
+                            <div class="file-info">
+                                <span class="file-name">${file.name}</span>
+                                <span class="file-size">${formatFileSize(file.size)}</span>
+                            </div>
+                            <span class="remove" onclick="removeFileByIndex(${index})" title="删除">✕</span>
+                        `;
+                        container.appendChild(tag);
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const el = tag.querySelector('#' + tempId);
+                            if (el) el.innerHTML = `<img src="${e.target.result}" alt="">`;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        tag.innerHTML = `
+                            ${getFileIcon(file.name)}
+                            <div class="file-info">
+                                <span class="file-name">${file.name}</span>
+                                <span class="file-size">${formatFileSize(file.size)}</span>
+                            </div>
+                            <span class="remove" onclick="removeFileByIndex(${index})" title="删除">✕</span>
+                        `;
+                        container.appendChild(tag);
+                    }
+                });
+            } else {
+                // 非文档技能不显示文件标签
+                container.classList.remove('show');
+                if (quickPrompts) quickPrompts.classList.remove('show');
+            }
+        }
+
+        function removeFileByIndex(index) {
+            const file = uploadedFiles[index];
+            if (file) {
+                const fileKey = file.name + '_' + file.size;
+                delete uploadedFilePaths[fileKey];
+            }
+            uploadedFiles.splice(index, 1);
+            renderFileTags();
+            if (uploadedFiles.length === 0) {
+                document.getElementById('imagePreviewInline').classList.remove('show');
+                document.getElementById('imagePreviewImg').src = '';
+                const quickPrompts = document.getElementById('quickPrompts');
+                if (quickPrompts) quickPrompts.classList.remove('show');
+            }
+        }
+
         function showFileTag(file) {
-            document.getElementById('fileTagIcon').textContent = getFileIcon(file.name);
-            document.getElementById('fileTagName').textContent = file.name;
-            document.getElementById('fileTagSize').textContent = formatFileSize(file.size);
-            document.getElementById('fileTagInline').classList.add('show');
+            // 去重：检查是否已经添加过同名同大小的文件
+            const fileKey = file.name + '_' + file.size;
+            const alreadyAdded = uploadedFiles.some(f => (f.name + '_' + f.size) === fileKey);
+            if (alreadyAdded) {
+                console.log('[DEBUG] 文件已存在，跳过重复添加:', file.name);
+                return;
+            }
+            
+            uploadedFiles.push(file);
+            
+            // 只在文档技能时显示文件标签
+            if (currentSkill === 'document') {
+                renderFileTags();
+            }
+
+            // 如果是图片，显示预览（只显示第一张图片）
+            const ext = file.name.split('.').pop().toLowerCase();
+            if (['png', 'jpg', 'jpeg', 'bmp', 'gif', 'tiff', 'tif'].includes(ext)) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    // 工程图纸技能：显示在技能标签上方
+                    if (currentSkill === 'drawing') {
+                        document.getElementById('imagePreviewDrawingImg').src = e.target.result;
+                        document.getElementById('imagePreviewDrawing').classList.add('show');
+                        document.getElementById('imagePreviewInline').classList.remove('show');
+                    } else {
+                        // 其他技能：显示在输入框左侧
+                        if (!document.getElementById('imagePreviewInline').classList.contains('show')) {
+                            document.getElementById('imagePreviewImg').src = e.target.result;
+                            document.getElementById('imagePreviewInline').classList.add('show');
+                        }
+                        document.getElementById('imagePreviewDrawing').classList.remove('show');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function hideFileTags() {
+            document.getElementById('fileTagsContainer').classList.remove('show');
+            document.getElementById('imagePreviewInline').classList.remove('show');
+            const quickPrompts = document.getElementById('quickPrompts');
+            if (quickPrompts) quickPrompts.classList.remove('show');
         }
 
         function removeFileTag() {
-            document.getElementById('fileTagInline').classList.remove('show');
+            document.getElementById('fileTagsContainer').classList.remove('show');
+            document.getElementById('fileTagsContainer').innerHTML = '';
+            document.getElementById('imagePreviewInline').classList.remove('show');
+            document.getElementById('imagePreviewImg').src = '';
+            const quickPrompts = document.getElementById('quickPrompts');
+            if (quickPrompts) quickPrompts.classList.remove('show');
             uploadedFiles = [];
+            uploadedFilePaths = {};
             uploadedFilePath = null;
         }
+
+        function removeImagePreview() {
+            const inlinePreview = document.getElementById('imagePreviewInline');
+            if (inlinePreview) inlinePreview.classList.remove('show');
+
+            const previewImg = document.getElementById('imagePreviewImg');
+            if (previewImg) previewImg.src = '';
+
+            const drawingPreview = document.getElementById('imagePreviewDrawing');
+            if (drawingPreview) drawingPreview.classList.remove('show');
+
+            const drawingImg = document.getElementById('imagePreviewDrawingImg');
+            if (drawingImg) drawingImg.src = '';
+
+            uploadedFiles = [];
+            uploadedFilePaths = {};
+            uploadedFilePath = null;
+        }
+
+        function openImageViewer(src) {
+            if (!src) return;
+            document.getElementById('viewerImage').src = src;
+            document.getElementById('imageViewer').classList.add('show');
+        }
+
+        function closeImageViewer() {
+            document.getElementById('imageViewer').classList.remove('show');
+            document.getElementById('viewerImage').src = '';
+        }
+
+        // 图片右键菜单相关
+        let currentContextMenuImage = null;
+        let currentContextMenuFileName = null;
+
+        function showImageContextMenu(event, imgSrc, fileName) {
+            event.preventDefault();
+            currentContextMenuImage = imgSrc;
+            currentContextMenuFileName = fileName;
+
+            const menu = document.getElementById('imageContextMenu');
+            menu.style.left = event.clientX + 'px';
+            menu.style.top = event.clientY + 'px';
+            menu.classList.add('show');
+
+            // 确保菜单不超出屏幕
+            const rect = menu.getBoundingClientRect();
+            if (rect.right > window.innerWidth) {
+                menu.style.left = (event.clientX - rect.width) + 'px';
+            }
+            if (rect.bottom > window.innerHeight) {
+                menu.style.top = (event.clientY - rect.height) + 'px';
+            }
+        }
+
+        function hideImageContextMenu() {
+            document.getElementById('imageContextMenu').classList.remove('show');
+            currentContextMenuImage = null;
+            currentContextMenuFileName = null;
+        }
+
+        async function copyImageFromMenu() {
+            if (!currentContextMenuImage) return;
+            try {
+                const response = await fetch(currentContextMenuImage);
+                const blob = await response.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+                showToast('图片已复制到剪贴板');
+            } catch (err) {
+                console.error('复制失败:', err);
+                showToast('复制失败，请重试');
+            }
+            hideImageContextMenu();
+        }
+
+        function downloadImageFromMenu() {
+            if (!currentContextMenuImage || !currentContextMenuFileName) return;
+            const link = document.createElement('a');
+            link.href = currentContextMenuImage;
+            link.download = currentContextMenuFileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            hideImageContextMenu();
+        }
+
+        // 点击其他地方关闭右键菜单
+        document.addEventListener('click', function(e) {
+            const menu = document.getElementById('imageContextMenu');
+            if (menu && !menu.contains(e.target)) {
+                hideImageContextMenu();
+            }
+        });
+
+        const _ALLOWED_EXT = ['.docx','.doc','.pptx','.ppt','.xlsx','.xls','.pdf','.md','.txt','.json','.html','.htm','.rtf','.csv','.dxf','.dwg','.step','.stp','.obj','.stl','.xml','.yaml','.yml','.zip','.rar','.7z','.png','.jpg','.jpeg','.bmp','.gif','.tiff','.tif'];
 
         function handleFileSelect(event) {
             const files = Array.from(event.target.files);
             if (files.length > 0) {
-                const file = files[0];
-                // const ext = file.name.split('.').pop().toLowerCase();
-                // const allowedExts = ['docx', 'doc', 'txt', 'ppt', 'pptx', 'xlsx', 'xls'];
-                // if (!allowedExts.includes(ext)) {
-                //     alert(`不支持的文件格式，支持的格式: ${allowedExts.join(', ')}`);
-                //     return;
-                // }
-                showFileTag(file);
-                uploadedFiles = [file];
+                const valid = [];
+                const rejected = [];
+                files.forEach(f => {
+                    const ext = '.' + f.name.split('.').pop().toLowerCase();
+                    if (_ALLOWED_EXT.includes(ext)) {
+                        valid.push(f);
+                    } else {
+                        rejected.push(f.name);
+                    }
+                });
+                if (rejected.length > 0) {
+                    showToast(`不支持的文件格式：${rejected.join('、')}，已自动跳过`, 'error');
+                }
+                valid.forEach(file => showFileTag(file));
             }
             event.target.value = '';
         }
@@ -2709,8 +2967,39 @@
         async function clearCurrentChat() {
             const conv = getCurrentConv();
             if (!conv) return;
-            if (conv.messages.length === 0) return;
             if (!await showConfirm({ title: '清空对话', message: '确定要清空当前对话吗？', icon: 'warning', type: 'warning', confirmText: '清空' })) return;
+
+            // 先调用后端 API 清空数据库中的会话记忆
+            try {
+                await fetch('/api/clear_chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: cachedDownloadFile || '',
+                        thread_id: conv.threadId
+                    })
+                });
+            } catch (e) {
+                console.error('[Memory] 清空会话记忆失败:', e);
+            }
+            
+            // // 清空对话前，只删除刚才下载的缓存文件
+            // if (cachedDownloadFile) {
+            //     try {
+            //         const response = await fetch('/api/delete_cache_file', {
+            //             method: 'POST',
+            //             headers: { 'Content-Type': 'application/json' },
+            //             body: JSON.stringify({ filename: cachedDownloadFile, thread_id: conv.id })
+            //         });
+            //         if (response.ok) {
+            //             console.log('[CACHE] 已删除缓存文件:', cachedDownloadFile);
+            //         }
+            //     } catch (e) {
+            //         console.error('[CACHE] 删除缓存文件失败:', e);
+            //     }
+            //     cachedDownloadFile = null;
+            // }
+            
             conv.messages = [];
             conv.title = '新对话';
             document.getElementById('chatTitle').textContent = '新对话';
@@ -2981,9 +3270,7 @@
         }
 
         // 初始化
-        if (conversations.length === 0) {
-            createNewChat();
-        } else {
+        if (conversations.length > 0) {
             switchConversation(conversations[0].id);
         }
         renderHistory();
@@ -3073,6 +3360,20 @@
             document.getElementById('dropdownLoginItem').style.display = 'none';
             document.getElementById('dropdownLogoutItem').style.display = 'flex';
             document.querySelectorAll('.sidebar-group-header').forEach(function(h) { h.classList.remove('disabled'); });
+
+            var params = new URLSearchParams(window.location.search);
+            var panel = params.get('panel');
+            if (panel === 'agentList') {
+                switchPanel('agentList');
+                params.delete('panel');
+                var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                window.history.replaceState({}, '', newUrl);
+            }
+
+            if (window.location.hash === '#store') {
+                switchPanel('store');
+                history.replaceState(null, '', window.location.pathname);
+            }
         }
 
         function updateUIForGuest() {
@@ -3084,8 +3385,11 @@
             document.getElementById('dropdownLoginItem').style.display = 'flex';
             document.getElementById('dropdownLogoutItem').style.display = 'none';
             document.querySelectorAll('.sidebar-group').forEach(function(g) { g.classList.remove('open'); });
-            document.querySelectorAll('.sidebar-group-header').forEach(function(h) { h.classList.add('disabled'); });
-            if (currentActivePanel !== 'chat') switchPanel('chat');
+            document.querySelectorAll('.sidebar-group-header').forEach(function(h) {
+                if (h.closest('#storeGroup')) return;
+                h.classList.add('disabled');
+            });
+            if (currentActivePanel !== 'chat' && currentActivePanel !== 'store') switchPanel('chat');
         }
 
         let selectedAgentAvatar = '🤖';
@@ -3334,10 +3638,9 @@ function checkPasswordStrength(password) {
             }
         }
 
-        document.getElementById('authModal').addEventListener('click', function(e) { if (e.target === this) closeAuthModal(); });
         checkAuthStatus();
     </script>
-    <!-- 认证模态框 -->
+
     <div class="auth-modal" id="authModal">
         <div class="auth-container">
             <button class="auth-close" onclick="closeAuthModal()">&times;</button>
@@ -3404,6 +3707,7 @@ function checkPasswordStrength(password) {
             </form>
         </div>
     </div>
+    <script>document.getElementById('authModal').addEventListener('click', function(e) { if (e.target === this) closeAuthModal(); });</script>
     <!-- 智能体创建弹框-->
     <div class="agent-modal" id="agentModal">
         <div class="agent-modal-container">
@@ -3442,5 +3746,6 @@ function checkPasswordStrength(password) {
             </div>
         </div>
     </div>
+    <div id="storeTip" class="store-tip"></div>
     </body>
 </html>

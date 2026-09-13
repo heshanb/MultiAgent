@@ -132,6 +132,17 @@
         .model-desc { font-size: 0.75rem; color: #999; padding: 0 16px; max-height: 0; overflow: hidden; transition: max-height 0.25s ease, padding 0.25s ease; }
         .model-desc.show { max-height: 40px; padding: 0 16px 10px; }
 
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: background 0.15s; gap: 12px; }
+        .toggle-row:hover { background: #f5f3ff; }
+        .toggle-row-left { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #333; }
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #d1d5db; transition: 0.3s; border-radius: 24px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
+        .toggle-switch input:checked + .toggle-slider { background-color: #667eea; }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+        .toggle-tip { font-size: 0.72rem; color: #999; padding: 0 16px 6px; }
+
         .entry-count { font-size: 0.78rem; color: #999; }
         .sub-body { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
         .sub-body.show { max-height: 800px; padding: 6px 10px 12px; }
@@ -199,8 +210,6 @@
         .preview-head { padding: 14px 18px; border-bottom: 1px solid #eef0f5; display: flex; justify-content: space-between; align-items: center; }
         .preview-head-title { font-size: 0.92rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 8px; }
         .preview-dot { width: 7px; height: 7px; border-radius: 50%; background: #38ef7d; box-shadow: 0 0 6px #38ef7d; }
-        .preview-clear { font-size: 0.78rem; color: #bbb; background: none; border: none; cursor: pointer; }
-        .preview-clear:hover { color: #ff4757; }
         .preview-msgs { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; scrollbar-width: none; }
         .preview-msgs::-webkit-scrollbar { display: none; }
         .preview-welcome { text-align: center; padding: 30px 20px; color: #bbb; }
@@ -246,10 +255,25 @@
         .preview-var-input:focus { border-color: #667eea; }
         .preview-var-input.err { border-color: #ff4757; background: #fff5f5; }
         .preview-input { padding: 10px; border-top: 1px solid #eef0f5; margin-bottom: 16px; }
-        .preview-input-row { position: relative; }
+        .preview-input-row { display: flex; align-items: flex-end; gap: 6px; }
+        .preview-clear-icon {
+            width: 36px; height: 36px;
+            border: 1px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.15s;
+            padding: 0;
+        }
+        .preview-clear-icon img { width: 18px; height: 18px; object-fit: contain; }
+        .preview-clear-icon:hover { border-color: #ff4757; background: #fff5f5; }
         .preview-input textarea { 
-            width: 100%; 
-            padding: 10px 96px 10px 12px; 
+            flex: 1; 
+            padding: 10px 12px; 
             border: 1px solid #e5e7eb; 
             border-radius: 10px; 
             font-size: 0.85rem; 
@@ -264,9 +288,7 @@
         .preview-input textarea::-webkit-scrollbar { display: none; }
         .preview-input textarea:focus { outline: none; border-color: #667eea; }
         .preview-attach { 
-            position: absolute; 
-            right: 54px; 
-            bottom: 6px; 
+            position: relative;
             width: 36px; height: 36px; 
             border: none; 
             background: transparent; 
@@ -277,15 +299,13 @@
             justify-content: center; 
             color: #aaa; 
             transition: all 0.15s; 
+            flex-shrink: 0;
         }
         .preview-attach:hover { color: #667eea; background: #f0eeff; }
         .preview-attach svg { width: 22px; height: 22px; }
         .preview-attach .attach-tooltip { position: absolute; bottom: 40px; right: 0; background: #333; color: white; font-size: 0.72rem; padding: 8px 12px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 100; line-height: 1.6; text-align: right; }
         .preview-attach:hover .attach-tooltip { opacity: 1; }
         .preview-send { 
-            position: absolute; 
-            right: 8px; 
-            bottom: 6px; 
             width: 34px; height: 34px; 
             border: none; 
             background: #3b82f6; 
@@ -295,6 +315,7 @@
             display: flex; align-items: center; justify-content: center; 
             transition: all 0.2s ease; 
             box-shadow: 0 2px 6px rgba(59,130,246,0.3); 
+            flex-shrink: 0;
         }
         .preview-send:hover { 
             background: #2563eb; 
@@ -417,6 +438,16 @@
             <div class="model-desc" id="modelDesc">选择合适的模型来驱动智能体</div>
         </div>
 
+        <!-- Deep Think -->
+        <div class="toggle-row" onclick="toggleDeepThink()">
+            <span class="toggle-row-left">🧠 深度思考</span>
+            <label class="toggle-switch" onclick="event.stopPropagation();">
+                <input type="checkbox" id="deepThinkToggle" onchange="onDeepThinkChange(this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="toggle-tip">开启后将使用深度思考模型，推理更全面但响应稍慢</div>
+
         <div class="group-label">记忆</div>
         <!-- Builtin Variables -->
         <div class="section section-plain">
@@ -488,8 +519,7 @@
     <!-- ============== RIGHT COLUMN: Preview ============== -->
     <div class="col col-right">
         <div class="preview-head">
-            <div class="preview-head-title"><span class="preview-dot"></span>预览 & 调试</div>
-            <button class="preview-clear" onclick="clearPreview()">清空对话</button>
+            <div class="preview-head-title"><span class="preview-dot"></span>预览与调试</div>
         </div>
         <div class="preview-msgs" id="pMsgs">
             <div class="preview-welcome">
@@ -506,6 +536,9 @@
         </div>
         <div class="preview-input">
             <div class="preview-input-row">
+                <button type="button" class="preview-clear-icon" onclick="clearPreview()" title="清空对话">
+                    <img src="/static/icons/clear.png" alt="清空">
+                </button>
                 <textarea id="pInput" rows="1" placeholder="输入消息，Enter 发送，Shift+Enter 换行" onkeydown="onPKey(event)"></textarea>
                 <button type="button" class="preview-attach" onclick="document.getElementById('pFileInput').click()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
@@ -539,7 +572,7 @@ let agentData = {
     name: '', description: '', avatar: '🤖',
     system_prompt: '', model: 'default',
     variables: [], knowledge_base: [],
-    opening: ''
+    opening: '', deep_think: false
 };
 let saveTimer = null;
 let saving = false;
@@ -576,12 +609,7 @@ function getToken() { return localStorage.getItem('authToken'); }
 })();
 
 function goBack() {
-    var ref = document.referrer;
-    if (ref) {
-        history.back();
-    } else {
-        window.location.href = '/';
-    }
+    window.location.href = '/?panel=agentList';
 }
 
 function toggleSection(el) { el.closest('.section').classList.toggle('collapsed'); }
@@ -590,6 +618,17 @@ function onModelChange(val) {
     agentData.model = val;
     const desc = document.querySelector('#modelSel option:checked').getAttribute('data-desc') || '';
     document.getElementById('modelDesc').textContent = desc;
+    markDirty();
+}
+
+function toggleDeepThink() {
+    var chk = document.getElementById('deepThinkToggle');
+    chk.checked = !chk.checked;
+    onDeepThinkChange(chk.checked);
+}
+
+function onDeepThinkChange(checked) {
+    agentData.deep_think = checked;
     markDirty();
 }
 
@@ -783,10 +822,10 @@ function updateKBCount() { document.getElementById('kbCount').textContent = '已
 
 /* ===== Models ===== */
 const DEFAULT_MODELS = [
-    { id: 'deepseek', name: 'DeepSeek V4 Pro', desc: '深度思考，能力最强' },
-    { id: 'glm', name: 'GLM-5.2 Fast Preview', desc: '智谱开源，速度快' },
-    { id: 'qwen_vl', name: 'Qwen VL Max', desc: '阿里百炼，多模态' },
-    { id: 'default', name: '通义千问 (默认)', desc: '稳定通用，均衡表现' },
+    {id: "glm", name: "GLM-5.2 Fast Preview", desc: "智谱开源，速度快"},
+    {id: "qwen_vl", name: "Qwen VL Max", desc: "阿里百炼，多模态"},
+    {id: "qwen_turbo", name: "Qwen turbo", desc: "稳定通用，均衡表现"},
+    {id: "default", name: "Deepseek V4 Pro-0813", desc: "深度思考，能力最强"},
 ];
 function fetchTimeout(url, opts, ms) {
     opts = opts || {};
@@ -859,7 +898,8 @@ async function doSave(isAuto) {
             avatar: agentData.avatar, system_prompt: agentData.system_prompt,
             model: agentData.model, variables: agentData.variables,
             knowledge_base: agentData.knowledge_base, is_published: !!agentData.is_published,
-            opening: agentData.opening
+            opening: agentData.opening,
+            deep_think: agentData.deep_think
         };
         const r = await fetch(url, {
             method: method, headers: { 'Authorization': 'Bearer ' + getToken(), 'Content-Type': 'application/json' },
@@ -1169,12 +1209,14 @@ async function loadAgent() {
             system_prompt: d.system_prompt || '', model: d.model || 'default',
             variables: safeParse(d.variables, []), knowledge_base: safeParse(d.knowledge_base, []),
             is_published: !!d.is_published,
-            opening: d.opening || ''
+            opening: d.opening || '',
+            deep_think: !!d.deep_think
         };
         document.getElementById('sysPrompt').value = agentData.system_prompt;
         document.getElementById('promptChars').textContent = agentData.system_prompt.length;
         document.getElementById('openingText').value = agentData.opening;
         document.getElementById('openingChars').textContent = agentData.opening.length;
+        document.getElementById('deepThinkToggle').checked = agentData.deep_think;
         updateOpening();
         initAvatars(); renderBuiltinVars(); renderVars(); _refreshPreviewVars(); refreshHeader(); updatePubBtn();
         await loadModels(); await loadKB();
@@ -1195,8 +1237,8 @@ function safeParse(s, fb) {
 
 function updatePubBtn() {
     const b = document.getElementById('pubBtn');
-    if (agentData.is_published) { b.textContent = '📕 取消发布'; b.classList.add('unpublish'); }
-    else { b.textContent = '🚀 发布'; b.classList.remove('unpublish'); }
+    b.textContent = '🚀 发布';
+    b.classList.remove('unpublish');
 }
 function _showPublishDialog() {
     var existing = document.getElementById('publishDialog');
@@ -1270,20 +1312,9 @@ function _showPublishDialog() {
 }
 async function togglePublish() {
     if (!agentId) { await doSave(false); if (!agentId) return; }
-
-    if (agentData.is_published) {
-        try {
-            const r = await fetch('/api/agents/' + agentId + '/unpublish', {
-                method: 'POST', headers: { 'Authorization': 'Bearer ' + getToken() }
-            });
-            if (!r.ok) throw new Error('操作失败');
-            agentData.is_published = false;
-            refreshHeader(); updatePubBtn();
-            showToast('已取消发布');
-        } catch (e) { showToast(e.message || '操作失败', 'error'); }
-    } else {
-        _showPublishDialog();
-    }
+    await doSave(false);
+    if (!agentId) return;
+    window.location.href = '/publish?id=' + agentId;
 }
 
 /* ===== Prompt Optimize ===== */
@@ -1596,7 +1627,7 @@ async function sendP() {
         if (agentData.knowledge_base && agentData.knowledge_base.length > 0) {
             chatUrl += '?kb_id=' + encodeURIComponent(agentData.knowledge_base[0]);
         }
-        var bodyObj = { message: text };
+        var bodyObj = { message: text, deep_think: agentData.deep_think };
         var pre = _collectPreviewPresets();
         if (Object.keys(pre).length > 0) {
             bodyObj.variables = pre;
@@ -1633,7 +1664,7 @@ async function sendP() {
                             if (think) think.remove();
                             if (bub) bub.style.display = 'inline';
                         }
-                        acc += j.text;
+                        acc = j.text;
                         if (bub) bub.innerHTML = marked.parse(acc);
                     } else if (j.status === 'error') {
                         if (think) think.remove();

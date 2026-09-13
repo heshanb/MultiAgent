@@ -10,7 +10,7 @@ drawing_knowledge_db/
 test_*
 *.db
 users.db.bak
-test.py
+抠图保存成透明png.py
 doc/*
 resource/common_knowledge/
 fix_*
