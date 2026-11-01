@@ -68,7 +68,7 @@ def generate_cert_cryptography(cert_path, key_path):
     with open(cert_path, "wb") as f:
         f.write(cert.public_bytes(serialization.Encoding.PEM))
     
-    print("✓ 使用cryptography成功生成证书")
+    print(" 使用cryptography成功生成证书")
     return True
 
 def main():
@@ -83,20 +83,20 @@ def main():
         return
     
     if not HAS_CRYPTOGRAPHY:
-        print("✗ cryptography库未安装")
+        print(" cryptography库未安装")
         print("请运行: pip install cryptography")
         sys.exit(1)
     
     print("开始生成SSL证书...")
     if generate_cert_cryptography(cert_path, key_path):
-        print(f"\n✓ 证书生成成功！")
+        print(f"\n 证书生成成功！")
         print(f"  证书: {cert_path}")
         print(f"  私钥: {key_path}")
         print(f"\n现在可以运行 main.py 启用HTTPS")
         print(f"\n注意: 这是自签名证书，浏览器会显示安全警告")
         print(f"      请点击'高级' -> '继续访问'以正常使用")
     else:
-        print("\n✗ 证书生成失败")
+        print("\n 证书生成失败")
         sys.exit(1)
 
 if __name__ == "__main__":

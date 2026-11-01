@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>智能体编辑器 - 小智</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>" type="image/svg+xml">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -981,7 +981,7 @@ function getToken() { return localStorage.getItem('authToken'); }
 })();
 
 function goBack() {
-    window.location.href = '/?panel=agentList';
+    window.location.href = '/products/online?panel=agentList';
 }
 
 function toggleSection(el) { el.closest('.section').classList.toggle('collapsed'); }
@@ -1795,7 +1795,7 @@ const DEFAULT_MODELS = [
     {id: "glm", name: "GLM-5.2 Fast Preview", desc: "智谱开源，速度快"},
     {id: "qwen-vl-max", name: "Qwen VL Max", desc: "阿里百炼，多模态"},
     {id: "qwen-turbo", name: "Qwen turbo", desc: "稳定通用，均衡表现"},
-    {id: "default", name: "Qwen3.8-Max", desc: "深度思考，能力最强"},
+    {id: "default", name: "Qwen3.8-Flash", desc: "深度思考，能力最强"},
 ];
 function fetchTimeout(url, opts, ms) {
     opts = opts || {};
@@ -2690,7 +2690,7 @@ async function sendP() {
         if (agentData.knowledge_base && agentData.knowledge_base.length > 0) {
             chatUrl += '?kb_id=' + encodeURIComponent(agentData.knowledge_base[0]);
         }
-        var bodyObj = { message: text, deep_think: agentData.deep_think, model: agentData.model || 'qwen3.8-max' };
+        var bodyObj = { message: text, deep_think: agentData.deep_think, model: agentData.model || 'qwen3.8-flash' };
         var pre = _collectPreviewPresets();
         if (Object.keys(pre).length > 0) {
             bodyObj.variables = pre;

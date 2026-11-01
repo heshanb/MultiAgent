@@ -38,7 +38,7 @@ class DrawingAssistant:
         self._init_tools()
         self._init_graph()
 
-    # ─────────────── 初始化 ───────────────
+    #  初始化 
     def _init_llms(self):
         # 多模态识图模型
         self.llm_vl = ChatOpenAI(
@@ -169,7 +169,7 @@ class DrawingAssistant:
         sources = self.last_sources
         yield {"sources": sources}
 
-    # ─────────────── PDF 数据清洗（通用） ───────────────
+    #  PDF 数据清洗（通用） 
     # 国标中常见的结构性关键词（用于判断内容是否为纯表头/框架）
     _STRUCTURAL_KEYWORDS = frozenset({
         "表", "图", "类", "组", "系", "代号", "名称", "设备名称", "序号", "类别",
@@ -211,7 +211,7 @@ class DrawingAssistant:
         meaningful_lines = [
             line for line in lines
             if not re.match(
-                r'^(GB/T\s*\d+[—\-]\d{4}|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+'
+                r'(GB/T\s*\d+[—\-]\d{4}|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ]+'
                 r'|ICS\s*\d|CCS\s*\w+|犐犆犛.*|犌犅.*)$',
                 line,
             )
@@ -246,13 +246,13 @@ class DrawingAssistant:
 
         # 过滤纯数字/空白块
         non_space = text.replace("\n", "").replace(" ", "")
-        if re.match(r'^[\d]+$', non_space):
+        if re.match(r'[\d]+$', non_space):
             return False
 
         # 过滤数字行占比过高的块（如 "0\n1\n2\n...\n9"）
         lines = [l.strip() for l in text.split("\n") if l.strip()]
         if lines:
-            numeric_lines = sum(1 for l in lines if re.match(r'^\d{1,4}$', l))
+            numeric_lines = sum(1 for l in lines if re.match(r'\d{1,4}$', l))
             if numeric_lines / len(lines) > 0.5:
                 return False
 
@@ -494,7 +494,7 @@ class DrawingAssistant:
         # llm_with_tools — 让 LLM 学会调用工具
         self.llm_with_tools = self.llm_text.bind_tools(self.tools)
 
-    # ─────────────── 图片预处理 ───────────────
+    #  图片预处理 
     @staticmethod
     def preprocess_image(pil_img: Image.Image) -> Image.Image:
         # 让工程图纸的线条和标注更清晰，提高多模态模型的识别准确率。
@@ -525,7 +525,7 @@ class DrawingAssistant:
             b64_list.append(DrawingAssistant.img_to_base64(page))
         return b64_list
 
-    # ─────────────── 状态定义 ───────────────
+    #  状态定义 
     class DrawingState(MessagesState):
         drawing_base64: str | None
         dxf_path: str | None
@@ -535,7 +535,7 @@ class DrawingAssistant:
         is_new_drawing: bool
         sources: list[dict]
 
-    # ─────────────── 节点定义 ───────────────
+    #  节点定义 
     def _reset_old_drawing_node(self, state: DrawingState) -> DrawingState:
         if state["is_new_drawing"]:
             state["drawing_full_info"] = None
@@ -631,7 +631,7 @@ class DrawingAssistant:
         self.last_sources = []
         return state
 
-    # ─────────────── 路由 ───────────────
+    #  路由 
     def _route_condition(self, state: DrawingState) -> str:
         if state["is_new_drawing"]:
             return Params.RESET_DRAWING_NODE
@@ -647,7 +647,7 @@ class DrawingAssistant:
             return Params.CALL_TOOLS_NODE
         return Params.GEN_FINAL_ANSWER_NODE
 
-    # ─────────────── 构建 Graph ───────────────
+    #  构建 Graph 
     def _init_graph(self):
         self.memory = MemorySaver()
         builder = StateGraph(self.DrawingState)
@@ -677,7 +677,7 @@ class DrawingAssistant:
 
         self.graph = builder.compile(checkpointer=self.memory)
 
-    # ─────────────── 对外 API ───────────────
+    #  对外 API 
     def invoke(
         self,
         user_query: str,
@@ -732,7 +732,7 @@ class DrawingAssistant:
         return {"answer": output["messages"][-1].content, "sources": sources}
 
 
-# ─────────────── 模块级便捷入口（兼容旧调用方式） ───────────────
+#  模块级便捷入口（兼容旧调用方式） 
 _assistant_instance: DrawingAssistant | None = None
 
 
@@ -756,7 +756,7 @@ def run_drawing_assistant(
     return result["answer"] if isinstance(result, dict) else result
 
 
-# ─────────────── 测试入口 ───────────────
+#  测试入口 
 if __name__ == "__main__":
     assistant = DrawingAssistant()
 

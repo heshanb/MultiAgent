@@ -11,7 +11,7 @@ import bcrypt
 # JWT配置 - 建议在生产环境中使用环境变量
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production-2024")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24小时
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30  # 30天
 
 # HTTP Bearer认证
 security = HTTPBearer(auto_error=False)

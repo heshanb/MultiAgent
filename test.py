@@ -2,11 +2,46 @@
 LangChain + Qdrant: 文档切片并存入向量库（混合检索版）
 混合检索 = Dense(语义) + Sparse(关键词) 双路召回 + RRF 融合排序
 """
-import torch
-print("CUDA available:", torch.cuda.is_available())
-print("Device count:", torch.cuda.device_count())
-if torch.cuda.is_available():
-    print("GPU name:", torch.cuda.get_device_name(0))
+import os
+import subprocess
+
+interpreters = []
+
+if os.name == 'nt':
+    path_env = os.environ.get('PATH', '')
+    path_dirs = path_env.split(';')
+
+    for path_dir in path_dirs:
+        path_dir = path_dir.strip()
+        if not path_dir:
+            continue
+
+        # 检查该目录下是否有 python.exe
+        python_exe_path = os.path.join(path_dir, 'python.exe')
+        if os.path.exists(python_exe_path) and not any(i['path'] == python_exe_path for i in interpreters):
+            try:
+                result = subprocess.run([python_exe_path, '--version'], capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    version = result.stdout.strip()
+                    record = {
+                        'name': f'Python ({version})',
+                        'path': python_exe_path,
+                        'is_default': False
+                    }
+                    if record not in interpreters:
+                        interpreters.append(record)
+            except:
+                pass
+
+    # 按优先级排序：虚拟环境 > 系统默认 > 其他
+    interpreters.sort(key=lambda x: (not x.get('is_venv', False), not x.get('is_default', False)))
+    print(interpreters)
+
+# import torch
+# print("CUDA available:", torch.cuda.is_available())
+# print("Device count:", torch.cuda.device_count())
+# if torch.cuda.is_available():
+#     print("GPU name:", torch.cuda.get_device_name(0))
 
 from torch.distributed.checkpoint import logger
 
@@ -49,7 +84,7 @@ from torch.distributed.checkpoint import logger
 #                 "sparse": {},  # 使用 Qdrant 内置稀疏向量格式
 #             },
 #         )
-#         logger.info(f"✅ Collection '{collection_name}' 创建成功 (dense_dim={vector_size} + sparse)")
+#         logger.info(f" Collection '{collection_name}' 创建成功 (dense_dim={vector_size} + sparse)")
 #     else:
 #         logger.info(f"ℹ️  Collection '{collection_name}' 已存在，跳过创建")
 #
@@ -60,7 +95,7 @@ from torch.distributed.checkpoint import logger
 #     # Step 1: 加载文档
 #     loader = TextLoader(doc_path, encoding="utf-8")
 #     documents = loader.load()
-#     logger.info(f"📄 加载文档: {len(documents)} 个")
+#     logger.info(f" 加载文档: {len(documents)} 个")
 #
 #     # Step 2: 文本切片
 #     splitter = RecursiveCharacterTextSplitter(
@@ -69,7 +104,7 @@ from torch.distributed.checkpoint import logger
 #         separators=["\n\n", "\n", "。", ".", " ", ""],
 #     )
 #     chunks = splitter.split_documents(documents)
-#     logger.info(f"✂️  切片完成: {len(chunks)} 个 chunks")
+#     logger.info(f"️  切片完成: {len(chunks)} 个 chunks")
 #
 #     # Step 3: 初始化 Dense Embedding（语义向量）
 #     dense_embeddings = OpenAIEmbeddings(
@@ -103,7 +138,7 @@ from torch.distributed.checkpoint import logger
 #
 #     # Step 7: 批量写入 Qdrant
 #     ids = vectorstore.add_documents(documents=chunks, batch_size=100)
-#     logger.info(f"✅ 成功写入 {len(ids)} 条向量到 Qdrant (Dense + Sparse)")
+#     logger.info(f" 成功写入 {len(ids)} 条向量到 Qdrant (Dense + Sparse)")
 #
 #     return vectorstore
 #
@@ -111,7 +146,7 @@ from torch.distributed.checkpoint import logger
 # def verify_search(vectorstore, query: str, k: int = 3):
 #     """验证混合检索效果"""
 #     results = vectorstore.similarity_search_with_score(query, k=k)  # ← 修复：补全方法名
-#     logger.info(f"\n🔍 查询: '{query}'")
+#     logger.info(f"\n 查询: '{query}'")
 #     logger.info("-" * 60)
 #     for i, (doc, score) in enumerate(results, 1):
 #         logger.info(f"[{i}] Score: {score:.4f}")
@@ -127,30 +162,30 @@ from torch.distributed.checkpoint import logger
 #         with_vectors=True,  # ← 关键：返回向量内容
 #     )
 #     if not points:
-#         logger.error("❌ Collection 为空，无法验证")
+#         logger.error(" Collection 为空，无法验证")
 #         return
 #
 #     vec_names = list(points[0].vector.keys()) if isinstance(points[0].vector, dict) else ["default"]
-#     logger.info(f"📊 存储的向量类型: {vec_names}")
+#     logger.info(f" 存储的向量类型: {vec_names}")
 #
 #     has_dense = "dense" in vec_names
 #     has_sparse = "sparse" in vec_names
 #
 #     if has_dense and has_sparse:
-#         logger.info("✅ 数据层确认：Dense + Sparse 双路向量均已写入")
+#         logger.info(" 数据层确认：Dense + Sparse 双路向量均已写入")
 #     elif has_dense and not has_sparse:
-#         logger.warning("⚠️  仅有 Dense 向量！Sparse 写入失败，当前实际是纯语义检索")
+#         logger.warning("️  仅有 Dense 向量！Sparse 写入失败，当前实际是纯语义检索")
 #     else:
-#         logger.error(f"❌ 异常向量配置: {vec_names}")
+#         logger.error(f" 异常向量配置: {vec_names}")
 #
 #     # 2. 执行混合检索并观察日志
-#     logger.info(f"\n🔍 混合检索查询: '{query}'")
+#     logger.info(f"\n 混合检索查询: '{query}'")
 #     results = vectorstore.similarity_search_with_score(query, k=k)
 #     for i, (doc, score) in enumerate(results, 1):
 #         logger.info(f"[{i}] RRF Score: {score:.4f} | {doc.page_content[:100]}...")
 
 if __name__ == "__main__":
-    # ⚠️ 首次运行前，先删除旧的 Collection（因为向量配置变了）
+    # ️ 首次运行前，先删除旧的 Collection（因为向量配置变了）
     # 在终端执行: curl -X DELETE http://localhost:6333/collections/my_documents
 
     # # 执行入库

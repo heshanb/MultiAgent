@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小智 - 关于我们</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 60px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .logo-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: #555;
+            font-size: 15px;
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .lang-selector {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            color: #555;
+        }
+
+        /* 内容区域 */
+        .content-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 130px 60px 60px;
+        }
+
+        .about-intro {
+            margin-bottom: 50px;
+        }
+
+        .about-intro h2 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin-bottom: 25px;
+        }
+
+        .about-intro p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin: 60px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        }
+
+        .stat-number {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .clients-section {
+            margin: 60px 0;
+        }
+
+        .clients-section h2 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .client-logo {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .client-logo:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-5px);
+        }
+
+        /* 联络方法 */
+        .contact-section {
+            max-width: 760px;
+            margin: 70px auto 0;
+            padding: 20px 0 0;
+            text-align: center;
+        }
+
+        .contact-section h2 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin-bottom: 30px;
+        }
+
+        .contact-hint {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 35px;
+        }
+
+        .contact-hint a {
+            color: #2b8fd9;
+            text-decoration: none;
+        }
+
+        .contact-hint a:hover {
+            text-decoration: underline;
+        }
+
+        .contact-region {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 18px;
+        }
+
+        .contact-company {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 28px;
+        }
+
+        .contact-list {
+            max-width: 470px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .contact-row {
+            display: grid;
+            grid-template-columns: 78px 1fr;
+            gap: 10px;
+            font-size: 14px;
+            margin-bottom: 14px;
+            line-height: 1.6;
+        }
+
+        .contact-row dt {
+            color: #333;
+        }
+
+        .contact-row dd {
+            color: #555;
+            margin: 0;
+        }
+
+        /* 底部 */
+        .footer {
+            background: #f2f2f2;
+            color: #333;
+            padding: 50px 60px 30px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+        }
+
+        .footer-brand .logo-text {
+            color: #1a1a1a;
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .footer-brand p {
+            color: #777;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .footer-links h4 {
+            font-size: 15px;
+            margin-bottom: 18px;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .footer-links a {
+            display: block;
+            color: #777;
+            text-decoration: none;
+            margin-bottom: 10px;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: #2b8fd9;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 40px auto 0;
+            padding-top: 25px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0 20px;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
+            .content-section {
+                padding: 100px 20px 30px;
+            }
+
+            .stats-section {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .contact-section h2 {
+                font-size: 26px;
+            }
+
+            .contact-row {
+                grid-template-columns: 68px 1fr;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="/" class="logo">
+                <div class="logo-icon">✨</div>
+                <span class="logo-text">小智</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/">主页</a></li>
+                <li><a href="/products">产品</a></li>
+                <li><a href="/company/aboutus" class="active">关于我们</a></li>
+            </ul>
+        </div>
+        <div class="navbar-right">
+            <span class="lang-selector">🌐 CN</span>
+        </div>
+    </nav>
+
+    <!-- 内容区域 -->
+    <section class="content-section">
+        <div class="about-intro">
+            <h2>关于小智科技有限公司</h2>
+            <p>小智科技有限公司成立于 2026 年 10 月 28 日，专注于人工智能技术的研发与应用，致力于为企业提供智能化办公解决方案。我们拥有一支优秀的软件工程师团队，以提供出色的产品和服务而闻名。</p>
+            <p>公司由创始人兼 CEO 何山彪先生领导，核心团队由来自 Google、Microsoft、阿里巴巴等知名科技企业的资深工程师与产品专家组成，平均拥有十年以上的行业经验，在人工智能算法、深度学习、大规模系统工程与产品设计等方向具备深厚积累。</p>
+            <p>我们始终坚持「创新、诚信、卓越」的企业价值观：持续探索 AI 技术前沿，为客户提供领先的解决方案；以诚信为本，建立长期稳定的客户关系；追求卓越品质，不断提升产品和服务水平。</p>
+            <p>小智是众多世界 500 强企业的 AI 智能办公之选。我们的客户层面广及多家《财富》世界 500 强的企业、政府部门、教育机构（幼儿园到大学）、系统集成商，以及在不同市场的商业或非营利机构，涵盖至资讯科技、零售、医疗、运输、物流、酒店、银行、制造商以及更多其他行业或领域。</p>
+            <p>我们的国内客户包括华为、阿里巴巴、字节跳动、美团、小米、小红书、中国石化、国家电网、中国农业银行、中国浦发银行、中国邮储银行等众多知名企业。海外客户包括 Apple、Google、Oracle、Intel、Microsoft、Fujitsu、Accenture、HP、IBM、eBay、Samsung、Sony、JP Morgan、KPMG、Barclays、DHL、FedEx、General Electric 等。</p>
+        </div>
+
+        <!-- 数据统计 -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-number">500+</div>
+                <div class="stat-label">企业客户</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">100万+</div>
+                <div class="stat-label">用户数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">50+</div>
+                <div class="stat-label">覆盖国家</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">99.9%</div>
+                <div class="stat-label">服务可用性</div>
+            </div>
+        </div>
+
+        <!-- 客户展示 -->
+        <div class="clients-section">
+            <h2>我们的客户</h2>
+            <div class="clients-grid">
+                <div class="client-logo">华为</div>
+                <div class="client-logo">阿里巴巴</div>
+                <div class="client-logo">字节跳动</div>
+                <div class="client-logo">美团</div>
+                <div class="client-logo">小米</div>
+                <div class="client-logo">国家电网</div>
+                <div class="client-logo">Apple</div>
+                <div class="client-logo">Google</div>
+                <div class="client-logo">Microsoft</div>
+                <div class="client-logo">IBM</div>
+                <div class="client-logo">Samsung</div>
+                <div class="client-logo">Sony</div>
+            </div>
+        </div>
+
+        <!-- 联络方法 -->
+        <div class="contact-section">
+            <h2>联络方法</h2>
+            <p class="contact-hint">需要协助吗？<a href="mailto:support@sageon.com">联系我们的客户服务团队</a>。</p>
+
+            <div class="contact-region">中国</div>
+            <div class="contact-company">小智科技有限公司</div>
+
+            <dl class="contact-list">
+                <div class="contact-row">
+                    <dt>地址：</dt>
+                    <dd>北京市海淀区中关村大街 27 号中关村大厦 18 层 1801 室</dd>
+                </div>
+                <div class="contact-row">
+                    <dt>电话：</dt>
+                    <dd>+86 010 8888 6688</dd>
+                </div>
+                <div class="contact-row">
+                    <dt>电子邮箱：</dt>
+                    <dd>support@sageon.com</dd>
+                </div>
+            </dl>
+        </div>
+    </section>
+
+    <!-- 底部 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="logo-text"> 小智</div>
+                <p>智能、高效、专业的 AI 办公助手<br>让 AI 赋能每一个工作流程</p>
+            </div>
+            <div class="footer-links">
+                <h4>产品</h4>
+                <a href="/products">桌面版</a>
+                <a href="/products">在线版</a>
+                <a href="/products">API 服务</a>
+            </div>
+            <div class="footer-links">
+                <h4>支持</h4>
+                <a href="#">帮助中心</a>
+                <a href="#">技术文档</a>
+                <a href="#">联系我们</a>
+            </div>
+            <div class="footer-links">
+                <h4>公司</h4>
+                <a href="/company/aboutus">关于我们</a>
+                <a href="#">加入我们</a>
+                <a href="#">新闻动态</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 小智 AI 助手. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

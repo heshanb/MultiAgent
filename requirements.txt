@@ -48,3 +48,6 @@ onnxruntime-openvino
 slowapi
 pybreaker
 tenacity
+pywebview
+pyinstaller
+pywinpty

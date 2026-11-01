@@ -501,11 +501,11 @@ class DocumentProcessor:
             import re
             
             # 去除脚本和样式标签及其内容
-            html_content = re.sub(r'<script[^>]*>[\s\S]*?</script>', '', html_content, flags=re.IGNORECASE)
-            html_content = re.sub(r'<style[^>]*>[\s\S]*?</style>', '', html_content, flags=re.IGNORECASE)
+            html_content = re.sub(r'<script[>]*>[\s\S]*?</script>', '', html_content, flags=re.IGNORECASE)
+            html_content = re.sub(r'<style[>]*>[\s\S]*?</style>', '', html_content, flags=re.IGNORECASE)
             
             # 去除HTML标签，保留文本内容
-            text = re.sub(r'<[^>]+>', '', html_content)
+            text = re.sub(r'<[>]+>', '', html_content)
             
             # 去除多余的空白字符
             text = re.sub(r'\s+', ' ', text).strip()
@@ -911,11 +911,11 @@ class DocumentProcessor:
                     return False, 0
                 
                 # 1. 纯数字跳过
-                if re.match(r'^\d+$', text):
+                if re.match(r'\d+$', text):
                     return False, 0
                 
                 # 2. 带括号数字列表是正文
-                if re.match(r'^[（(]\d+[）)]\s', text):
+                if re.match(r'[（(]\d+[）)]\s', text):
                     return False, 0
                 
                 # 3. 太长的行不是标题（超过50字）
@@ -935,7 +935,7 @@ class DocumentProcessor:
                     return True, 2
                 
                 # 6. 包含"什么是"、"如何"等关键词的短句
-                if re.match(r'^(什么是|如何|为什么|怎样|哪些|哪个|谁|哪里)', text) and len(text) < 30:
+                if re.match(r'(什么是|如何|为什么|怎样|哪些|哪个|谁|哪里)', text) and len(text) < 30:
                     return True, 2
                 
                 return False, 0
@@ -947,18 +947,18 @@ class DocumentProcessor:
                     continue
                 
                 # 检测 Markdown 标题
-                heading_match = re.match(r'^(#{1,4})\s+(.+)$', stripped)
+                heading_match = re.match(r'(#{1,4})\s+(.+)$', stripped)
                 
                 if heading_match:
                     level = len(heading_match.group(1))  # # 的数量
                     title_text = heading_match.group(2).strip()
                     
                     # 跳过纯数字标题（如 "2"、"3"）
-                    if re.match(r'^\d+$', title_text):
+                    if re.match(r'\d+$', title_text):
                         continue
                     
                     # 跳过带括号的数字列表作为标题（如 "(1) xxx"、"（1）xxx"）
-                    if re.match(r'^[（(]\d+[）)]\s', title_text):
+                    if re.match(r'[（(]\d+[）)]\s', title_text):
                         # 这是正文内容，不是标题
                         if first_para and doc.paragraphs:
                             para = doc.paragraphs[0]
@@ -1423,11 +1423,11 @@ class DocumentProcessor:
         from docx.oxml.ns import nsdecls
         from docx.oxml import parse_xml
 
-        # 清理 LLM 输出的代码块标记（```markdown ... ```）
-        content = re.sub(r'^```markdown\s*\n', '', content)
-        content = re.sub(r'\n```\s*$', '', content)
-        content = re.sub(r'^```\s*\n', '', content)
-        content = re.sub(r'\n```\s*$', '', content)
+        # 清理 LLM 输出的代码块标记（markdown ... ）
+        content = re.sub(r'markdown\s*\n', '', content)
+        content = re.sub(r'\n\s*$', '', content)
+        content = re.sub(r'\s*\n', '', content)
+        content = re.sub(r'\n\s*$', '', content)
         content = content.strip()
 
         doc = Document()
@@ -1440,7 +1440,7 @@ class DocumentProcessor:
         style.paragraph_format.line_spacing = 1.5
 
         def apply_inline_format(paragraph, text):
-            """解析并应用行内 Markdown 格式（**粗体**、*斜体*、`代码`）"""
+            """解析并应用行内 Markdown 格式（**粗体**、*斜体*、代码）"""
             # 先处理粗体 **text**
             parts = re.split(r'(\*\*(.+?)\*\*)', text)
             for part in parts:
@@ -1464,10 +1464,10 @@ class DocumentProcessor:
                             run = paragraph.add_run(sub[1:-1])
                             run.font.italic = True
                         else:
-                            # 处理行内代码 `text`
-                            code_parts = re.split(r'(`(.+?)`)', sub)
+                            # 处理行内代码 text
+                            code_parts = re.split(r'((.+?))', sub)
                             for cp in code_parts:
-                                if cp.startswith('`') and cp.endswith('`'):
+                                if cp.startswith('') and cp.endswith(''):
                                     run = paragraph.add_run(cp[1:-1])
                                     run.font.name = 'Consolas'
                                     run.font.size = Pt(10)
@@ -1480,7 +1480,7 @@ class DocumentProcessor:
             text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
             text = re.sub(r'\*(.+?)\*', r'\1', text)
             text = re.sub(r'~~(.+?)~~', r'\1', text)
-            text = re.sub(r'`(.+?)`', r'\1', text)
+            text = re.sub(r'(.+?)', r'\1', text)
             return text.strip()
 
         def is_table_row(line):
@@ -1490,7 +1490,7 @@ class DocumentProcessor:
         def is_table_separator(line):
             s = line.strip()
             cells = s.strip('|').split('|')
-            return all(re.match(r'^[\s\-:]+$', cell) for cell in cells if cell.strip())
+            return all(re.match(r'[\s\-:]+$', cell) for cell in cells if cell.strip())
 
         def parse_table_rows(lines):
             if len(lines) < 3:
@@ -1525,21 +1525,21 @@ class DocumentProcessor:
                     return 1, title_text
 
             # 中文数字标题：一、二、三、四... 或 第一部分、第二部分...
-            if re.match(r'^第[一二三四五六七八九十]+部分[：:]', stripped):
+            if re.match(r'第[一二三四五六七八九十]+部分[：:]', stripped):
                 return 1, stripped
-            if re.match(r'^[一二三四五六七八九十]+[、.]', stripped) and len(stripped) < 80:
+            if re.match(r'[一二三四五六七八九十]+[、.]', stripped) and len(stripped) < 80:
                 return 2, stripped
 
             # 阿拉伯数字标题：1. 2. 3. 或 1、2、3、
-            if re.match(r'^\d+[.、]\s', stripped) and len(stripped) < 80:
+            if re.match(r'\d+[.、]\s', stripped) and len(stripped) < 80:
                 return 3, stripped
 
             # 带括号数字：(1) （1）
-            if re.match(r'^[$（]\d+[$）]', stripped) and len(stripped) < 60:
+            if re.match(r'[$（]\d+[$）]', stripped) and len(stripped) < 60:
                 return 4, stripped
 
             # 英文字母标题：A. B. C.
-            if re.match(r'^[A-Z][.、]\s', stripped) and len(stripped) < 60:
+            if re.match(r'[A-Z][.、]\s', stripped) and len(stripped) < 60:
                 return 4, stripped
 
             return None, None
@@ -1547,10 +1547,10 @@ class DocumentProcessor:
         def is_list_item(stripped):
             """检测是否为列表项，返回 (is_list, is_ordered, text)"""
             # 无序列表：- * • ·
-            if re.match(r'^[\-\*•·]\s+', stripped):
-                return True, False, re.sub(r'^[\-\*•·]\s+', '', stripped)
+            if re.match(r'[\-\*•·]\s+', stripped):
+                return True, False, re.sub(r'[\-\*•·]\s+', '', stripped)
             # 有序列表：1. 2. 3. 或 1、2、3、
-            m = re.match(r'^(\d+)[.、]\s+(.+)', stripped)
+            m = re.match(r'(\d+)[.、]\s+(.+)', stripped)
             if m:
                 return True, True, m.group(2)
             return False, False, stripped
@@ -1734,9 +1734,9 @@ class DocumentProcessor:
             text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
             text = re.sub(r'\*(.+?)\*', r'\1', text)
             text = re.sub(r'~~(.+?)~~', r'\1', text)
-            text = re.sub(r'`(.+?)`', r'\1', text)
-            text = re.sub(r'^[-*]\s*', '', text, flags=re.MULTILINE)
-            text = re.sub(r'^\d+[.、]\s*', '', text, flags=re.MULTILINE)
+            text = re.sub(r'(.+?)', r'\1', text)
+            text = re.sub(r'[-*]\s*', '', text, flags=re.MULTILINE)
+            text = re.sub(r'\d+[.、]\s*', '', text, flags=re.MULTILINE)
             return text.strip()
         
         def set_font(paragraph, size=18, bold=False, color=None):
@@ -1757,7 +1757,7 @@ class DocumentProcessor:
                 continue
             
             title_text = clean_md(lines[0])
-            title_text = re.sub(r'^幻灯片\s*\d+[:：]\s*', '', title_text)
+            title_text = re.sub(r'幻灯片\s*\d+[:：]\s*', '', title_text)
             
             if idx == 0:
                 slide_layout = prs.slide_layouts[6]
@@ -1841,7 +1841,7 @@ class DocumentProcessor:
             text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
             text = re.sub(r'\*(.+?)\*', r'\1', text)
             text = re.sub(r'~~(.+?)~~', r'\1', text)
-            text = re.sub(r'`(.+?)`', r'\1', text)
+            text = re.sub(r'(.+?)', r'\1', text)
             return text.strip()
         
         def is_table_row(line):
@@ -1851,7 +1851,7 @@ class DocumentProcessor:
         def is_table_separator(line):
             s = line.strip()
             cells = s.strip('|').split('|')
-            return all(re.match(r'^[\s\-:]+$', cell) for cell in cells if cell.strip())
+            return all(re.match(r'[\s\-:]+$', cell) for cell in cells if cell.strip())
         
         def parse_table_rows(lines):
             if len(lines) < 3:

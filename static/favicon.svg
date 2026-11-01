@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="spark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD24D"/>
+      <stop offset="1" stop-color="#F0A500"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#spark)">
+    <path d="M40 6 Q40 24 58 24 Q40 24 40 42 Q40 24 22 24 Q40 24 40 6 Z"/>
+    <path d="M16 34 Q16 44 26 44 Q16 44 16 54 Q16 44 6 44 Q16 44 16 34 Z"/>
+    <circle cx="12.5" cy="12.5" r="3.5"/>
+  </g>
+</svg>

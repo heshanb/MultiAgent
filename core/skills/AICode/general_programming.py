@@ -44,17 +44,17 @@ class General_Programming:
 
         核心逻辑说明。
 
-        ```python
+        python
         # 完整代码
-        ```
+        
 
         ### 2. 优化版
 
         优化说明。
 
-        ```python
+        python
         # 完整代码
-        ```
+        
 
         ### 复杂度分析
 
@@ -63,9 +63,9 @@ class General_Programming:
 
         ### 运行示例
 
-        ```
+        
         输出结果
-        ```
+        
 
         **场景B：用户要求审查/修改已有代码**
         - 仔细检查代码中的语法问题、逻辑问题、BUG问题等
@@ -78,9 +78,9 @@ class General_Programming:
         ...
 
         修改后的完整代码：
-        ```{{language}}
+        {{language}}
         {{修改后的完整代码}}
-        ```
+        
 
         修改后的文件下载路径：http://127.0.0.1:5001/download/{{output_filename}}
 
@@ -146,7 +146,7 @@ class General_Programming:
 
                 # 提取代码块内容
                 import re
-                code_match = re.search(r'```(?:\w+)?\n([\s\S]*?)```', content)
+                code_match = re.search(r'(?:\w+)?\n([\s\S]*?)', content)
                 if code_match:
                     modified_code = code_match.group(1).strip()
 

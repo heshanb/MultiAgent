@@ -11,7 +11,7 @@ from settings.Define import PathConfig
 import logging
 
 # 审计日志配置
-AUDIT_LOG_DIR = PathConfig.BASE_DIR / "logs" / "audit"
+AUDIT_LOG_DIR = PathConfig.LOG_DIR / "audit"
 AUDIT_LOG_FILE = AUDIT_LOG_DIR / "audit.log"
 
 # 确保日志目录存在

@@ -20,3 +20,10 @@ templates/bak.html
 
 # 模型权重
 models/
+
+# WebView 客户端本地存储（登录态、历史对话）
+webview_storage/
+
+# 安装相关
+dist/
+build/

@@ -1,11 +1,11 @@
-﻿import json
+import json
 import time
 import threading
 from datetime import datetime
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.orm import Session
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from core.auth.auth import get_current_user
 from core.auth.database import get_db, User, Agent, PublishHistory, CustomTool
@@ -18,6 +18,21 @@ from slowapi.util import get_remote_address
 import pybreaker
 
 logger = get_logger(__name__)
+
+# 官方渠道名称（商店展示与收费标记依赖该常量）
+OFFICIAL_CHANNEL_NAME = "小智官方"
+
+# 渠道名称映射：前端渠道ID -> 平台名称
+CHANNEL_NAME_MAP = {
+    "store": OFFICIAL_CHANNEL_NAME,
+    "wechat": "微信",
+    "wechat_miniapp": "微信小程序",
+    "wechat_official": "微信公众号",
+    "dingtalk": "钉钉",
+    "feishu": "飞书",
+    "web": "Web",
+    "api": "API",
+}
 
 # 懒加载 FlagEmbedding（避免启动时导入卡住）
 _FlagReranker = None
@@ -105,12 +120,23 @@ def _clear_chat_history(session_key: str):
 
 
 def load_reranker():
-    """预加载 reranker 模型（使用线程池并行加载）"""
+    """预加载 reranker 模型（仅当本地已有模型时加载）
+
+    安装版不随包分发模型权重（体积数 GB），且目标机器可能无网络，
+    因此本地无模型时直接跳过，改由实际检索时按需加载，避免阻塞启动。
+    """
     global RERANKER_BASE, RERANKER_LARGE
-    if RERANKER_BASE is None:
-        _get_reranker("bge-reranker-base")
-    if RERANKER_LARGE is None:
-        _get_reranker("bge-reranker-large")
+
+    for model_name, current in (("bge-reranker-base", RERANKER_BASE), ("bge-reranker-large", RERANKER_LARGE)):
+        if current is not None:
+            continue
+        if not (PathConfig.MODEL_DIR / model_name).exists():
+            logger.info(f"本地无 Reranker 模型 {model_name}，跳过预加载（使用时按需加载）")
+            continue
+        try:
+            _get_reranker(model_name)
+        except Exception as e:
+            logger.warning(f"Reranker 预加载失败 {model_name}: {e}")
 
 
 # def _get_reranker(model_name: str):
@@ -130,7 +156,7 @@ def load_reranker():
 #         model_path = model_name
 #         logger.info(f"从 HuggingFace 加载 Reranker 模型: {model_path}")
 #
-#     logger.info(f"🔄 开始加载Reranker模型: {model_name}")
+#     logger.info(f" 开始加载Reranker模型: {model_name}")
 #
 #     import os
 #     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
@@ -141,7 +167,7 @@ def load_reranker():
 #
 #     try:
 #         from sentence_transformers import CrossEncoder
-#         logger.info(f"📦 正在加载模型权重（CPU 模式约需 30-60 秒，请耐心等待...）")
+#         logger.info(f" 正在加载模型权重（CPU 模式约需 30-60 秒，请耐心等待...）")
 #         start_time = time.time()
 #         # 临时禁用 tqdm 进度条，避免输出到 stderr 导致日志混乱
 #         import sys
@@ -155,7 +181,7 @@ def load_reranker():
 #                                      trust_remote_code=True
 #                                      )
 #         load_time = time.time() - start_time
-#         logger.info(f"✅ Reranker模型加载完成: {model_name} (耗时: {load_time:.2f}s)")
+#         logger.info(f" Reranker模型加载完成: {model_name} (耗时: {load_time:.2f}s)")
 #     except Exception as e:
 #         logger.error(f" Reranker模型加载失败: {model_name}, 错误: {e}")
 #         raise
@@ -179,12 +205,15 @@ def _get_reranker(model_name: str):
         model_path = str(local_model_path.as_posix())
         logger.info(f"从本地加载 Reranker 模型: {model_path}")
         use_offline = True
+    elif PathConfig.FROZEN:
+        # 安装版未分发模型权重，禁止联网下载数 GB 权重阻塞请求，直接跳过 rerank
+        raise FileNotFoundError(f"本地缺少 Reranker 模型: {local_model_path}")
     else:
         model_path = model_name
         logger.info(f"从 HuggingFace 加载 Reranker 模型: {model_path}")
         use_offline = False   # 要走下载，不能再设 OFFLINE
 
-    logger.info(f"🔄 开始加载Reranker模型: {model_name}")
+    logger.info(f" 开始加载Reranker模型: {model_name}")
 
     import os
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
@@ -196,7 +225,7 @@ def _get_reranker(model_name: str):
         os.environ.pop("TRANSFORMERS_OFFLINE", None)
 
     try:
-        logger.info(f"📦 正在加载模型权重（CPU 模式约需 10-30 秒，请耐心等待...）")
+        logger.info(f" 正在加载模型权重（CPU 模式约需 10-30 秒，请耐心等待...）")
         start_time = time.time()
         import io
         from contextlib import redirect_stderr
@@ -205,7 +234,7 @@ def _get_reranker(model_name: str):
             reranker = _LightReranker(model_path, max_length=512, device='cpu',
                                       trust_remote_code=True)
         load_time = time.time() - start_time
-        logger.info(f"✅ Reranker模型加载完成: {model_name} (耗时: {load_time:.2f}s)")
+        logger.info(f" Reranker模型加载完成: {model_name} (耗时: {load_time:.2f}s)")
     except Exception as e:
         logger.error(f"Reranker模型加载失败: {model_name}, 错误: {e}")
         raise
@@ -222,7 +251,7 @@ def _tools_to_openai_format(tools: list) -> list:
     """将自定义工具转换为 OpenAI function calling 格式，并增强描述以帮助 LLM 正确判断调用时机"""
     # 工具调用条件规则：明确说明什么场景下应该/不应该调用该工具
     tool_call_rules = {
-        "天气查询": "⚠️ 调用条件：仅当用户明确要求查询天气时调用（如'北京天气怎么样'、'今天下雨吗'）。如果用户只是在对话中提到城市名（如回答'在哪个城市'的问题），不要调用此工具。",
+        "天气查询": "️ 调用条件：仅当用户明确要求查询天气时调用（如'北京天气怎么样'、'今天下雨吗'）。如果用户只是在对话中提到城市名（如回答'在哪个城市'的问题），不要调用此工具。",
     }
     
     # 认证相关参数名（后端自动处理，不需要 LLM 生成）
@@ -415,7 +444,7 @@ class AgentCreate(BaseModel):
     """
     name: str
     description: Optional[str] = None
-    avatar: Optional[str] = "🤖"
+    avatar: Optional[str] = ""
 
 
 class AgentUpdate(BaseModel):
@@ -467,9 +496,30 @@ class AgentResponse(BaseModel):
     temperature: Optional[float] = 0.7
     created_at: datetime
     updated_at: Optional[datetime] = None
+    is_official: bool = False
+    is_free: bool = False
+    source_channel: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+    @model_validator(mode="after")
+    def derive_channel_flags(self):
+        """根据 publish_channels 推导商店展示所需的平台/收费标记"""
+        channel = (self.publish_channels or "").strip()
+        if channel.startswith("["):
+            try:
+                parsed = json.loads(channel)
+                if isinstance(parsed, list) and parsed:
+                    channel = CHANNEL_NAME_MAP.get(parsed[0], parsed[0])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        if not channel:
+            channel = OFFICIAL_CHANNEL_NAME
+        self.is_official = channel == OFFICIAL_CHANNEL_NAME
+        self.is_free = self.is_official
+        self.source_channel = None if self.is_official else channel
+        return self
 
     @field_validator('struct_output', mode='before')
     @classmethod
@@ -777,7 +827,7 @@ def is_query_relevant_to_agent(query: str, agent_name: str, system_prompt: str) 
         if role_keywords and len(query_lower) >= 2:
             # 从用户问题中提取所有 2-4 字的子串
             query_ngrams = set()
-            clean_query = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', '', query_lower)
+            clean_query = re.sub(r'[\u4e00-\u9fa5a-zA-Z0-9]', '', query_lower)
             for i in range(len(clean_query)):
                 for size in range(2, 5):
                     if i + size <= len(clean_query):
@@ -786,7 +836,7 @@ def is_query_relevant_to_agent(query: str, agent_name: str, system_prompt: str) 
             # 从角色关键词中提取所有 2-4 字的子串
             keyword_ngrams = set()
             for kw in role_keywords:
-                clean_kw = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', '', kw.lower())
+                clean_kw = re.sub(r'[\u4e00-\u9fa5a-zA-Z0-9]', '', kw.lower())
                 for i in range(len(clean_kw)):
                     for size in range(2, 5):
                         if i + size <= len(clean_kw):
@@ -1780,7 +1830,7 @@ async def create_agent(
         user_name=current_user.username,
         name=body.name,
         description=body.description,
-        avatar=body.avatar or "🤖",
+        avatar=body.avatar or "",
     )
     db.add(agent)
     db.commit()
@@ -1798,7 +1848,7 @@ async def list_models():
             {"id": "glm", "name": "GLM-5.2 Fast Preview"},
             {"id": "qwen-turbo", "name": "Qwen Turbo"},
             {"id": "qwen-vl-max", "name": "Qwen VL Max"},
-            {"id": "default", "name": "Qwen3.8-Max"},
+            {"id": "default", "name": "Qwen3.8-Flash"},
         ]
     }
 
@@ -1858,10 +1908,10 @@ async def optimize_prompt(
             f"\n\n【知识库强制规则】\n"
             f"用户已为该智能体绑定以下知识库：{kb_names_str}。\n"
             f"你生成的系统提示词中必须遵循以下规则：\n"
-            f"1. 每一处提到\"知识库\"的地方，必须紧跟具体的知识库名称，格式为：知识库`具体名称`\n"
-            f"   例如：将\"结合知识库检索结果\"改为\"结合知识库`{kb_names_for_prompt[0]}`检索结果\"\n"
+            f"1. 每一处提到\"知识库\"的地方，必须紧跟具体的知识库名称，格式为：知识库具体名称\n"
+            f"   例如：将\"结合知识库检索结果\"改为\"结合知识库{kb_names_for_prompt[0]}检索结果\"\n"
             f"2. 每一处提到知识库\"内容\"或\"检索结果\"的地方，必须在后面紧跟 {{{{knowledge_content}}}} 内置变量\n"
-            f"   例如：将\"引用知识库中的内容\"改为\"引用知识库`{kb_names_for_prompt[0]}`中的内容{{{{knowledge_content}}}}\"\n"
+            f"   例如：将\"引用知识库中的内容\"改为\"引用知识库{kb_names_for_prompt[0]}中的内容{{{{knowledge_content}}}}\"\n"
             f"3. 这两条规则不可省略，必须严格执行"
         )
 
@@ -2457,9 +2507,9 @@ async def chat_with_agent(
     
     # 调试日志：打印最终 system_prompt 中是否包含门店地址回复规则
     if "门店地址回复规则" in system_prompt:
-        logger.info(f"[chat_with_agent] ✅ system_prompt 包含门店地址回复规则")
+        logger.info(f"[chat_with_agent]  system_prompt 包含门店地址回复规则")
     else:
-        logger.warning(f"[chat_with_agent] ❌ system_prompt 不包含门店地址回复规则")
+        logger.warning(f"[chat_with_agent]  system_prompt 不包含门店地址回复规则")
     
     # 打印 system_prompt 中知识库内容部分（前500字符）
     kb_idx = system_prompt.find("##【知识库内容与回复规则】")
@@ -2468,9 +2518,9 @@ async def chat_with_agent(
     
     # 调试日志：打印 data.system_prompt 是否为空
     if data.system_prompt:
-        logger.warning(f"[chat_with_agent] ⚠️ 前端传了自定义 system_prompt，长度={len(data.system_prompt)}")
+        logger.warning(f"[chat_with_agent] ️ 前端传了自定义 system_prompt，长度={len(data.system_prompt)}")
     else:
-        logger.info(f"[chat_with_agent] ✅ 前端未传自定义 system_prompt，使用数据库中的")
+        logger.info(f"[chat_with_agent]  前端未传自定义 system_prompt，使用数据库中的")
 
     if data.history and len(data.history) > 0:
         messages = [SystemMessage(content=system_prompt)]
@@ -2485,7 +2535,7 @@ async def chat_with_agent(
                 # 移除"问题类型判断"段落（包括其后的所有内容直到实际答案开始）
                 content = re.sub(r'问题类型判断[：:\s].*?(?=\n\n|\n#|\n\*\*|$)', '', content, flags=re.DOTALL)
                 # 移除"关于'xxx'"段落（引用历史问题）
-                content = re.sub(r'\n\d+\.\s*关于["\'][^"\']+["\'].*?(?=\n\d+\.|\n\n|$)', '', content, flags=re.DOTALL)
+                content = re.sub(r'\n\d+\.\s*关于["\']["\']+["\'].*?(?=\n\d+\.|\n\n|$)', '', content, flags=re.DOTALL)
                 # 移除"正在为您调用xxx工具"等工具调用描述
                 content = re.sub(r'正在为您调用.*?工具.*?(?=\n\n|$)', '', content, flags=re.DOTALL)
                 content = re.sub(r'我将(分别)?调用.*?工具.*?(?=\n\n|$)', '', content, flags=re.DOTALL)
@@ -2801,19 +2851,6 @@ async def delete_conversation(
     return {"ok": True}
 
 
-# 渠道名称映射：前端渠道ID -> 平台名称
-CHANNEL_NAME_MAP = {
-    "store": "小智官方",
-    "wechat": "微信",
-    "wechat_miniapp": "微信小程序",
-    "wechat_official": "微信公众号",
-    "dingtalk": "钉钉",
-    "feishu": "飞书",
-    "web": "Web",
-    "api": "API",
-}
-
-
 class PublishRequest(BaseModel):
     """发布智能体的请求体"""
     version: str
@@ -2835,7 +2872,7 @@ async def publish_agent(
         raise HTTPException(status_code=404, detail="智能体不存在或无权操作")
 
     # 将渠道ID映射为平台名称，取第一个作为主要发布平台
-    platform_name = CHANNEL_NAME_MAP.get(request.channels[0], request.channels[0]) if request.channels else "小智官方"
+    platform_name = CHANNEL_NAME_MAP.get(request.channels[0], request.channels[0]) if request.channels else OFFICIAL_CHANNEL_NAME
     
     # 更新智能体发布状态（publish_channels 存储纯字符串）
     agent.is_published = True

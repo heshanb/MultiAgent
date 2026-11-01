@@ -451,8 +451,8 @@ def get_llm_by_model(model_id: str, temperature: float = 0.0, deep_think: bool =
     # "return_reasoning": True  # 建议同时开启，强制返回完整的推理链内容
     thinking_kwargs =  {"enable_thinking": True, "return_reasoning": True} if deep_think else {}
 
-    if model_id == "qwen3.8-max":
-        model_name = "qwen3.8-max"
+    if model_id == "qwen3.8-flash":
+        model_name = "qwen3.8-flash"
         return OpenAIWrapper(
             model=model_name,
             api_key=os.getenv("DASHSCOPE_API_KEY", ""),
@@ -760,8 +760,8 @@ def _strip_download_url_if_no_modification(content: str) -> str:
         return content
 
     import re as _re
-    content = _re.sub(r'\[下载文档\]\((https?://[^)]+)\)', '', content)
-    content = _re.sub(r'https?://[^\s)\]>,，。！？]+', '', content)
+    content = _re.sub(r'\[下载文档\]\((https?://[)]+)\)', '', content)
+    content = _re.sub(r'https?://[\s)\]>,，。！？]+', '', content)
     content = _re.sub(r'\n{3,}', '\n\n', content)
     return content.strip()
 
@@ -982,7 +982,7 @@ def _create_streaming_node(skill_type: str):
                             if "生成文档：" in content or "已保存到：" in content:
                                 import re as _re_memory
                                 # 匹配 "生成文档：D:\...\xxx.docx" 或 "已保存到：D:\...\xxx.docx"
-                                doc_pattern = r'(?:生成文档：|已保存到：)([^\n\r]+?\.(?:docx|pdf|xlsx|pptx|txt|md|csv))'
+                                doc_pattern = r'(?:生成文档：|已保存到：)([\n\r]+?\.(?:docx|pdf|xlsx|pptx|txt|md|csv))'
                                 matches = _re_memory.findall(doc_pattern, content)
                                 if matches:
                                     file_paths = [match.strip() for match in matches]
@@ -1007,7 +1007,7 @@ def _create_streaming_node(skill_type: str):
                         if "生成文档：" in content or "已保存到：" in content:
                             import re as _re_memory
                             # 匹配 "生成文档：D:\...\xxx.docx" 或 "已保存到：D:\...\xxx.docx"
-                            doc_pattern = r'(?:生成文档：|已保存到：)([^\n\r]+?\.(?:docx|pdf|xlsx|pptx|txt|md|csv))'
+                            doc_pattern = r'(?:生成文档：|已保存到：)([\n\r]+?\.(?:docx|pdf|xlsx|pptx|txt|md|csv))'
                             matches = _re_memory.findall(doc_pattern, content)
                             if matches:
                                 file_paths = [match.strip() for match in matches]
@@ -1095,10 +1095,10 @@ def _create_streaming_node(skill_type: str):
 
                         # 从下载链接中提取 URL 和文件名（支持多种格式）
                         _dl_match = re.search(
-                            r'\[下载.*?文档.*?\]\((https?://[^)]+/([^/)]+\.(?:docx|pdf|txt|xlsx|pptx)))\)', content)
+                            r'\[下载.*?文档.*?\]\((https?://[)]+/([/)]+\.(?:docx|pdf|txt|xlsx|pptx)))\)', content)
                         if not _dl_match:
                             # 尝试更宽松的正则
-                            _dl_match = re.search(r'(https?://[^)]+/([^/)]+\.(?:docx|pdf|txt|xlsx|pptx)))', content)
+                            _dl_match = re.search(r'(https?://[)]+/([/)]+\.(?:docx|pdf|txt|xlsx|pptx)))', content)
 
                         if _dl_match:
                             _download_url = _dl_match.group(1)
@@ -1174,7 +1174,7 @@ def _create_streaming_node(skill_type: str):
                             _fname = Path(_fp).name
                             user_msg_parts.append(f"附件{i + 1}：{_fname}（路径：{_fp}，格式：{_file_ext}）")
                     user_msg_parts.append(
-                        "⚠️ 重要提示：你现在**没有任何一个文件的实际内容**，只有路径。你必须调用工具（比如 read_document_and_answer）才能读取文件内容并回答用户的问题。绝对不要在没调工具的情况下直接回复用户！")
+                        "️ 重要提示：你现在**没有任何一个文件的实际内容**，只有路径。你必须调用工具（比如 read_document_and_answer）才能读取文件内容并回答用户的问题。绝对不要在没调工具的情况下直接回复用户！")
                 user_msg_parts.append(f"用户请求：{clean_user_request}")
 
                 logger.info(f"用户请求：{user_msg_parts}")
@@ -1500,7 +1500,7 @@ def _create_streaming_node(skill_type: str):
 
                     _result_text = str(tool_result)
 
-                    _url_match = re.search(r'\[下载文档\]\((https?://[^)]+)\)', _result_text)
+                    _url_match = re.search(r'\[下载文档\]\((https?://[)]+)\)', _result_text)
                     if _url_match:
                         _final_download_url = _url_match.group(1)
 
@@ -1550,7 +1550,7 @@ def _create_streaming_node(skill_type: str):
 
                 if not _yielded_any:
                     if _final_download_url:
-                        _final_text = f"✅ 文档已处理完成，点击下方链接下载：\n\n [下载处理后的文档]({_final_download_url})"
+                        _final_text = f" 文档已处理完成，点击下方链接下载：\n\n [下载处理后的文档]({_final_download_url})"
                     else:
                         _final_text = _result_text or "工具执行完成，但未返回结果。"
                     if writer:

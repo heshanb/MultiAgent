@@ -17,8 +17,8 @@ content = content.replace(
 
 # 3. 禁用状态栏的错误计数显示
 content = content.replace(
-    "statusRight.innerHTML = `${hasGit ? '<span>Git: master</span>' : ''}${statusHTML}`;",
-    "statusRight.innerHTML = `${hasGit ? '<span>Git: master</span>' : ''}<span>✓ 无错误</span>`;"
+    "statusRight.innerHTML = ${hasGit ? '<span>Git: master</span>' : ''}${statusHTML};",
+    "statusRight.innerHTML = ${hasGit ? '<span>Git: master</span>' : ''}<span> 无错误</span>;"
 )
 
 with open(file_path, 'w', encoding='utf-8') as f:

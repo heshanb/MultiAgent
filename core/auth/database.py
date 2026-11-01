@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Text, BigInteger, JSON, Float
+from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Text, BigInteger, JSON, Float, text
 from sqlalchemy.dialects.mysql import JSON as MySQLJSON
 from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 from sqlalchemy.ext.declarative import declarative_base
@@ -11,15 +11,23 @@ import os
 # 加载环境变量
 load_dotenv()
 
-# 数据库配置 - 临时使用SQLite
+from settings.Define import PathConfig
+
+# 数据库配置
 USE_SQLITE = os.getenv("USE_SQLITE", "true").lower() == "true"
 
+
+def _build_sqlite_engine():
+    """构建SQLite引擎，数据库文件写入用户数据目录（安装目录只读）"""
+    db_path = os.path.join(str(PathConfig.DATA_DIR), 'users.db')
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    url = f"sqlite:///{db_path}"
+    return url, create_engine(url, connect_args={"check_same_thread": False})
+
+
 if USE_SQLITE:
-    # SQLite配置
-    from settings.Define import PathConfig
-    DATABASE_URL = f"sqlite:///{os.path.join(PathConfig.BASE_DIR, 'users.db')}"
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-    print("✅ 使用SQLite数据库（临时方案）")
+    DATABASE_URL, engine = _build_sqlite_engine()
+    print(" 使用SQLite数据库（临时方案）")
 else:
     # MySQL数据库配置
     DB_HOST = os.getenv("DB_HOST", "localhost")
@@ -41,9 +49,25 @@ else:
         max_overflow=20,  # 最大溢出连接数
         pool_recycle=3600,  # 连接回收时间（秒）
         pool_pre_ping=True,  # 连接前检测有效性
-        echo=False  # 生产环境设为False，调试时可设为True
+        echo=False,  # 生产环境设为False，调试时可设为True
+        connect_args={"connect_timeout": 5}  # 避免目标机器无MySQL时长时间阻塞启动
     )
-    print(f"✅ 使用MySQL数据库: {DB_HOST}:{DB_PORT}/{DB_NAME}")
+
+    # 探测MySQL是否可用，不可用时自动降级为SQLite，保证程序仍能启动
+    try:
+        with engine.connect() as _conn:
+            _conn.execute(text("SELECT 1"))
+        print(f" 使用MySQL数据库: {DB_HOST}:{DB_PORT}/{DB_NAME}")
+    except Exception as _mysql_err:
+        print(f" MySQL不可用({type(_mysql_err).__name__})，自动降级为SQLite本地数据库")
+        print(f"   提示: 如需使用MySQL，请先安装并启动MySQL服务，创建数据库 {DB_NAME}")
+        try:
+            engine.dispose()
+        except Exception:
+            pass
+        USE_SQLITE = True
+        DATABASE_URL, engine = _build_sqlite_engine()
+        print(f" 使用SQLite数据库: {DATABASE_URL}")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -71,8 +95,13 @@ class SessionMemory(Base):
     """
     __tablename__ = "session_memories"
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True)
-    thread_id = Column(BigInteger, primary_key=True, index=True, nullable=False)
+    if USE_SQLITE:
+        # SQLite 不支持复合主键自增，改用 thread_id 作为唯一主键
+        id = Column(BigInteger, nullable=True)
+        thread_id = Column(BigInteger, primary_key=True, index=True, nullable=False)
+    else:
+        id = Column(BigInteger, primary_key=True, autoincrement=True)
+        thread_id = Column(BigInteger, primary_key=True, index=True, nullable=False)
     chat_msg = Column(JSON, nullable=True)  # JSON 数组，存储对话历史
     context = Column(JSON, nullable=True)   # JSON 对象，存储元信息（upload_files, output_file 等）
     create_at = Column(DateTime, default=datetime.now())
@@ -87,7 +116,7 @@ class Agent(Base):
     user_name = Column(String(20), nullable=False, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
-    avatar = Column(String(20), nullable=True, default="🤖")
+    avatar = Column(String(20), nullable=True, default="")
     system_prompt = Column(Text, nullable=True)
     model = Column(String(50), nullable=True, default="")
     variables = Column(Text, nullable=True)
@@ -183,16 +212,16 @@ def init_db():
                             "ALTER TABLE users ADD COLUMN phone VARCHAR(20)"
                         ))
                         conn.commit()
-                        print("✅ SQLite 迁移：成功添加 phone 列到 users 表")
+                        print(" SQLite 迁移：成功添加 phone 列到 users 表")
             except Exception as migrate_err:
-                print(f"⚠️  数据库迁移提示: {migrate_err}")
+                print(f"️  数据库迁移提示: {migrate_err}")
                 print("   如需完整迁移，可删除 users.db 让数据库重建")
         if USE_SQLITE:
-            print("✅ SQLite数据库初始化成功")
+            print(" SQLite数据库初始化成功")
         else:
-            print(f"✅ MySQL数据库连接成功: {DB_HOST}:{DB_PORT}/{DB_NAME}")
+            print(f" MySQL数据库连接成功: {DB_HOST}:{DB_PORT}/{DB_NAME}")
     except Exception as e:
-        print(f"❌ 数据库连接失败: {e}")
+        print(f" 数据库连接失败: {e}")
         if USE_SQLITE:
             print("请检查SQLite数据库文件路径是否正确")
         else:
@@ -208,9 +237,9 @@ def _ensure_agents_table():
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
     if not inspector.has_table("agents"):
-        print("📌 检测到 agents 表不存在，正在创建...")
+        print(" 检测到 agents 表不存在，正在创建...")
         Agent.__table__.create(bind=engine, checkfirst=True)
-        print("✅ agents 表创建成功")
+        print(" agents 表创建成功")
     else:
         existing_cols = {c['name'] for c in inspector.get_columns("agents")}
         missing = [c for c in Agent.__table__.columns.keys() if c not in existing_cols]
@@ -221,9 +250,9 @@ def _ensure_agents_table():
                 with engine.connect() as conn:
                     conn.execute(text(f"ALTER TABLE agents ADD COLUMN {col_name} {col_type}"))
                     conn.commit()
-                print(f"📌 agents 表新增列: {col_name} ({col_type})")
+                print(f" agents 表新增列: {col_name} ({col_type})")
             except Exception as e:
-                print(f"⚠️ agents 表新增列 {col_name} 失败: {e}")
+                print(f"️ agents 表新增列 {col_name} 失败: {e}")
 
 
 def _ensure_knowledges_table():
@@ -231,9 +260,9 @@ def _ensure_knowledges_table():
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
     if not inspector.has_table("knowledges"):
-        print("📌 检测到 knowledges 表不存在，正在创建...")
+        print(" 检测到 knowledges 表不存在，正在创建...")
         Knowledge.__table__.create(bind=engine, checkfirst=True)
-        print("✅ knowledges 表创建成功")
+        print(" knowledges 表创建成功")
     else:
         existing_cols = {c['name'] for c in inspector.get_columns("knowledges")}
         missing = [c for c in Knowledge.__table__.columns.keys() if c not in existing_cols]
@@ -246,7 +275,7 @@ def _ensure_knowledges_table():
                     conn.commit()
                 print(f" knowledges 表新增列: {col_name} ({col_type})")
             except Exception as e:
-                print(f"⚠️ knowledges 表新增列 {col_name} 失败: {e}")
+                print(f"️ knowledges 表新增列 {col_name} 失败: {e}")
 
 
 def _ensure_publish_history_table():
@@ -256,7 +285,7 @@ def _ensure_publish_history_table():
     if not inspector.has_table("publish_history"):
         print(" 检测到 publish_history 表不存在，正在创建...")
         PublishHistory.__table__.create(bind=engine, checkfirst=True)
-        print("✅ publish_history 表创建成功")
+        print(" publish_history 表创建成功")
     else:
         existing_cols = {c['name'] for c in inspector.get_columns("publish_history")}
         missing = [c for c in PublishHistory.__table__.columns.keys() if c not in existing_cols]
@@ -269,7 +298,7 @@ def _ensure_publish_history_table():
                     conn.commit()
                 print(f" publish_history 表新增列: {col_name} ({col_type})")
             except Exception as e:
-                print(f"⚠️ publish_history 表新增列 {col_name} 失败: {e}")
+                print(f"️ publish_history 表新增列 {col_name} 失败: {e}")
 
 
 def _ensure_custom_tools_table():
@@ -277,9 +306,9 @@ def _ensure_custom_tools_table():
     from sqlalchemy import inspect, text
     inspector = inspect(engine)
     if not inspector.has_table("custom_tools"):
-        print("📌 检测到 custom_tools 表不存在，正在创建...")
+        print(" 检测到 custom_tools 表不存在，正在创建...")
         CustomTool.__table__.create(bind=engine, checkfirst=True)
-        print("✅ custom_tools 表创建成功")
+        print(" custom_tools 表创建成功")
     else:
         existing_cols = {c['name'] for c in inspector.get_columns("custom_tools")}
         missing = [c for c in CustomTool.__table__.columns.keys() if c not in existing_cols]
@@ -290,9 +319,9 @@ def _ensure_custom_tools_table():
                 with engine.connect() as conn:
                     conn.execute(text(f"ALTER TABLE custom_tools ADD COLUMN {col_name} {col_type}"))
                     conn.commit()
-                print(f"📌 custom_tools 表新增列: {col_name} ({col_type})")
+                print(f" custom_tools 表新增列: {col_name} ({col_type})")
             except Exception as e:
-                print(f"⚠️ custom_tools 表新增列 {col_name} 失败: {e}")
+                print(f"️ custom_tools 表新增列 {col_name} 失败: {e}")
 
 
 def get_db():

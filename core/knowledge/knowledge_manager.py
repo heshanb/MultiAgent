@@ -370,6 +370,24 @@ def convert_vector_score(raw_score: float, vector_store, db_type: str = "chroma"
 _qdrant_client = None
 _qdrant_client_lock = None  # 用于线程安全
 
+# 桌面安装版使用本地嵌入式 Qdrant，避免依赖外部服务
+QDRANT_LOCAL_PATH = str(PathConfig.DATA_DIR / "qdrant_storage")
+QDRANT_EMBEDDED = PathConfig.FROZEN
+
+
+def _is_qdrant_server_available():
+    """检测本地 Qdrant 服务是否可用"""
+    import socket
+    from urllib.parse import urlparse
+
+    parsed = urlparse(QDRANT_URL)
+    try:
+        with socket.create_connection((parsed.hostname, parsed.port or 6333), timeout=2):
+            return True
+    except OSError:
+        return False
+
+
 def _create_qdrant_client(timeout: int = 30):
     """获取 Qdrant 客户端单例（线程安全），默认超时30秒"""
     global _qdrant_client, _qdrant_client_lock
@@ -384,16 +402,50 @@ def _create_qdrant_client(timeout: int = 30):
         with _qdrant_client_lock:
             if _qdrant_client is None:
                 _, _, QdrantClient = _get_qdrant()
-                logger.info(f"创建全局 Qdrant 客户端单例 (timeout={timeout}s)")
-                _qdrant_client = QdrantClient(url=QDRANT_URL, prefer_grpc=False, timeout=timeout)
+                if not QDRANT_EMBEDDED and _is_qdrant_server_available():
+                    logger.info(f"创建全局 Qdrant 客户端单例 (timeout={timeout}s)")
+                    _qdrant_client = QdrantClient(url=QDRANT_URL, prefer_grpc=False, timeout=timeout)
+                else:
+                    os.makedirs(QDRANT_LOCAL_PATH, exist_ok=True)
+                    logger.info(f"使用本地嵌入式 Qdrant: {QDRANT_LOCAL_PATH}")
+                    _qdrant_client = QdrantClient(path=QDRANT_LOCAL_PATH)
     
     return _qdrant_client
 
 
 def _create_temp_qdrant_client(timeout: int = 10):
-    """创建临时 Qdrant 客户端（短超时，用完即关）"""
+    """创建临时 Qdrant 客户端（短超时，用完即关）
+
+    嵌入式模式下同一存储路径只允许一个客户端实例，
+    因此返回一个不可关闭的共享包装，避免调用方 close() 破坏全局单例。
+    """
+    global QDRANT_EMBEDDED
+    if QDRANT_EMBEDDED:
+        return _SharedQdrantClient(_create_qdrant_client(timeout=timeout))
+
     _, _, QdrantClient = _get_qdrant()
-    return QdrantClient(url=QDRANT_URL, prefer_grpc=False, timeout=timeout, check_compatibility=False)
+    if _is_qdrant_server_available():
+        return QdrantClient(url=QDRANT_URL, prefer_grpc=False, timeout=timeout, check_compatibility=False)
+
+    QDRANT_EMBEDDED = True
+    return _SharedQdrantClient(_create_qdrant_client(timeout=timeout))
+
+
+class _SharedQdrantClient:
+    """全局 Qdrant 客户端的共享包装，屏蔽 close() 以保护单例不被销毁"""
+
+    def __init__(self, client):
+        object.__setattr__(self, "_client", client)
+
+    def close(self):
+        pass
+
+    def __getattr__(self, name):
+        return getattr(object.__getattribute__(self, "_client"), name)
+
+    def __setattr__(self, name, value):
+        setattr(object.__getattribute__(self, "_client"), name, value)
+
 
 
 def _get_chroma_persist_dir(username: str) -> str:
@@ -830,9 +882,8 @@ def _get_sparse_embeddings(username: str):
     if username not in _sparse_embeddings_cache:
         from langchain_qdrant import FastEmbedSparse
         SparseTextEmbedding = _get_sparse_embedding()
-        # 使用本地已下载的 BM25 模型，避免 HuggingFace 下载问题
-        # fastembed 期望的目录结构: cache_dir/models--Qdrant--bm25/snapshots/xxx/
-        models_dir = Path(__file__).parent.parent.parent / "models"
+        # 使用随包分发的本地 BM25 模型，避免目标机器联网下载失败
+        models_dir = PathConfig.BASE_DIR / "models" if PathConfig.FROZEN else PathConfig.MODEL_DIR
         sparse = FastEmbedSparse(
             model_name="Qdrant/bm25",
             cache_dir=str(models_dir),
@@ -871,7 +922,7 @@ def _ensure_collection_exists(username: str):
             )
             logger.info(f"已创建 Qdrant 集合: {collection_name} (H, HNSW: M={HNSW_CONFIG['M']}, ef_construct={HNSW_CONFIG['ef_construct']})")
     except Exception as e:
-        logger.warning(f"⚠️ Qdrant 连接失败，跳过集合创建: {str(e)}")
+        logger.warning(f"️ Qdrant 连接失败，跳过集合创建: {str(e)}")
     finally:
         temp_client.close()
 
@@ -899,12 +950,12 @@ def _init_qdrant_collection(client, collection_name: str, vector_size: int):
                     max_indexing_threads=HNSW_CONFIG["max_indexing_threads"],
                 ),
             )
-            logger.info(f"✅ Collection '{collection_name}' 创建成功 (dense_dim={vector_size} + sparse, HNSW: M={HNSW_CONFIG['M']}, ef_construct={HNSW_CONFIG['ef_construct']})")
+            logger.info(f" Collection '{collection_name}' 创建成功 (dense_dim={vector_size} + sparse, HNSW: M={HNSW_CONFIG['M']}, ef_construct={HNSW_CONFIG['ef_construct']})")
         else:
             logger.info(f"ℹ️  Collection '{collection_name}' 已存在，跳过创建")
         return True
     except Exception as e:
-        logger.error(f"❌ Qdrant 不可达，Collection 初始化失败: {str(e)}")
+        logger.error(f" Qdrant 不可达，Collection 初始化失败: {str(e)}")
         return False
     finally:
         temp_client.close()
@@ -1003,7 +1054,7 @@ def clean_document_content(content: str) -> str:
     content = re.sub(r'\t{2,}', '\t', content)
     content = content.strip()
 
-    content = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9\n\r\t。，！？；：、""\'\'（）()【】[]{}《》<>·…—–\-\s]', '', content)
+    content = re.sub(r'[\u4e00-\u9fa5a-zA-Z0-9\n\r\t。，！？；：、""\'\'（）()【】[]{}《》<>·…—–\-\s]', '', content)
 
     content = re.sub(r'([。，！？；：、]){2,}', r'\1', content)
     # 1. 去除 Markdown 分割线 --- 或 ***
@@ -1076,7 +1127,7 @@ def _split_by_qa_pattern(content: str) -> list:
     for line in lines:
         line_stripped = line.strip()
         # 跳过空行和分隔符行（如 | --- | --- |）
-        if not line_stripped or line_stripped.startswith('|---') or re.match(r'^\|[\s\-:|]+\|$', line_stripped):
+        if not line_stripped or line_stripped.startswith('|---') or re.match(r'\|[\s\-:|]+\|$', line_stripped):
             continue
         
         # 检查是否是表头行（包含"问题"或"question"和"答案"或"answer"）
@@ -1141,7 +1192,7 @@ def _split_by_qa_pattern(content: str) -> list:
 
     # 3. 正则匹配文本格式的 QA
     combined_pat = re.compile(
-        r'(?:^|\n)\s*(?:Q|问|问题)\s*[:：]\s*(.+?)\s*\n\s*(?:A|答|答案)\s*[:：]\s*(.+?)(?=\n\s*(?:Q|问|问题|A|答|答案)\s*[:：]|\Z)',
+        r'(?:|\n)\s*(?:Q|问|问题)\s*[:：]\s*(.+?)\s*\n\s*(?:A|答|答案)\s*[:：]\s*(.+?)(?=\n\s*(?:Q|问|问题|A|答|答案)\s*[:：]|\Z)',
         re.DOTALL,
     )
 
@@ -1166,13 +1217,13 @@ def _split_by_qa_pattern(content: str) -> list:
                 current_q = None
                 current_a_lines = []
             continue
-        if re.match(r'^(Q|问|问题)\s*[:：]', stripped):
+        if re.match(r'(Q|问|问题)\s*[:：]', stripped):
             if current_q and current_a_lines:
                 qa_pairs.append("问：{}\n答：{}".format(current_q, ''.join(current_a_lines).strip()))
-            current_q = re.sub(r'^(Q|问|问题)\s*[:：]\s*', '', stripped)
+            current_q = re.sub(r'(Q|问|问题)\s*[:：]\s*', '', stripped)
             current_a_lines = []
-        elif re.match(r'^(A|答|答案)\s*[:：]', stripped) and current_q:
-            current_a_lines.append(re.sub(r'^(A|答|答案)\s*[:：]\s*', '', stripped))
+        elif re.match(r'(A|答|答案)\s*[:：]', stripped) and current_q:
+            current_a_lines.append(re.sub(r'(A|答|答案)\s*[:：]\s*', '', stripped))
         elif current_q:
             current_a_lines.append(line)
     if current_q and current_a_lines:
@@ -1432,7 +1483,7 @@ async def chunk_and_store_document(
                     source = "嵌入模型API"
                 else:
                     source = "向量库(Qdrant/Chroma)"
-                logger.warning(f"⚠️ 向量化失败 (耗时 {embed_elapsed:.2f}s, 来源: {source}): {err_msg}")
+                logger.warning(f"️ 向量化失败 (耗时 {embed_elapsed:.2f}s, 来源: {source}): {err_msg}")
                 # 重新抛出，让调用方（后台任务）知道向量化失败
                 raise
 
@@ -1442,7 +1493,7 @@ async def chunk_and_store_document(
         logger.info(f"文档处理总耗时: {time.time() - start_time:.2f}s")
 
     except Exception as e:
-        logger.warning(f"⚠️ 文档处理失败 (共耗时 {time.time() - start_time:.2f}s): {str(e)}")
+        logger.warning(f"️ 文档处理失败 (共耗时 {time.time() - start_time:.2f}s): {str(e)}")
 
 
 @retry_qdrant()
@@ -1732,7 +1783,7 @@ def _parse_separators(separators_raw: str) -> list:
     字面量转义符 \\n \\t \\r 会被还原为真实控制字符。
     返回分隔符列表。
     
-    注意：自动移除不适合作为分隔符的 `\n`（单换行），因为它会切断句子。
+    注意：自动移除不适合作为分隔符的 \n（单换行），因为它会切断句子。
     """
     if not separators_raw:
         return Params.SEPARATORS
@@ -2568,7 +2619,7 @@ async def update_document_settings(
                     )
                     logger.info(f"后台向量化完成: 用户 {current_user.username} 知识库 {kb_id} 文档 {doc_id}")
                 except Exception as e:
-                    logger.warning(f"⚠️ 后台向量化失败（文档 {doc_id} 实际未生成向量，请排查嵌入模型API或向量库后重试）: {str(e)}")
+                    logger.warning(f"️ 后台向量化失败（文档 {doc_id} 实际未生成向量，请排查嵌入模型API或向量库后重试）: {str(e)}")
             
             # 启动后台任务，不等待完成
             import asyncio
@@ -3184,31 +3235,31 @@ def preload_knowledge_components():
     """预加载知识库核心组件，避免首次请求时的长延迟"""
     try:
         start = time.time()
-        logger.info("🔄 开始预加载知识库组件...")
+        logger.info(" 开始预加载知识库组件...")
 
         # 1. 预加载 Qdrant 客户端
         if EMBEDDING_DATABASE == "qdrant":
             _create_qdrant_client()
-            logger.info("  ✅ Qdrant 客户端已预加载")
+            logger.info("   Qdrant 客户端已预加载")
 
         # 2. 预加载 Dense Embeddings（为所有已存在用户预加载默认模型）
         users = get_all_users()
         if users:
             for user in users:
                 _get_dense_embeddings(user, Params.DEFAULT_EMBEDDING_MODEL)
-                logger.info(f"✅ Dense Embeddings 已预加载 ({user}, 模型: {Params.DEFAULT_EMBEDDING_MODEL})")
+                logger.info(f" Dense Embeddings 已预加载 ({user}, 模型: {Params.DEFAULT_EMBEDDING_MODEL})")
                 # 3. 预加载 Sparse Embeddings (BM25)
                 _get_sparse_embeddings(user)
-                logger.info(f"✅ Sparse Embeddings (BM25) 已预加载 ({user})")
+                logger.info(f" Sparse Embeddings (BM25) 已预加载 ({user})")
 
         else:
             # 无用户时预加载一个通用实例
             _get_dense_embeddings("default", Params.DEFAULT_EMBEDDING_MODEL)
-            logger.info(f"✅ Dense Embeddings 已预加载 (通用实例, 模型: {Params.DEFAULT_EMBEDDING_MODEL})")
+            logger.info(f" Dense Embeddings 已预加载 (通用实例, 模型: {Params.DEFAULT_EMBEDDING_MODEL})")
             _get_sparse_embeddings("default")
-            logger.info("✅ Sparse Embeddings (BM25) 已预加载")
+            logger.info(" Sparse Embeddings (BM25) 已预加载")
 
         elapsed = time.time() - start
-        logger.info(f"✅ 知识库组件预加载完成 (耗时: {elapsed:.2f}s)")
+        logger.info(f" 知识库组件预加载完成 (耗时: {elapsed:.2f}s)")
     except Exception as e:
         logger.warning(f"知识库组件预加载失败（将延迟到首次请求时加载）: {e}")

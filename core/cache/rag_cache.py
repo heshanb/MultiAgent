@@ -37,7 +37,7 @@ class RAGCache:
         self._redis_client = None
         self._index_created = False
 
-    # ─────────── Redis 连接 ───────────
+    #  Redis 连接 
     @property
     def client(self):
         if self._redis_client is None:
@@ -62,7 +62,7 @@ class RAGCache:
     def _available(self) -> bool:
         return self.client is not None
 
-    # ─────────── 查询归一化 ───────────
+    #  查询归一化 
     @staticmethod
     def _normalize(query: str) -> str:
         q = query.strip().lower()

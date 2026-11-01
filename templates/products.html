@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小智 - 产品下载</title>
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* 顶部导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 60px;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .logo-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            line-height: 1;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-menu a {
+            text-decoration: none;
+            color: #555;
+            font-size: 15px;
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .lang-selector {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            color: #555;
+        }
+
+        /* 页面标题区域 */
+        .page-header {
+            margin-top: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 45px 60px;
+            text-align: center;
+            color: white;
+        }
+
+        .page-header h1 {
+            font-size: 38px;
+            margin-bottom: 10px;
+        }
+
+        .page-header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* 在线使用按钮区域 */
+        .online-use-section {
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        .online-use-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: white;
+            color: #667eea;
+            padding: 13px 34px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .online-use-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            background: #f8f9ff;
+        }
+
+        .online-use-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .online-use-desc {
+            margin-top: 10px;
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        /* 下载区域 */
+        .download-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 60px 70px;
+        }
+
+        .download-title {
+            font-size: 34px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 14px;
+        }
+
+        .download-desc {
+            font-size: 15px;
+            color: #666;
+            margin-bottom: 45px;
+        }
+
+        .platform-group {
+            margin-bottom: 40px;
+        }
+
+        .platform-title {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            font-size: 17px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+        }
+
+        .platform-title svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .release-name {
+            font-size: 15px;
+            color: #444;
+            margin-bottom: 20px;
+        }
+
+        .slot-label {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 9px;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 132px;
+            padding: 9px 20px;
+            background: white;
+            color: #2b8fd9;
+            border: 1px solid #2b8fd9;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1.4;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .download-btn:hover {
+            background: #2b8fd9;
+            color: white;
+        }
+
+        .download-btn:disabled {
+            background: #f5f5f5;
+            color: #b0b0b0;
+            border-color: #dcdcdc;
+            cursor: not-allowed;
+        }
+
+        .download-btn:disabled:hover {
+            background: #f5f5f5;
+            color: #b0b0b0;
+        }
+
+        .download-btn .btn-arch {
+            font-size: 13px;
+        }
+
+        /* 运行依赖提示 */
+        .dep-hint {
+            margin-top: 22px;
+            max-width: 540px;
+            padding: 16px 18px;
+            background: #f8fbff;
+            border: 1px solid #dbe9f7;
+            border-left: 3px solid #2b8fd9;
+            border-radius: 4px;
+        }
+
+        .dep-hint-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .dep-hint-desc {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+
+        .dep-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .dep-item {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px;
+            font-size: 13px;
+            color: #555;
+            padding: 7px 0;
+            border-top: 1px dashed #e6eef8;
+        }
+
+        .dep-item:first-child {
+            border-top: none;
+        }
+
+        .dep-name {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .dep-tag {
+            font-size: 12px;
+            color: #2b8fd9;
+            background: #eaf4fe;
+            border-radius: 3px;
+            padding: 1px 6px;
+            white-space: nowrap;
+        }
+
+        .dep-tag.optional {
+            color: #8a8a8a;
+            background: #f0f0f0;
+        }
+
+        .dep-link {
+            color: #2b8fd9;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .dep-link:hover {
+            text-decoration: underline;
+        }
+
+        /* 底部 */
+        .footer {
+            background: #f2f2f2;
+            color: #333;
+            padding: 50px 60px 30px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+        }
+
+        .footer-brand .logo-text {
+            color: #1a1a1a;
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .footer-brand p {
+            color: #777;
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .footer-links h4 {
+            font-size: 15px;
+            margin-bottom: 18px;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .footer-links a {
+            display: block;
+            color: #777;
+            text-decoration: none;
+            margin-bottom: 10px;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .footer-links a:hover {
+            color: #2b8fd9;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 40px auto 0;
+            padding-top: 25px;
+            border-top: 1px solid #ddd;
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0 20px;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
+            .page-header {
+                padding: 32px 20px;
+            }
+
+            .page-header h1 {
+                font-size: 28px;
+            }
+
+            .download-section {
+                padding: 30px 20px;
+            }
+
+            .download-title {
+                font-size: 26px;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <a href="/" class="logo">
+                <div class="logo-icon">✨</div>
+                <span class="logo-text">小智</span>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="/">主页</a></li>
+                <li><a href="/products" class="active">产品</a></li>
+                <li><a href="/company/aboutus">关于我们</a></li>
+            </ul>
+        </div>
+        <div class="navbar-right">
+            <span class="lang-selector">🌐 CN</span>
+        </div>
+    </nav>
+
+    <!-- 页面标题 -->
+    <section class="page-header">
+        <h1>产品下载</h1>
+        <p>选择适合您的版本，开始使用小智 AI 助手</p>
+        
+        <!-- 在线使用按钮 -->
+        <div class="online-use-section">
+            <a href="/products/online" class="online-use-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polygon points="10 8 16 12 10 16 10 8"/>
+                </svg>
+                <span>在线使用</span>
+            </a>
+            <p class="online-use-desc">无需下载，直接在浏览器中使用小智 AI 助手</p>
+        </div>
+    </section>
+
+    <!-- 下载区域 -->
+    <section class="download-section">
+        <h2 class="download-title">下载试用</h2>
+        <p class="download-desc">我们提供 30 天全功能 <span data-release="display_name">Sageon</span> 试用版。</p>
+
+        <div class="platform-group">
+            <div class="platform-title">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="12" rx="1.5"/>
+                    <path d="M8 20h8"/>
+                    <path d="M12 16v4"/>
+                </svg>
+                <span>Windows</span>
+            </div>
+            <div class="release-name" data-release="display_name">Sageon</div>
+
+            <div class="download-slot">
+                <div class="slot-label">（位置）</div>
+                <button class="download-btn" data-download-key="windows-x64">
+                    <span>直接下载</span>
+                    <span class="btn-arch">(<span data-release-arch="windows-x64">64 bit</span>)</span>
+                </button>
+            </div>
+
+            <div class="dep-hint">
+                <div class="dep-hint-title">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#2b8fd9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 11v5"/>
+                        <path d="M12 8h.01"/>
+                    </svg>
+                    <span>安装前请确认以下运行依赖</span>
+                </div>
+                <div class="dep-hint-desc">下载安装包后，请先完成以下组件的安装，再运行 Sageon 主程序。</div>
+                <ul class="dep-list">
+                    <li class="dep-item">
+                        <span class="dep-name">MySQL Server 8.0</span>
+                        <span class="dep-tag">必需</span>
+                        <span>数据库服务，安装时请设置 root 密码并保持默认端口 3306</span>
+                        <a class="dep-link" href="https://dev.mysql.com/downloads/installer/" target="_blank" rel="noopener">下载页面</a>
+                    </li>
+                    <li class="dep-item">
+                        <span class="dep-name">Tesseract-OCR</span>
+                        <span class="dep-tag optional">可选</span>
+                        <span>PDF/图片文字识别，需勾选中文语言包 chi_sim</span>
+                        <a class="dep-link" href="https://github.com/UB-Mannheim/tesseract/wiki" target="_blank" rel="noopener">下载页面</a>
+                    </li>
+                    <li class="dep-item">
+                        <span class="dep-name">Poppler for Windows</span>
+                        <span class="dep-tag optional">可选</span>
+                        <span>PDF 转图片，供 OCR 使用</span>
+                        <a class="dep-link" href="https://github.com/oschwartz10612/poppler-windows/releases" target="_blank" rel="noopener">下载页面</a>
+                    </li>
+                    <li class="dep-item">
+                        <span class="dep-name">Visual C++ 运行库</span>
+                        <span class="dep-tag optional">可选</span>
+                        <span>部分本地模型组件需要</span>
+                        <a class="dep-link" href="https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist" target="_blank" rel="noopener">下载页面</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="platform-group">
+            <div class="platform-title">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="2.5" y="4" width="19" height="13" rx="1.5"/>
+                    <path d="M2.5 16.5h19"/>
+                </svg>
+                <span>其他平台</span>
+            </div>
+            <button class="download-btn" disabled>macOS</button>
+            <button class="download-btn" disabled>Linux</button>
+        </div>
+    </section>
+
+    <!-- 底部 -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <div class="logo-text"> 小智</div>
+                <p>智能、高效、专业的 AI 办公助手<br>让 AI 赋能每一个工作流程</p>
+            </div>
+            <div class="footer-links">
+                <h4>产品</h4>
+                <a href="/products">桌面版</a>
+                <a href="/products">在线版</a>
+                <a href="/products">API 服务</a>
+            </div>
+            <div class="footer-links">
+                <h4>支持</h4>
+                <a href="#">帮助中心</a>
+                <a href="#">技术文档</a>
+                <a href="#">联系我们</a>
+            </div>
+            <div class="footer-links">
+                <h4>公司</h4>
+                <a href="/company/aboutus">关于我们</a>
+                <a href="#">加入我们</a>
+                <a href="#">新闻动态</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2026 小智 AI 助手. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        let releaseInfo = null;
+
+        function downloadVersion(version) {
+            const platform = releaseInfo && releaseInfo.platforms
+                ? Object.values(releaseInfo.platforms).find(p => p.artifacts && p.artifacts[version])
+                : null;
+
+            if (platform) {
+                window.location.href = '/api/download/' + version;
+            } else {
+                alert('该版本暂未提供下载');
+            }
+        }
+
+        function applyReleaseInfo(info) {
+            releaseInfo = info;
+
+            document.querySelectorAll('[data-release]').forEach(el => {
+                const value = info[el.dataset.release];
+                if (value) {
+                    el.textContent = value;
+                }
+            });
+
+            document.querySelectorAll('[data-release-arch]').forEach(el => {
+                const key = el.dataset.releaseArch;
+                const platform = Object.values(info.platforms || {})
+                    .find(p => p.artifacts && p.artifacts[key]);
+                if (platform && platform.arch) {
+                    el.textContent = platform.arch;
+                }
+            });
+
+            document.querySelectorAll('[data-download-key]').forEach(el => {
+                const key = el.dataset.downloadKey;
+                el.onclick = () => downloadVersion(key);
+            });
+        }
+
+        fetch('/api/release')
+            .then(res => res.ok ? res.json() : Promise.reject(res.status))
+            .then(applyReleaseInfo)
+            .catch(err => console.warn('版本信息加载失败:', err));
+    </script>
+</body>
+</html>
